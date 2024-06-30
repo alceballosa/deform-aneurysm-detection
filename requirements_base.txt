@@ -1,0 +1,23 @@
+numpy
+SimpleITK
+tabulate
+pandas
+scipy
+scikit-image
+nibabel
+jupyter
+einops
+scikit-learn
+torch-tb-profiler
+transformers
+pytorch-lightning
+datasets
+edt
+torchio
+bitsandbytes
+opencv-python
+matplotlib
+seaborn
+ipykernel
+termcolor
+# python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'

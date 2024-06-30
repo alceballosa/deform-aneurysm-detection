@@ -1,0 +1,37 @@
+_BASE_: deform_base_crop_vessel.yaml
+
+SEED: 2000
+
+MODEL:
+  META_ARCHITECTURE: "PARQ_Deformable_R"
+  USE_VESSEL_INFO: "pos_emb" # "start", "pos_emb", "no"
+  DEFORMABLE:
+    DECODER_ONLY: True
+    WITH_RECURRENCE: False
+    SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+SOLVER:
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 8
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
+TEST:
+  PATCHES_PER_ITER: 48 #  24 = ~12GB # 18:57:53 started on march 5
+
+DATALOADER:
+  NUM_WORKERS: 4
+DATA:
+  PATCH_SIZE: [64, 64, 64]
+  OVERLAP: [32, 32, 32]
+  N_CHANNELS: 1
+  DIR:
+    VAL:
+      SCAN_DIR: "/workspace/inputs/scans"
+      VESSEL_DIR: "/workspace/inputs/vessel_edt_v2"
+
+POSTPROCESS:
+  ANNOTATION_DIR: "/work/vig/Datasets/aneurysm/hospital/crop_0.4_label"
+  CHECKPOINT: "0065999"
+  THRESHOLD: 0.8

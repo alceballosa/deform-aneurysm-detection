@@ -1,0 +1,44 @@
+SEED: 1000
+OUTPUT_DIR: "/workspace/cta-det2/outputs"
+
+DATASETS:
+  TRAIN: ("cta_train",)
+  TEST: ("cta_val",)
+
+DATA:
+  DIR:
+    TRAIN:
+      # SCAN_DIR: "/work/vig/Datasets/aneurysm/internal_train/og_0.4"
+      # ANNOTATION_FILE: "/work/vig/Datasets/aneurysm/train0.4.csv"
+      SCAN_DIR: "/work/vig/Datasets/aneurysm/internal_train/crop_0.4"
+      ANNOTATION_FILE: "/home/ceballosarroyo.a/workspace/medical/cta-det2/labels/gt/internal_train_crop_0.4.csv"
+      VESSEL_DIR: ""
+
+    VAL:
+      SCAN_DIR: "/work/vig/Datasets/aneurysm/internal_test/crop_0.4"
+      ANNOTATION_FILE: "/home/ceballosarroyo.a/workspace/medical/cta-det2/labels/gt/internal_test_crop_0.4.csv"
+      VESSEL_DIR: ""
+
+DATALOADER:
+  NUM_WORKERS: 8
+
+CUSTOM:
+  TRACKING_GRADIENT_NORM: true
+
+SOLVER:
+  STEPS: []
+  AMP:
+    ENABLED: True
+  MAX_ITER: 50000
+  BASE_LR: 0.0001
+  MIN_LR: 0.00001
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 8
+  CHECKPOINT_PERIOD: 2000
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "norm"
+    CLIP_VALUE: 5.0
+
+TEST:
+  PATCHES_PER_ITER: 128

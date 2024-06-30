@@ -1,0 +1,13 @@
+_BASE_: decoder_only_no_rec_pe_edt_v1.yaml
+
+TEST:
+  PATCHES_PER_ITER: 48 #  24 = ~12GB
+  NMS_TOPK: 40
+
+DATALOADER:
+  NUM_WORKERS: 8
+DATA:
+  DIR:
+    VAL:
+      SCAN_DIR: "/work/vig/Datasets/aneurysm/external/crop_0.4"
+      VESSEL_DIR: "/work/vig/Datasets/aneurysm/external/crop_0.4_vessel_edt"
