@@ -1,7 +1,8 @@
 #!/bin/bash
 
+conda activate cta2
+
 cd /workspace/deform-aneurysm-detection
-git pull
 export PYTHONPATH=$(pwd):$PYTHONPATH
 CUDA_VISIBLE_DEVICES=0 python src/train_net.py\
     --num-gpus 1\

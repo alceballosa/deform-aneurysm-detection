@@ -10,3 +10,10 @@ RUN git clone https://github.com/alceballosa/deform-aneurysm-detection && \
     python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
 
+RUN pip uninstall -y $(pip list --format=freeze | grep opencv)
+RUN rm -rf /usr/local/lib/python3.10/dist-packages/cv2/
+RUN pip install opencv-python-headless
+
+
+
+

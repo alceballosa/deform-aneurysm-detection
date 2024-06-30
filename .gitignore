@@ -13,3 +13,4 @@ weights/*
 *.pickle
 .cache
 *.nii.gz
+inputs/
