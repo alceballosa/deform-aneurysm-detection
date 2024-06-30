@@ -9,15 +9,12 @@ Weights and sample files can be downloaded from: WIP
 This guide assumes that CUDA 12.1 is installed and properly added to PATH variables.
 
 ```bash
-conda create --name=cta python=3.9
+conda create --name=cta python=3.10
 conda activate cta
 pip install -r requirements_torch.txt
 pip install -r requirements_base.txt
 python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
-pip uninstall -y $(pip list --format=freeze | grep opencv)
-rm -rf /usr/local/lib/python3.10/dist-packages/cv2/
-pip install opencv-python-headless
-
+pip install opencv-python==4.8.0.76
 ```
 
 ## Inference (non-Docker)
