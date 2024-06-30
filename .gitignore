@@ -1,1 +1,15 @@
 outputs/
+*__pycache__*
+.vscode*
+output/
+logs/
+*.pth
+outputs/
+*.out
+*.pkl
+weights/*
+.old
+.prev
+*.pickle
+.cache
+*.nii.gz

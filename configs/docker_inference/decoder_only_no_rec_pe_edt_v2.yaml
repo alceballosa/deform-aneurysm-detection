@@ -32,6 +32,5 @@ DATA:
       VESSEL_DIR: "/workspace/inputs/vessel_edt_v2"
 
 POSTPROCESS:
-  ANNOTATION_DIR: "/work/vig/Datasets/aneurysm/hospital/crop_0.4_label"
   CHECKPOINT: "0065999"
   THRESHOLD: 0.8
