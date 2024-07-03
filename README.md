@@ -19,7 +19,22 @@ pip install opencv-python==4.8.0.76
 
 ## Inference (non-Docker)
 
-WIP
+```bash
+MODEL_NAME=decoder_only_no_rec_pe_edt_v2
+CHECKPOINT_NAME="0065999"
+SCAN_DIR="/workspace/inputs/scans"
+VESSEL_DIR="/workspace/inputs/vessel_edt_v2"
+./run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME DATA.DIR.VAL.SCAN_DIR $SCAN_DIR DATA.DIR.VAL.VESSEL_DIR $VESSEL_DIR 
+```
+DATA:
+  PATCH_SIZE: [64, 64, 64]
+  OVERLAP: [32, 32, 32]
+  N_CHANNELS: 1
+  DIR:
+    VAL:
+      SCAN_DIR: "/workspace/inputs/scans"
+      VESSEL_DIR: "/workspace/inputs/vessel_edt_v2"
+
 
 ## Docker image for inference
 
@@ -47,3 +62,6 @@ MODEL_NAME=decoder_only_no_rec_pe_edt_v2
 CHECKPOINT_NAME="0065999"
 sudo docker run --gpus all -it --rm -v  $PATH_INPUTS:/workspace/inputs -v $PATH_OUTPUTS:/workspace/deform-aneurysm-detection/outputs  --shm-size=32g --ulimit memlock=-1 alceballosa/cta-det:latest  ./deform-aneurysm-detection/run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME
 ```
+
+
+
