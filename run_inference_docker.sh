@@ -14,7 +14,7 @@ CUDA_VISIBLE_DEVICES=0 python src/train_net.py\
 
 
 
-python src/postprocess/csv_to_nifti.py --config-file "./configs/docker_inference/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD "$3" OUTPUT_DIR $6
+python src/postprocess/csv_to_nifti.py --config-file "./configs/docker_inference/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD "$3" OUTPUT_DIR $6 DATA.DIR.VAL.SCAN_DIR "$4"
 
 # docker command
 
