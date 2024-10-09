@@ -1,5 +1,7 @@
 # Vessel-aware aneurysm detection using multi-scale deformable 3D attention
 
+![Figure describing the model](diagram.png)
+
 Paper URL: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
 Vessel segmentation docker image can be downloaded from: https://drive.google.com/file/d/1qa91P423Sp5fMqUUoMxBGV0EUEAQirBC/view 
