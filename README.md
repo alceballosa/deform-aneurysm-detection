@@ -4,7 +4,7 @@ Paper URL: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
 Vessel segmentation docker image can be downloaded from: https://drive.google.com/file/d/1qa91P423Sp5fMqUUoMxBGV0EUEAQirBC/view 
 
-Weights can be downloaded from the following link:
+Weights can be downloaded from the following link: https://drive.google.com/file/d/1-5gOZEcdJ14Ght1hSZGSKsAyPLFT-y8o/view?usp=sharing
 
 After doing so, create the following folders under the repository folder:
 
