@@ -1,8 +1,16 @@
 # Vessel-aware aneurysm detection using multi-scale deformable 3D attention
 
-Work accepted to MICCAI 2024.
+Paper URL: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
-Weights and sample files can be downloaded from: WIP
+Vessel segmentation docker image can be downloaded from: https://drive.google.com/file/d/1qa91P423Sp5fMqUUoMxBGV0EUEAQirBC/view 
+
+Weights can be downloaded from the following link:
+
+After doing so, create the following folders under the repository folder:
+
+`models/decoder_only_no_rec_pe_edt/`
+
+And place the weights file inside.
 
 ## Environment setup (non-Docker)
 
@@ -17,51 +25,24 @@ python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 pip install opencv-python==4.8.0.76
 ```
 
-## Inference (non-Docker)
+## Vessel segmentation + EDT generation
 
+First, run the provided Docker image as follows to get the vessel segmentations:
+```
+sudo docker run --gpus all -it --rm -v [PATH_TO_SEGM_OUTPUTS]/:/Data/aneurysmDetection/output_path/  -v [PATH_TO_SCANS]/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 1 -g 1"
+```
+
+Then, run the following notebook making sure to define the relevant paths: `notebooks/scan_processing/get_distance_maps.ipynb`, saving the outputs to [PATH_TO_VESSEL_DISTANCE_MAPS].
+
+
+
+## Inference
+Finally, run inference as follows:
 ```bash
-MODEL_NAME=decoder_only_no_rec_pe_edt_v2
-CHECKPOINT_NAME="0065999"
-SCAN_DIR="/workspace/inputs/scans"
-VESSEL_DIR="/workspace/inputs/vessel_edt_v2"
+MODEL_NAME=decoder_only_no_rec_pe_edt
+CHECKPOINT_NAME="final"
+SCAN_DIR="[PATH_TO_SCANS]"
+VESSEL_DIR="[PATH_TO_VESSEL_DISTANCE_MAPS]"
 ./run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME DATA.DIR.VAL.SCAN_DIR $SCAN_DIR DATA.DIR.VAL.VESSEL_DIR $VESSEL_DIR 
 ```
-DATA:
-  PATCH_SIZE: [64, 64, 64]
-  OVERLAP: [32, 32, 32]
-  N_CHANNELS: 1
-  DIR:
-    VAL:
-      SCAN_DIR: "/workspace/inputs/scans"
-      VESSEL_DIR: "/workspace/inputs/vessel_edt_v2"
-
-
-## Docker image for inference
-
-1. Get vessel segmentation maps by using the segmentation Docker image and then running the relevant notebook.
-2. Create the following file structure:
-    1. inputs
-        1. scans
-        2. vessel_edt_v2
-        3. models
-            1. model_name
-
-Build the docker image as follows:
-
-```bash
-chmod +x ./docker/build_container.sh
-./docker/build_container.sh
-```
-
-And run inference as follows (change variables as required):
-
-```bash
-PATH_INPUTS=./inputs/
-PATH_OUTPUTS=./outputs/
-MODEL_NAME=decoder_only_no_rec_pe_edt_v2
-CHECKPOINT_NAME="0065999"
-sudo docker run --gpus all -it --rm -v  $PATH_INPUTS:/workspace/inputs -v $PATH_OUTPUTS:/workspace/deform-aneurysm-detection/outputs  --shm-size=32g --ulimit memlock=-1 alceballosa/cta-det:latest  ./deform-aneurysm-detection/run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME
-```
-
-
 
