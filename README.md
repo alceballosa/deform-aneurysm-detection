@@ -26,14 +26,6 @@ SCAN_DIR="/workspace/inputs/scans"
 VESSEL_DIR="/workspace/inputs/vessel_edt_v2"
 ./run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME DATA.DIR.VAL.SCAN_DIR $SCAN_DIR DATA.DIR.VAL.VESSEL_DIR $VESSEL_DIR 
 ```
-DATA:
-  PATCH_SIZE: [64, 64, 64]
-  OVERLAP: [32, 32, 32]
-  N_CHANNELS: 1
-  DIR:
-    VAL:
-      SCAN_DIR: "/workspace/inputs/scans"
-      VESSEL_DIR: "/workspace/inputs/vessel_edt_v2"
 
 
 ## Docker image for inference
