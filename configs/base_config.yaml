@@ -1,5 +1,5 @@
 SEED: 1000
-OUTPUT_DIR: "/home/ceballosarroyo.a/workspace/medical/cta-det2/outputs"
+OUTPUT_DIR: "./outputs"
 
 DATASETS:
   TRAIN: ("cta_train",)
@@ -11,7 +11,7 @@ DATA:
       # SCAN_DIR: "/work/vig/Datasets/aneurysm/internal_train/og_0.4"
       # ANNOTATION_FILE: "/work/vig/Datasets/aneurysm/train0.4.csv"
       SCAN_DIR: "/work/vig/Datasets/aneurysm/internal_train/crop_0.4"
-      ANNOTATION_FILE: "/home/ceballosarroyo.a/workspace/medical/cta-det2/labels/gt/internal_train_crop_0.4.csv"
+      ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
       VESSEL_DIR: ""
 
     VAL:

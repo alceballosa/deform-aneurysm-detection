@@ -6,7 +6,14 @@ Weights and sample files can be downloaded from: WIP
 
 ## Environment setup (non-Docker)
 
-This guide assumes that CUDA 12.1 is installed and properly added to PATH variables.
+Install CUDA toolkit 12.1.0 as follows or use an existing installation:
+
+```bash
+wget https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run
+sudo sh cuda_12.1.0_530.30.02_linux.run
+```
+
+Then install the following dependencies:
 
 ```bash
 conda create --name=cta python=3.10
