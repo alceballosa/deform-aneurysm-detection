@@ -27,7 +27,7 @@ if __name__ == "__main__":
         # get spacing
         spacing = nifti_label_header.GetSpacing()
         # get shape of array in nifti_label_header
-        shape_x, shape_y, shape_z = nifti_label_header.GetSize()
+        shape_y, shape_x, shape_z = nifti_label_header.GetSize()
         pred_mask = np.zeros((shape_z, shape_x, shape_y)).astype(np.uint8)
         df_outputs_scan = df_outputs[df_outputs["seriesuid"] == file.name]
         df_outputs_scan = df_outputs_scan[df_outputs_scan["probability"] > threshold]
