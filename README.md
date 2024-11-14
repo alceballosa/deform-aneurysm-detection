@@ -66,7 +66,6 @@ Note: we define threshold to be the same as used in our paper but feel free to c
 ```bash
 
 export path_base="[ROOT_FOLDER]"
-export path_base="/data/aneurysm/test"
 export path_scans="${path_base}/crop_0.4"
 export path_edt="${path_base}/crop_0.4_vessel_edt"
 export path_outputs="${path_base}/predictions"
