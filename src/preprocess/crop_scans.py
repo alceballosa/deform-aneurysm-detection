@@ -31,7 +31,7 @@ if __name__ == "__main__":
     path_target = Path(sys.argv[2])
     path_target.mkdir(exist_ok=True, parents=True)
     files = sorted(list(path_files.glob("*")))
-    num_workers = 8
+    num_workers = 8 if len(files) > 8 else len(files)
     executor = Parallel(
         n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=1
     )

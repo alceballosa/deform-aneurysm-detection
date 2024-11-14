@@ -47,8 +47,6 @@ def resample(
 def process(path_im, path_mask):
     image = sitk.ReadImage(path_im)
     tgt_path_im = Path(str(path_im.parent) + "_0.4") / path_im.name
-    print(path_im)
-    print(tgt_path_im)
     if path_mask:
         mask = sitk.ReadImage(path_mask)
         tgt_path_mask = Path(str(path_mask.parent) + "_0.4") / path_mask.name
@@ -95,10 +93,9 @@ if __name__ == "__main__":
         mask_files = [None] * len(im_files)
     else:
         mask_files = sorted(list(mask_dir.glob("*")))
-
-    num_workers = 8
+    num_workers = 8 if len(im_files) > 8 else len(im_files)
     executor = Parallel(
-        n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=1
+        n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=2
     )
     do = delayed(process)
     tasks = (do(im_f, mask_f) for im_f, mask_f in zip(im_files, mask_files))

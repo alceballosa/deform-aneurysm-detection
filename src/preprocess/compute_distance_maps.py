@@ -19,9 +19,8 @@ import tqdm
 if __name__ == "__main__":
     vessel_dir = sys.argv[1]
     target_dir = sys.argv[2]
-    threshold = float(sys.argv[3])
     try:
-        threads = int(sys.argv[4])
+        threads = int(sys.argv[3])
     except IndexError:
         threads = 8
     os.makedirs(target_dir, exist_ok=True)
@@ -30,7 +29,7 @@ if __name__ == "__main__":
         scan_seriesuid = file.split("/")[-1]
         im_header = sitk.ReadImage(file)
         im = sitk.GetArrayFromImage(im_header)
-        im = (im > threshold).astype(np.uint8)
+        # im = (im > threshold).astype(np.uint8)
         im_dist = edt.sdf(im, black_border=False, parallel=threads)
         im_dist_header = sitk.GetImageFromArray(im_dist)
         im_dist_header.CopyInformation(im_header)

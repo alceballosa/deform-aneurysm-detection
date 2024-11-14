@@ -6,9 +6,11 @@ Paper URL: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
 Vessel segmentation docker image can be downloaded from: https://drive.google.com/file/d/1qa91P423Sp5fMqUUoMxBGV0EUEAQirBC/view 
 
+You then can run ```docker load -i vessel_seg.tar``` to make it available in your environment.
+
 Weights can be downloaded from the following link: https://drive.google.com/file/d/1-5gOZEcdJ14Ght1hSZGSKsAyPLFT-y8o/view?usp=sharing
 
-After doing so, create the following folders under the repository folder:
+After doing so, create the following chain of folders inside the repository:
 
 `models/decoder_only_no_rec_pe_edt/`
 
@@ -34,23 +36,50 @@ python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 pip install opencv-python==4.8.0.76
 ```
 
-## Vessel segmentation + EDT generation
+## Inference instructions
 
-First, run the provided Docker image as follows to get the vessel segmentations:
-```
-sudo docker run --gpus all -it --rm -v [PATH_TO_SEGM_OUTPUTS]/:/Data/aneurysmDetection/output_path/  -v [PATH_TO_SCANS]/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 1 -g 1"
-```
-Then, run the following notebook making sure to define the relevant paths: `notebooks/scan_processing/get_distance_maps.ipynb`, saving the outputs to [PATH_TO_VESSEL_DISTANCE_MAPS].
+### File organization for inference
 
+You should organize your input files as follows:
 
-
-## Inference
-Finally, run inference as follows:
 ```bash
-MODEL_NAME=decoder_only_no_rec_pe_edt
-CHECKPOINT_NAME="final"
-SCAN_DIR="[PATH_TO_SCANS]"
-VESSEL_DIR="[PATH_TO_VESSEL_DISTANCE_MAPS]"
-./run_inference_docker.sh $MODEL_NAME $CHECKPOINT_NAME DATA.DIR.VAL.SCAN_DIR $SCAN_DIR DATA.DIR.VAL.VESSEL_DIR $VESSEL_DIR 
+[ROOT_FOLDER]/
+    og/
+        scan_1.nii.gz
+        ...
+        scan_n.nii.gz
 ```
 
+### Preprocessing files for inference
+
+Now, change the path defined in line 9 of ```run_preproc_pipeline_inf.sh``` to your root folder and run it as follows:
+
+```bash
+./run_preproc_pipeline_inf.sh
+```
+
+### Running inference
+
+After running the above, you can do inference using the following list of commands. Just make sure you replace [ROOT_FOLDER] with the actual path to your data.
+
+Note: we define threshold to be the same as used in our paper but feel free to change it if you want slightly higher sensitivity at the cost of more false positives.
+```bash
+
+export path_base="[ROOT_FOLDER]"
+export path_base="/data/aneurysm/test"
+export path_scans="${path_base}/crop_0.4"
+export path_edt="${path_base}/crop_0.4_vessel_edt"
+export path_outputs="${path_base}/predictions"
+export model_name="decoder_only_no_rec_pe_edt"
+export checkpoint_name="final"
+export threshold=0.95
+
+./run_inference.sh ${model_name} ${checkpoint_name} ${path_scans} ${path_edt} ${path_outputs} ${threshold}
+```
+
+Output files will be placed under the ```predictions``` folder.
+
+
+## Training instructions
+
+WIP.

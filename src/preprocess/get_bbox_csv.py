@@ -1,6 +1,5 @@
 import os
-import pdb
-import random
+import sys
 
 import numpy as np
 import pandas as pd
@@ -62,34 +61,26 @@ def GetBoundingBox_From_Coords_World(coordinates, img_header) -> tuple:
 
 
 if __name__ == "__main__":
-    mode = "internal_train"
-    # train_image_path = 'imagesTs'
-    # train_label_path = "/work/vig/Datasets/aneurysm/external_label"
-    # train_label_path = "/work/vig/Datasets/aneurysm/hospital/crop_0.4_label"
-    # train_label_path = "/work/vig/Datasets/aneurysm/hospital/crop_0.4_label"
-    # train_label_path = "/work/vig/Datasets/aneurysm/internal_label_test"
-    # train_label_path = "/work/vig/Datasets/aneurysm/internal_label_train"
-    # train_label_path = "/work/vig/Datasets/aneurysm/internal_train/crop_0.4_label"
-    label_path = f"/work/vig/Datasets/aneurysm/{mode}/crop_0.4_label"
-    vessel_path = f"/work/vig/Datasets/aneurysm/{mode}/crop_0.4_vessel_v2"
-    image_list = os.listdir(label_path)
-    data_information = []
+    print(sys.argv)
+    path_label = sys.argv[1]
+    path_vessel = sys.argv[2]
+    path_edt = sys.argv[3]
+    path_save = sys.argv[4]
+
+    image_list = os.listdir(path_label)
+    list_aneurysms = []
     for i in tqdm.tqdm(image_list):
-        # image = sitk.ReadImage(os.path.join(train_image_path, i)) # x, y, z
-        # spacing = image.GetSpacing()
-        mask = sitk.ReadImage(os.path.join(label_path, i))
-
+        mask = sitk.ReadImage(os.path.join(path_label, i))
         mask_arr = sitk.GetArrayFromImage(mask)
-
         labeled_array, num_features = label(
             mask_arr, structure=ndimage.generate_binary_structure(3, 3)
         )
-
         if num_features == 0:
             continue
-        vessel_header = sitk.ReadImage(os.path.join(vessel_path, i))
+        vessel_header = sitk.ReadImage(os.path.join(path_vessel, i))
         vessel_arr = sitk.GetArrayFromImage(vessel_header)
-
+        header_edt = sitk.ReadImage(os.path.join(path_edt, i))
+        edt_array = sitk.GetArrayFromImage(header_edt)
         artery_arr = (vessel_arr == 1).astype(np.uint8)
         vein_arr = (vessel_arr == 2).astype(np.uint8)
         region = measure.regionprops(labeled_array)
@@ -106,12 +97,14 @@ if __name__ == "__main__":
             assert int(volume) == (labeled_array == (j + 1)).sum()
             volume_array = (labeled_array == (j + 1)).astype(np.uint8)
             area_aneurysm = np.sum(volume_array)
+            distance = edt_array[int(z), int(y), int(x)]
             try:
                 area_intersection_artery = np.sum(
                     np.logical_and(volume_array, artery_arr)
                 )
                 area_intersection_vein = np.sum(np.logical_and(volume_array, vein_arr))
-            except:
+
+            except Exception:
                 print(i)
                 if i == "ExtA0032.nii.gz":
                     area_intersection_artery = np.sum(
@@ -120,6 +113,9 @@ if __name__ == "__main__":
                     area_intersection_vein = np.sum(
                         np.logical_and(volume_array[:, 119:, 119:], vein_arr)
                     )
+                    # manual fix for this case
+                    x = 284.0
+                    y = 227.0
                 elif i == "ExtB0042.nii.gz":
                     area_intersection_artery = np.sum(
                         np.logical_and(volume_array, artery_arr[:-1, :-1, :-1])
@@ -143,7 +139,7 @@ if __name__ == "__main__":
                     )
             iom_artery = area_intersection_artery / area_aneurysm
             iom_vein = area_intersection_vein / area_aneurysm
-            data_information.append(
+            list_aneurysms.append(
                 [
                     i,
                     x,
@@ -158,12 +154,13 @@ if __name__ == "__main__":
                     maj_axis,
                     iom_artery,
                     iom_vein,
+                    distance
                 ]
             )
-            print(data_information[-1])
+            print(list_aneurysms[-1])
 
     df = pd.DataFrame(
-        data=data_information,
+        data=list_aneurysms,
         columns=[
             "seriesuid",
             "coordX",
@@ -178,11 +175,7 @@ if __name__ == "__main__":
             "maj_axis",
             "iom_artery",
             "iom_vein",
+            "distance_to_artery",
         ],
     )
-    df.to_csv(f"./labels/gt/{mode}_crop_0.4.csv", index=False)
-    # df.to_csv("/home/ceballosarroyo.a/workspace/medical/cta-det2/labels/hospital_0.4.csv", index=False)
-    # df.to_csv('test.csv', index=False)
-    # df.to_csv('train.csv', index=False)
-    # df.to_csv('train0.4.csv', index=False)
-    # df.to_csv('test0.4.csv', index=False)
+    df.to_csv(path_save, index=False)

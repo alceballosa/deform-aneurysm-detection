@@ -13,4 +13,4 @@ weights/*
 *.pickle
 .cache
 *.nii.gz
-inputs/
+SyN_iteration9_antsBTPtemplate1.nii.gz
