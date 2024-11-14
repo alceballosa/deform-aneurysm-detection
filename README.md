@@ -2,11 +2,26 @@
 
 ![Figure describing the model](diagram.png)
 
-Paper URL: https://papers.miccai.org/miccai-2024/831-Paper2366.html
+
+## Citing us
+
+If you find our work useful, please consider citing our paper:
+
+Alberto M. Ceballos-Arroyo, Hieu T. Nguyen, Fangrui Zhu, Shrikanth M. Yadav, Jisoo Kim, Lei Qin, Geoffrey Young, and Huaizu Jiang. 2024. Vessel-Aware Aneurysm Detection Using Multi-scale Deformable 3D Attention. In Medical Image Computing and Computer Assisted Intervention – MICCAI 2024: 27th International Conference, Marrakesh, Morocco, October 6–10, 2024, Proceedings, Part V. Springer-Verlag, Berlin, Heidelberg, 754–765. https://doi.org/10.1007/978-3-031-72086-4_71
+
+An open access version of the paper (as well as the MICCAI '24 reviews, meta-reviews, and our rebuttal) is available here: https://papers.miccai.org/miccai-2024/831-Paper2366.html
+
+
+## Accessing the segmentation Docker image
+
 
 Vessel segmentation docker image can be downloaded from: https://drive.google.com/file/d/1qa91P423Sp5fMqUUoMxBGV0EUEAQirBC/view 
 
 You then can run ```docker load -i vessel_seg.tar``` to make it available in your environment.
+
+
+
+## Downloading weights for the detection model
 
 Weights can be downloaded from the following link: https://drive.google.com/file/d/1-5gOZEcdJ14Ght1hSZGSKsAyPLFT-y8o/view?usp=sharing
 
@@ -82,3 +97,18 @@ Output files will be placed under the ```predictions``` folder. You will be able
 ## Training instructions
 
 WIP.
+
+## Running the segmentation model standalone
+
+The vessel segmentation model will segment all vessel-like structures in the brain and output  nifti files where 0 is background and 1 is a vessel (the model doesn't distinguish between veins or arteries).
+
+If you want to run the segmentation model alone, you can use the command below after loading the docker image as specified above. Just make sure you replace [PATH_TO_DESIRED_OUTPUT_FOLDER] and [PATH_TO_INPUT_FOLDER] with the actual paths to your data. The input folder should contain the CTA scans in nifti format. After execution, the output folder will contain the segmentation masks under `[PATH_TO_DESIRED_OUTPUT_FOLDER]/Predictions`.
+
+```bash
+export path_outputs="[PATH_TO_DESIRED_OUTPUT_FOLDER]"
+export path_inputs="[PATH_TO_INPUT_FOLDER]"
+
+sudo docker run --gpus all -it --rm -v ${path_outputs}/:/Data/aneurysmDetection/output_path/  -v ${path_inputs}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+```
+
+Parameters: t defines the number of CPU threads to use, s is the sliding window coefficient and g is the number of GPUs. We haven't tested the docker image extensively with more than a single GPU, so please let us know if you encounter any issues. In any case, we recommend using a GPU with at least 11 GB of VRAM.
