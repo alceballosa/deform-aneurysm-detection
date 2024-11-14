@@ -11,7 +11,7 @@ If you find our work useful, please consider citing our paper:
 Alberto M. Ceballos-Arroyo, Hieu T. Nguyen, Fangrui Zhu, Shrikanth M. Yadav, Jisoo Kim, Lei Qin, Geoffrey Young, and Huaizu Jiang. 2024. Vessel-Aware Aneurysm Detection Using Multi-scale Deformable 3D Attention. In Medical Image Computing and Computer Assisted Intervention – MICCAI 2024: 27th International Conference, Marrakesh, Morocco, October 6–10, 2024, Proceedings, Part V. Springer-Verlag, Berlin, Heidelberg, 754–765. https://doi.org/10.1007/978-3-031-72086-4_71
 ```
 
-An open access version of the paper (as well as the MICCAI '24 reviews, meta-reviews, and our rebuttal) is available here: https://papers.miccai.org/miccai-2024/831-Paper2366.html
+An open access version of the paper and the supplementary materials (as well as the MICCAI '24 reviews, meta-reviews, and our rebuttal) is available here: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
 
 ## Accessing the segmentation Docker image
