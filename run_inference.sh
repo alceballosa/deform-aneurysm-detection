@@ -14,4 +14,4 @@ CUDA_VISIBLE_DEVICES=0 python src/train_net.py\
 
 
 
-python src/postprocess/csv_to_nifti.py --config-file "./configs/deform/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD "$6" OUTPUT_DIR $5 DATA.DIR.VAL.SCAN_DIR $3
+python src/postprocess/csv_to_nifti.py --config-file "./configs/deform/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD $6 OUTPUT_DIR $5 DATA.DIR.VAL.SCAN_DIR $3
