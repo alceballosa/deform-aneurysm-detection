@@ -76,7 +76,7 @@ export threshold=0.95
 ./run_inference.sh ${model_name} ${checkpoint_name} ${path_scans} ${path_edt} ${path_outputs} ${threshold}
 ```
 
-Output files will be placed under the ```predictions``` folder.
+Output files will be placed under the ```predictions``` folder. You will be able to find a .csv file with all predictions (including those under the confidence threshold) and a folder with nifti files with filtered predictions.
 
 
 ## Training instructions
