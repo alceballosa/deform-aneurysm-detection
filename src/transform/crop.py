@@ -163,6 +163,11 @@ class RandomMaskCrop(RandomCrop):
             mask_t = crop_ND_volume_with_bounding_box(mask, crop_min, crop_max)
             sample["mask"] = mask_t
 
+        if "cvs_mask" in sample:
+            cvs_mask = sample["cvs_mask"]
+            cvs_mask_t = crop_ND_volume_with_bounding_box(cvs_mask, crop_min, crop_max)
+            sample["cvs_mask"] = cvs_mask_t
+
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() - crop_min[1:]
 

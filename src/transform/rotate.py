@@ -181,7 +181,11 @@ class RandomMaskTranspose(RandomTranspose):
                 for transpose in transpose_list:
                     mask_t = np.transpose(mask_t, transpose)
                 sample["mask"] = mask_t
-
+            if "cvs_mask" in sample:
+                cvs_mask_t = sample["cvs_mask"]
+                for transpose in transpose_list:
+                    cvs_mask_t = np.transpose(cvs_mask_t, transpose)
+                sample["cvs_mask"] = cvs_mask_t
             if "ctr" in sample:
                 ctr_t = sample["ctr"].copy()
 

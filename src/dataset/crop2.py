@@ -35,11 +35,15 @@ class InstanceCrop2(InstanceCrop):
         shape = image.shape
 
         has_vessel_seg = "mask" in sample.keys()
+        has_cvs_mask = "cvs_mask" in sample.keys()
 
         if has_vessel_seg:
             vessel = sample["mask"]
             vessel_itk = sitk.GetImageFromArray(vessel)
 
+        if has_cvs_mask:
+            cvs_mask = sample["cvs_mask"]
+            cvs_mask_itk = sitk.GetImageFromArray(cvs_mask)
         
 
         re_spacing = np.array(self.spacing) / np.array(self.base_spacing)
@@ -124,6 +128,8 @@ class InstanceCrop2(InstanceCrop):
         CT_crops = []
         if has_vessel_seg:
             vessel_crops = []
+        if has_cvs_mask:
+            cvs_crops = []
         image_spacing_crops = []
         for i in range(len(all_centers)):
             matrix = matrix_crops[i]
@@ -144,7 +150,15 @@ class InstanceCrop2(InstanceCrop):
                 )
                 vessel_crop = sitk.GetArrayFromImage(vessel_itk_crop)
                 vessel_crops.append(np.expand_dims(vessel_crop, axis=0))
-
+            if has_cvs_mask:
+                cvs_itk_crop = reorient(
+                    cvs_mask_itk,
+                    matrix,
+                    spacing=list(space),
+                    interp1=sitk.sitkNearestNeighbor,
+                )
+                cvs_crop = sitk.GetArrayFromImage(cvs_itk_crop)
+                cvs_crops.append(np.expand_dims(cvs_crop, axis=0))
 
         samples = []
         for i, _ in enumerate(CT_crops):
@@ -171,6 +185,8 @@ class InstanceCrop2(InstanceCrop):
             if has_vessel_seg:
                 sample["mask"] = vessel_crops[i]
                 sample["volume"] = vessel_crops[i].sum()
+            if has_cvs_mask:
+                sample["cvs_mask"] = cvs_crops[i]
             samples.append(sample)
 
         return samples

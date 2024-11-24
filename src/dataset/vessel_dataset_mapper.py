@@ -38,21 +38,10 @@ class CTAVesselDatasetMapper(CTADatasetMapper):
         return train_transform
 
     def load_data(self, dataset_dict):
-        #!start = time.perf_counter()
         data = super().load_data(dataset_dict)
-        #!cached = False
-        if self.cfg.CUSTOM.CACHE and dataset_dict["vessel_file_name"] in self.cache:
-            vessel = self.cache[dataset_dict["vessel_file_name"]].copy()
-            #!cached = True
-        else:
-            vessel = sitk.ReadImage(dataset_dict["vessel_file_name"])
-            vessel = sitk.GetArrayFromImage(vessel)
-
-            if self.cfg.CUSTOM.CACHE:
-                self.cache[dataset_dict["vessel_file_name"]] = vessel.copy()
-
+        vessel = sitk.ReadImage(dataset_dict["vessel_file_name"])
+        vessel = sitk.GetArrayFromImage(vessel)
         data["mask"] = vessel
-        #! print(f"cached {cached} times ", time.perf_counter() - start)
         return data
 
     def __call__(self, dataset_dict):

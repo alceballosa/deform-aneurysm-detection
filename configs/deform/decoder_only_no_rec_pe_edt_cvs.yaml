@@ -1,0 +1,38 @@
+_BASE_: deform_base_crop_vessel.yaml
+SEED: 2000
+
+MODEL:
+  META_ARCHITECTURE: "PARQ_Deformable_R"
+  USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
+  USE_CVS_INFO: "no"
+  DEFORMABLE:
+    DECODER_ONLY: True
+    WITH_RECURRENCE: False
+    SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+SOLVER:
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 8
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
+TEST:
+  PATCHES_PER_ITER: 16 #  24 = ~12GB
+  NMS_TOPK: 40
+DATALOADER:
+  NUM_WORKERS: 8
+DATA:
+  PATCH_SIZE: [64, 64, 64]
+  OVERLAP: [32, 32, 32]
+  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  DIR:
+    TRAIN:
+      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
+      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt"
+      CVS_DIR: "/data/aneurysm/internal_train/cvs_mask"
+      ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
+
+    VAL:
+      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
+      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"

@@ -32,7 +32,6 @@ class CTADatasetMapper:
         else:
             self.split_comb = self.build_split_comb()
         self.mode = mode
-        self.cache = {}
 
     def build_crop_fn(self):
         cfg = self._load_crop_cfg()
@@ -137,6 +136,8 @@ class CTADatasetMapper:
             dataset_dict["image_spacing"] = data["image_spacing"]
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
                 dataset_dict["mask"] = torch.tensor(data["mask"])
+            if self.cfg.MODEL.USE_CVS_INFO != "no":
+                dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"])
         # end = time.perf_counter()
         # print("data processing and augmentation", end - end_loading)
         # print("data loading", end_loading - start)
@@ -147,24 +148,15 @@ class CTADatasetMapper:
 
     def get_distance_map(self, mask):
 
-        distances = edt.sdf(mask, black_border=False, parallel = 2)
+        distances = edt.sdf(mask, black_border=False, parallel = 8)
         # distances[distances > 0] = 0
         return distances
 
     def load_data(self, dataset_dict):
-        outputs = {}
-        if self.cfg.CUSTOM.CACHE and dataset_dict["file_name"] in self.cache:
-            image, image_spacing = self.cache[dataset_dict["file_name"]]
-            image = image.copy()
-            image_spacing = image_spacing
-        else:
-            
-            image = sitk.ReadImage(dataset_dict["file_name"])
-            image_spacing = image.GetSpacing()[::-1]  # z, y, x
-            image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
-
-            if self.cfg.CUSTOM.CACHE and len(self.cache.keys())<50:
-                self.cache[dataset_dict["file_name"]] = (image.copy(), image_spacing)
+        outputs = {}  
+        image = sitk.ReadImage(dataset_dict["file_name"])
+        image_spacing = image.GetSpacing()[::-1]  # z, y, x
+        image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
         # NOTE: normalize on gpu is faster
         # image = self.normalize(image)  # normalized
         outputs["image"] = image
@@ -192,20 +184,15 @@ class CTADatasetMapper:
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
             return outputs
         else:
-            
-            if self.cfg.CUSTOM.CACHE and dataset_dict["vessel_file_name"] in self.cache:
-                vessel = self.cache[dataset_dict["vessel_file_name"]].copy()
-            else:
-                vessel_header = sitk.ReadImage(dataset_dict["vessel_file_name"])
-                vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
-                # vessel = self.get_distance_map(sitk.GetArrayFromImage(vessel))
- 
-                
-
-                if self.cfg.CUSTOM.CACHE and False:
-                    self.cache[dataset_dict["vessel_file_name"]] = vessel.copy()
-
+            vessel_header = sitk.ReadImage(dataset_dict["vessel_file_name"])
+            vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
             outputs["mask"] = vessel
+            if self.cfg.MODEL.USE_CVS_INFO != "no":
+                cvs_header = sitk.ReadImage(dataset_dict["cvs_file_name"])
+                cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
+                # cvs = self.get_distance_map(cvs)
+                outputs["cvs_mask"] = cvs
+            # vessel = self.get_distance_map(sitk.GetArrayFromImage(vessel))
             return outputs
 
     def normalize(self, data):
@@ -214,61 +201,6 @@ class CTADatasetMapper:
         data[data < min_value] = min_value
         data = (data - min_value) / (max_value - min_value)
         return data
-
-
-@DATA_MAPPER_REGISTRY.register()
-class DummyDatasetMapper:
-    def __init__(self, cfg, mode):
-        assert mode in ["train", "val"]
-        self.cfg = cfg
-        self.mode = mode
-
-    def __call__(self, dataset_dict):
-        dataset_dict = copy.deepcopy(dataset_dict)
-        input_size = [64, 64, 64]
-        sparsity = 0.3
-        max_r = 15
-        num_samples = self.cfg.SOLVER.SAMPLES_PER_SCAN
-        r = np.random.default_rng(seed=dataset_dict["scan_id"])
-        size = tuple([num_samples] + input_size)
-        data = r.random(size=size) * 400.0
-        sphs = r.random(
-            size=(num_samples, 2, 4)
-        )  # 2 sphere per sample, center and radius
-        mask = r.random(size=size) < sparsity
-
-        annotations = np.zeros(shape=(num_samples, 2, 7), dtype=np.float32)
-        for i, sph_i in enumerate(sphs):
-            for j, sph_ij in enumerate(sph_i):
-                radius = sph_ij[-1] * max_r
-                i_r = int(radius)
-                center = (sph_ij[:3] * (np.array(input_size) - 2 * radius)) + radius
-                i_center = center.astype(np.int32)
-                sph_mask = sphere(i_r)
-                mask[i][
-                    i_center[0] - i_r : i_center[0] + i_r + 1,
-                    i_center[1] - i_r : i_center[1] + i_r + 1,
-                    i_center[2] - i_r : i_center[2] + i_r + 1,
-                ][sph_mask] = True
-                annotations[i, j, :3] = center
-                annotations[i, j, 3:6] = radius
-        random_samples = []
-
-        data += mask * 20
-        for anno, datum, mask_ in zip(annotations, data, mask):
-            if self.cfg.CUSTOM.FULL_MASK:
-                mask_ = (torch.tensor(np.ones_like(datum)).unsqueeze(0).bool(),)
-            else:
-                mask_ = torch.tensor(mask_).unsqueeze(0).bool()
-            random_samples.append(
-                {
-                    "image": torch.tensor(datum).unsqueeze(0).float(),
-                    "mask": mask_,
-                    "annot": torch.tensor(anno).float(),
-                }
-            )
-        dataset_dict["samples"] = random_samples
-        return dataset_dict
 
 
 def sphere(r=1):

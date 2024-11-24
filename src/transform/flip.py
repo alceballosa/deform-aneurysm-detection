@@ -91,6 +91,10 @@ class RandomMaskFlip(AbstractTransform):
                 mask = sample["mask"]
                 sample["mask"] = np.flip(mask, flip_axis).copy()
 
+            if "cvs_mask" in sample:
+                mask = sample["cvs_mask"]
+                sample["cvs_mask"] = np.flip(mask, flip_axis).copy()
+
             if "ctr" in sample:
                 coord = sample["ctr"].copy()
                 for axis in flip_axis:

@@ -27,12 +27,16 @@ if __name__ == "__main__":
     vessel_files = sorted(list(glob(f"{vessel_dir}/*.nii.gz")))
     for file in tqdm.tqdm(vessel_files):
         scan_seriesuid = file.split("/")[-1]
+        save_file_path = os.path.join(target_dir, scan_seriesuid)
+        # check if exists
+        if os.path.exists(save_file_path):
+            continue
         im_header = sitk.ReadImage(file)
         im = sitk.GetArrayFromImage(im_header)
         # im = (im > threshold).astype(np.uint8)
         im_dist = edt.sdf(im, black_border=False, parallel=threads)
         im_dist_header = sitk.GetImageFromArray(im_dist)
         im_dist_header.CopyInformation(im_header)
-        save_file_path = os.path.join(target_dir, scan_seriesuid)
+        
         sitk.WriteImage(im_dist_header, save_file_path)
     print("All distance maps computed!")

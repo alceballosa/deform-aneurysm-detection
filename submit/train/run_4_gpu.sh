@@ -3,7 +3,7 @@ export PYTHONPATH=$(pwd):$PYTHONPATH
 export ID_PORT=$(($RANDOM+20000))
 python src/train_net.py\
     --num-gpus 4\
-    --config-file "./configs/deform/$1.yaml"\
+    --config-file "./configs/$1/$2.yaml"\
         --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --resume\
 

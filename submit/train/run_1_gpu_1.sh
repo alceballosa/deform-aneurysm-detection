@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0;
+export CUDA_VISIBLE_DEVICES=1;
 export PYTHONPATH=$(pwd):$PYTHONPATH
 python src/train_net.py\
     --num-gpus 1\

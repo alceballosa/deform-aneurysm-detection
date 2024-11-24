@@ -67,6 +67,8 @@ class CTADatasetFunction:
                 record["vessel_file_name"] = os.path.join(
                     data_dir_cfg.VESSEL_DIR, scan_id
                 )
+            if self.cfg.MODEL.USE_CVS_INFO != "no":
+                record["cvs_file_name"] = os.path.join(data_dir_cfg.CVS_DIR, scan_id)
 
             dataset_dicts.append(record)
         if self.cfg.CUSTOM.DEBUG:

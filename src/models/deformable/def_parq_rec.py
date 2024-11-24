@@ -16,7 +16,13 @@ from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D
-from src.models.deformable import cnn_backbone, unet_backbone_4l, unet_backbone, cnn_backbone_1l, cnn_backbone_2l
+from src.models.deformable import (
+    cnn_backbone,
+    cnn_backbone_1l,
+    cnn_backbone_2l,
+    unet_backbone,
+    unet_backbone_4l,
+)
 from src.models.deformable.def_trx_rec import build_deformable_transformer
 from src.models.parq.box_processor import BoxProcessor
 from src.models.parq.generic_mlp import GenericMLP
@@ -95,6 +101,7 @@ class PARQ_Deformable_R(nn.Module):
         self.frozen_pretrained_encoder = frozen_pretrained_encoder
 
         self.use_vessel_info = self.cfg.MODEL.USE_VESSEL_INFO
+        self.use_cvs_info = self.cfg.MODEL.USE_CVS_INFO
         if self.use_vessel_info in ["pos_emb", "start"]:
             assert (
                 self.cfg.DATA.DIR.TRAIN.VESSEL_DIR != ""
@@ -199,9 +206,9 @@ class PARQ_Deformable_R(nn.Module):
     def _forward_train(self, input_batch):
         if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
             get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
-        x, vessel_dists = self.preprocess_train_input(input_batch)
+        x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
         targets = self.preprocess_train_labels(input_batch)
-        box_prediction_list, _ = self._forward_network(x, vessel_dists)
+        box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
         loss_dict = self.compute_losses(box_prediction_list, targets)
         return loss_dict
 
@@ -216,6 +223,9 @@ class PARQ_Deformable_R(nn.Module):
         patches, nzhw, splits_boxes = self.split_com.split(input_batch[0]["image"])
         if self.use_vessel_info != "no":
             patches_vessel, _, _ = self.split_com.split(input_batch[0]["mask"])
+        if self.use_cvs_info != "no":
+            patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
+
         outputs = []
         list_viz_outputs = []
         for i in range(int(math.ceil(len(patches) / bs))):
@@ -227,10 +237,13 @@ class PARQ_Deformable_R(nn.Module):
             # batch_data = torch.tensor(batch_data, device=self.device)
             batch_data = torch.cat(patches[i * bs : end], dim=0).to(self.device)
             vessel_data = None
+            cvs_data = None
             if self.use_vessel_info != "no":
                 vessel_data = torch.cat(patches_vessel[i * bs : end], dim=0).to(
                     self.device
                 )
+            if self.use_cvs_info != "no":
+                cvs_data = torch.cat(patches_cvs[i * bs : end], dim=0).to(self.device)
             # NOTE may need to normalize other things
             batch_data = self.normalize_input_values(batch_data)
 
@@ -282,7 +295,7 @@ class PARQ_Deformable_R(nn.Module):
 
         return outputs
 
-    def _forward_network(self, x, vessel_dists=None):
+    def _forward_network(self, x, vessel_dists=None, cvs_dists=None):
         """
         This function receives a tensor x with various volumes to be
         classified and outputs a list of predictions produced by the PARQ
@@ -324,6 +337,8 @@ class PARQ_Deformable_R(nn.Module):
         if self.use_vessel_info == "start":
             x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
             vessel_dists = None  # no need to keep using this
+            if self.use_cvs_info == "start":
+                x = torch.cat((x, cvs_dists), dim=1)
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
 
@@ -508,7 +523,7 @@ class PARQ_Deformable_R(nn.Module):
         dets = torch.ones((bs, n_queries, 8)) * -1
         for j in range(bs):
             for i in range(n_queries):
-                #if pred_mask[j, i]:
+                # if pred_mask[j, i]:
                 dets[j, i, 0] = 1
                 dets[j, i, 1] = logits[j, i, 0]  # score for tgt class
                 dets[j, i, 2:5] = center_predict[j, i] * self.patch_size.to("cpu")
@@ -518,8 +533,8 @@ class PARQ_Deformable_R(nn.Module):
 
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
+        
         imgs = [s["image"] for s in all_samples]
-
         imgs = torch.stack(imgs, dim=0)
         imgs = imgs.to(self.device)
 
@@ -528,10 +543,14 @@ class PARQ_Deformable_R(nn.Module):
             vessel_dists = [s["mask"] for s in all_samples]
             vessel_dists = torch.stack(vessel_dists, dim=0)
             vessel_dists = vessel_dists.to(self.device)
+        if self.use_cvs_info in ["start"]:
+            cvs_dists = [s["cvs_mask"] for s in all_samples]
+            cvs_dists = torch.stack(cvs_dists, dim=0)
+            cvs_dists = cvs_dists.to(self.device)
         # imgs = np.stack(imgs)
         # imgs = torch.tensor(imgs, device=self.device)
         imgs = self.normalize_input_values(imgs)
-        return imgs, vessel_dists
+        return imgs, vessel_dists, cvs_dists
 
     def preprocess_train_labels(self, input_batches: list):
         """
@@ -585,7 +604,7 @@ class PARQ_Deformable_R(nn.Module):
         return target_list
 
     def normalize_input_values(self, x: torch.Tensor):
-        if self.backbone_type in ["UNET", "UNET2D", "CNN","CNN_1L", "CNN_2L"]:
+        if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L"]:
             min_value, max_value = self.cfg.DATA.WINDOW
             x.clamp_(min=min_value, max=max_value)
             x -= (min_value + max_value) / 2

@@ -96,7 +96,14 @@ class MaskPad(Pad):
                 else mask
             )
             sample["mask"] = mask_t
-
+        if "cvs_mask" in sample:
+            cvs_mask = sample["cvs_mask"]
+            cvs_mask_t = (
+                np.pad(cvs_mask, pad, "constant", constant_values=0)
+                if (max(margin) > 0)
+                else cvs_mask
+            )
+            sample["cvs_mask"] = cvs_mask_t
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() + margin_lower
 

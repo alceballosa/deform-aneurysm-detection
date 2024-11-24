@@ -38,6 +38,7 @@ def add_config(cfg):
     # only for older parq models
     cfg.MODEL.ENCODER_TYPE = "UNET"
     cfg.MODEL.USE_VESSEL_INFO = "no"
+    cfg.MODEL.USE_CVS_INFO = "no"
     cfg.MODEL.D_MODEL = 384
     cfg.MODEL.EVAL_VIZ_MODE = False
 
@@ -72,6 +73,7 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.OFFSET_INIT = "strict"
     cfg.MODEL.DEFORMABLE.USE_GLOBAL_PE = False
     cfg.MODEL.DEFORMABLE.USE_VESSEL_INFO = False
+
     cfg.MODEL.DEFORMABLE.FIXED_ATTENTION = False
 
     # the ratio of the original image size to the parq volume size
@@ -159,11 +161,13 @@ def add_config(cfg):
     cfg.DATA.DIR.TRAIN.SCAN_DIR = ""
     cfg.DATA.DIR.TRAIN.ANNOTATION_FILE = ""
     cfg.DATA.DIR.TRAIN.VESSEL_DIR = ""
+    cfg.DATA.DIR.TRAIN.CVS_DIR = ""
     cfg.DATA.DIR.VAL = CN()
     cfg.DATA.DIR.VAL.SCAN_DIR = ""
     cfg.DATA.DIR.VAL.ANNOTATION_FILE = ""
 
     cfg.DATA.DIR.VAL.VESSEL_DIR = ""
+    cfg.DATA.DIR.VAL.CVS_DIR = ""
 
     cfg.DATA.CROPPING_AUG = CN()
     cfg.DATA.CROPPING_AUG.TRANSLATION = (20.0, 20.0, 20.0)

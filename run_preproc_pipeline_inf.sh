@@ -36,3 +36,4 @@ cp ${path_vessel_seg}_temp/Predictions/* ${path_vessel_seg}/
 sudo rm -rf ${path_vessel_seg}_temp
 # Compute distance maps
 python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
+
