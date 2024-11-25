@@ -8,7 +8,7 @@ conda activate cta
 # for training or evaluating on annotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/aneurysm/test"
+export path_base="/data/aneurysm/internal_test"
 
 export path_og="${path_base}/og"
 export path_label_og="${path_base}/og_label"
