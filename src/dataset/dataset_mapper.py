@@ -121,10 +121,6 @@ class CTADatasetMapper:
                     if isinstance(sample[k], np.ndarray):
                         sample[k] = torch.tensor(sample[k])
 
-                #! debug with full mask
-                if self.cfg.CUSTOM.DEBUG and self.cfg.CUSTOM.FULL_MASK:
-                    sample["mask"] = torch.ones_like(sample["image"]).bool()
-
                 random_samples.append(sample)
 
             dataset_dict["samples"] = random_samples
@@ -136,6 +132,7 @@ class CTADatasetMapper:
             dataset_dict["image_spacing"] = data["image_spacing"]
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
                 dataset_dict["mask"] = torch.tensor(data["mask"])
+                
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"])
         # end = time.perf_counter()

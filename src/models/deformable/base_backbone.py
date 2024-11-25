@@ -54,16 +54,14 @@ class Base_Backbone(nn.Module):
         multiscale_pos_embs = []
         for feat in multiscale_feats:
             pos_volume = create_global_pos_volume(*feat.shape[-3:]).to(self.device)
-
             if vessel_dists is not None:
                 # resize vessel_dists to match the eature level
                 transform = tio.transforms.Resize(
                     (feat.shape[-3], feat.shape[-2], feat.shape[-1])
                 )
-
                 vessel_dists_downsampled = torch.stack(
                     [
-                        transform(vessel_dists[i].to("cpu"))
+                        transform(vessel_dists[i].cpu())
                         for i in range(vessel_dists.shape[0])
                     ],  # type: ignore
                     dim=0,

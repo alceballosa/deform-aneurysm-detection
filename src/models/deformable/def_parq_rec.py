@@ -192,7 +192,6 @@ class PARQ_Deformable_R(nn.Module):
             with open(path_pickle, "rb") as f:
                 input_batch = pickle.load(f)
             # input_batch = self.read_pickled_batch()
-
         if self.training:
             torch.cuda.empty_cache()
             return self._forward_train(input_batch)
@@ -205,7 +204,7 @@ class PARQ_Deformable_R(nn.Module):
 
     def _forward_train(self, input_batch):
         if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
-            get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
+           get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
         targets = self.preprocess_train_labels(input_batch)
         box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
@@ -248,7 +247,7 @@ class PARQ_Deformable_R(nn.Module):
             batch_data = self.normalize_input_values(batch_data)
 
             prediction_dicts, viz_outputs = self._forward_network(
-                batch_data, vessel_data
+                batch_data, vessel_data, cvs_data
             )
             # TODO: do an alternatve version of parse pred with viz prep 239
             for prediction_dict in prediction_dicts:
@@ -257,6 +256,7 @@ class PARQ_Deformable_R(nn.Module):
             dets = self.parse_pred(prediction_dicts[-1]).detach().to("cpu")
             del batch_data
             del vessel_data
+            del cvs_data
             torch.cuda.empty_cache()
             outputs.append(dets)
             list_viz_outputs.append(viz_outputs)
@@ -338,12 +338,11 @@ class PARQ_Deformable_R(nn.Module):
             x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
             vessel_dists = None  # no need to keep using this
             if self.use_cvs_info == "start":
-                x = torch.cat((x, cvs_dists), dim=1)
+                x = torch.cat((x, cvs_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
 
         multiscale_feats, multiscale_pos_embs = self.backbone(x, vessel_dists)
-
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(
                 multiscale_feats,
@@ -352,6 +351,7 @@ class PARQ_Deformable_R(nn.Module):
             )
         )
         return box_prediction_list, viz_outputs
+
 
     def compute_losses(self, output_dict, targets):
         """
@@ -539,6 +539,7 @@ class PARQ_Deformable_R(nn.Module):
         imgs = imgs.to(self.device)
 
         vessel_dists = None
+        cvs_dists = None
         if self.use_vessel_info in ["pos_emb", "start"]:
             vessel_dists = [s["mask"] for s in all_samples]
             vessel_dists = torch.stack(vessel_dists, dim=0)

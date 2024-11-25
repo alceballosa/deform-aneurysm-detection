@@ -1,5 +1,5 @@
 SEED: 1000
-OUTPUT_DIR: "./outputs"
+OUTPUT_DIR: "./models"
 
 DATASETS:
   TRAIN: ("cta_train",)
@@ -20,7 +20,7 @@ DATA:
       VESSEL_DIR: ""
 
 DATALOADER:
-  NUM_WORKERS: 8
+  NUM_WORKERS: 16
 
 CUSTOM:
   TRACKING_GRADIENT_NORM: true

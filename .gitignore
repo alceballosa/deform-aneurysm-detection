@@ -4,6 +4,7 @@ outputs/
 output/
 logs/
 *.pth
+models/
 outputs/
 *.out
 *.pkl
