@@ -974,7 +974,7 @@ if __name__ == "__main__":
     max_fppi = 16.0
     min_fppi = 0.0
     fp_scale = "linear"
-    fppi_thrs = [0.125, 0.25, 0.5, 1.0,  2.0, 4.0, 8.0]
+    fppi_thrs = [0.5, 0.75, 1.0, 1.5, 2.0, 4.0, 8.0, 16]
     n_bootstraps = 10000
     iou_thrs = [0.2]
 
@@ -991,6 +991,8 @@ if __name__ == "__main__":
             x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")
         ]
 
+
+
         # inf_appends = ["50k","60k","final"]
         # inf_appends = ["hieu"]
         # inf_appends = ["10k","20k","30k"]
@@ -1004,6 +1006,13 @@ if __name__ == "__main__":
         else:
             mode = "val"
 
+        is_crop_in_exp = (
+            "crop" in exp or mode in ["ext", "train", "hospital"] or exp in special_exps
+        )
+    
+
+        if mode == "hospital":
+            is_crop_in_exp = False
 
         for inf_append in inf_appends:
             path_inf = "inference_" + inf_append
@@ -1019,16 +1028,34 @@ if __name__ == "__main__":
                 out_dir = (
                     root / f"models/{exp}/iou{iou_thr:.1f}_froc_{inf_append}_crop"
                 )
+                if mode == "dlca":
+                    label_file = label_files["dlca_val"]
+                elif is_crop_in_exp:
 
-                if "_TI" in exp:
-                    label_file = label_files["train"]
-                elif "_EXT" in exp:
-                    label_file = label_files["ext"]
-                elif "_PRIV" in exp:
+                    # val_meta_path = root / "labels/internal_test_meta_crop.json"
+                    if "_TI" in exp:
+                        label_file = label_files["train"]
+                    elif "_EXT" in exp:
+                        label_file = label_files["ext"]
+                    elif "_PRIV" in exp:
+                        label_file = label_files["hospital"]
+                    else:  # VALIDATION - default
+                        label_file = label_files["val"]
+
+                else:
+                    sizes = pd.read_json(size_files["hospital"])
+                    val_meta_path = meta_files["hospital"]
                     label_file = label_files["hospital"]
-                else:  # VALIDATION - default
-                    label_file = label_files["val"]
 
+                meta = None
+                # print(len(preds))
+                # preds = preds[preds["probability"] > 0.9]
+                # print("After2",len(preds))
+
+                #if not is_crop_in_exp:
+                #    preds = remove_by_size(preds, sizes)
+                # preds = preds[preds["probability"] > 0.5]
+                print(label_file)
                 logger = setup_logger(output=out_dir, name=__name__ + str(iou_thr))
                 evaluator = FROCEvaluator(
                     label_file=label_file,
@@ -1042,8 +1069,8 @@ if __name__ == "__main__":
                     n_bootstraps=n_bootstraps,
                     n_workers=n_workers,
                     fp_scale=fp_scale,
-                    meta_data=None,
-                    use_world_xyz=False,
+                    meta_data=meta,
+                    use_world_xyz=not is_crop_in_exp,
                     exp_name=exp + "_" + inf_append,
                     mode=mode,
                 )

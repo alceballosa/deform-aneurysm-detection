@@ -230,11 +230,13 @@ class PARQ_Deformable_R(nn.Module):
         for i in range(int(math.ceil(len(patches) / bs))):
             # preprocess batch
             end = (i + 1) * bs
+
             if end > len(patches):
                 end = len(patches)
             # batch_data = np.concatenate(patches[i * bs : end], axis=0)
             # batch_data = torch.tensor(batch_data, device=self.device)
             batch_data = torch.cat(patches[i * bs : end], dim=0).to(self.device)
+
             vessel_data = None
             cvs_data = None
             if self.use_vessel_info != "no":
