@@ -74,14 +74,3 @@ class CTADatasetFunction:
         if self.cfg.CUSTOM.DEBUG:
             return dataset_dicts[: self.cfg.CUSTOM.DEBUG_DATASET_SIZE]
         return dataset_dicts
-
-
-@DATASET_FUNC_REGISTRY.register()
-class DUMMY:
-    def __init__(self, cfg, mode="train"):
-        assert mode in ["train", "val"]
-        self.cfg = cfg
-        self.mode = mode
-
-    def __call__(self):
-        return [{"scan_id": i for i in range(self.cfg.CUSTOM.DUMMY_SIZE)}]
