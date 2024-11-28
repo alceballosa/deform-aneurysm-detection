@@ -48,3 +48,5 @@ python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_ou
 
 python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt
 
+python src/preprocess/compress_distance_maps.py ${path_cvs_masks}_edt 128 48 
+python src/preprocess/compress_distance_maps.py ${path_edt} 128 48
