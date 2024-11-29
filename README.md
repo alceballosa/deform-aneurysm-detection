@@ -52,7 +52,6 @@ pip install -r requirements_base.txt
 python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 pip install opencv-python==4.8.0.76
 ```
-
 ## Inference instructions
 
 ### File organization for inference

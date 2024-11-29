@@ -18,10 +18,10 @@ SOLVER:
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
 TEST:
-  PATCHES_PER_ITER: 16 #  24 = ~12GB
+  PATCHES_PER_ITER: 24 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 2
+  NUM_WORKERS: 1
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
@@ -29,10 +29,9 @@ DATA:
   DIR:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_compressed"
+      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
-      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
-      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_compressed"
+      SCAN_DIR: "/data/aneurysm/external/crop_0.4"
+      VESSEL_DIR: "/data/aneurysm/external/crop_0.4_vessel_edt_comp"

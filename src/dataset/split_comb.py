@@ -49,7 +49,8 @@ class SplitComb:
                     sw = int(iw * self.side_len[2])
                     ew = int((iw + 1) * self.side_len[2] + self.overlap[2])
                     box = [sz, ez, sh, eh, sw, ew]
-                    split = data[None, None, sz:ez, sh:eh, sw:ew]
+                    # use numpy to avoid issues with torch.cat being slow on cpu
+                    split = data[None, None, sz:ez, sh:eh, sw:ew].numpy()
                     splits.append(split)
                     splits_boxes.append(box)
 

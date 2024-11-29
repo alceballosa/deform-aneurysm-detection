@@ -204,7 +204,7 @@ class PARQ_Deformable_R(nn.Module):
 
     def _forward_train(self, input_batch):
         if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
-           get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
+            get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
         targets = self.preprocess_train_labels(input_batch)
         box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
@@ -220,46 +220,47 @@ class PARQ_Deformable_R(nn.Module):
         scan_id = input_batch[0]["scan_id"]
         bs = self.cfg.TEST.PATCHES_PER_ITER
         patches, nzhw, splits_boxes = self.split_com.split(input_batch[0]["image"])
+        patches = np.concatenate(patches, axis=0)
         if self.use_vessel_info != "no":
             patches_vessel, _, _ = self.split_com.split(input_batch[0]["mask"])
+            patches_vessel = np.concatenate(patches_vessel, axis=0)
         if self.use_cvs_info != "no":
             patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
-
+            patches_cvs = np.concatenate(patches_cvs, axis=0)
         outputs = []
         list_viz_outputs = []
-        for i in range(int(math.ceil(len(patches) / bs))):
-            # preprocess batch
-            end = (i + 1) * bs
 
+        for i in range(int(math.ceil(len(patches) / bs))):
+            end = (i + 1) * bs
             if end > len(patches):
                 end = len(patches)
-            # batch_data = np.concatenate(patches[i * bs : end], axis=0)
-            # batch_data = torch.tensor(batch_data, device=self.device)
-            batch_data = torch.cat(patches[i * bs : end], dim=0).to(self.device)
 
+            batch_data = torch.tensor(patches[i * bs : end], device=self.device)
             vessel_data = None
             cvs_data = None
+
             if self.use_vessel_info != "no":
-                vessel_data = torch.cat(patches_vessel[i * bs : end], dim=0).to(
-                    self.device
+                vessel_data = torch.tensor(
+                    patches_vessel[i * bs : end], device=self.device
                 )
             if self.use_cvs_info != "no":
-                cvs_data = torch.cat(patches_cvs[i * bs : end], dim=0).to(self.device)
+                cvs_data = torch.tensor(patches_cvs[i * bs : end], device=self.device)
             # NOTE may need to normalize other things
             batch_data = self.normalize_input_values(batch_data)
-
             prediction_dicts, viz_outputs = self._forward_network(
                 batch_data, vessel_data, cvs_data
             )
-            # TODO: do an alternatve version of parse pred with viz prep 239
+
             for prediction_dict in prediction_dicts:
                 for key in prediction_dict:
                     prediction_dict[key] = prediction_dict[key].detach().to("cpu")
             dets = self.parse_pred(prediction_dicts[-1]).detach().to("cpu")
+
             del batch_data
             del vessel_data
             del cvs_data
             torch.cuda.empty_cache()
+
             outputs.append(dets)
             list_viz_outputs.append(viz_outputs)
 
@@ -353,7 +354,6 @@ class PARQ_Deformable_R(nn.Module):
             )
         )
         return box_prediction_list, viz_outputs
-
 
     def compute_losses(self, output_dict, targets):
         """
@@ -535,7 +535,7 @@ class PARQ_Deformable_R(nn.Module):
 
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
-        
+
         imgs = [s["image"] for s in all_samples]
         imgs = torch.stack(imgs, dim=0)
         imgs = imgs.to(self.device)

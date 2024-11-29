@@ -248,5 +248,6 @@ def build_test_loader(dataset, *, mapper, num_workers=0):
         num_workers=num_workers,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
+        pin_memory=True,
     )
     return data_loader
