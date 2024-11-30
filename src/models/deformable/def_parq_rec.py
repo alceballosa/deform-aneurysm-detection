@@ -3,6 +3,7 @@ import math
 import os
 import pdb
 import pickle
+import time
 from functools import partial
 
 import edt
@@ -238,7 +239,6 @@ class PARQ_Deformable_R(nn.Module):
             batch_data = torch.tensor(patches[i * bs : end], device=self.device)
             vessel_data = None
             cvs_data = None
-
             if self.use_vessel_info != "no":
                 vessel_data = torch.tensor(
                     patches_vessel[i * bs : end], device=self.device
@@ -344,7 +344,6 @@ class PARQ_Deformable_R(nn.Module):
                 x = torch.cat((x, cvs_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
-
         multiscale_feats, multiscale_pos_embs = self.backbone(x, vessel_dists)
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(

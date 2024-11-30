@@ -33,6 +33,5 @@ DATA:
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
-      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
-      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
+      SCAN_DIR: "/data/aneurysm/external/crop_0.4"
+      VESSEL_DIR: "/data/aneurysm/external/crop_0.4_vessel_edt_comp"
