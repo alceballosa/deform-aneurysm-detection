@@ -976,20 +976,20 @@ if __name__ == "__main__":
     fp_scale = "linear"
     fppi_thrs = [0.125, 0.25, 0.5, 1.0,  2.0, 4.0, 8.0]
     n_bootstraps = 10000
-    iou_thrs = [0.2]
+    iou_thrs = [0.3]
 
     # exp = "deform_decoder_only_input_96_med_bsz"
     # get exp from command line arg
     exp_base = sys.argv[1]
-    exps = [exp_base]
+    exps = [exp_base, exp_base + "_EXT"]
 
     for exp in exps:
         exp_dir = root / f"models/{exp}"
 
         # get all dirs starting with "inference_"
-        inf_appends = [
+        inf_appends = sorted([
             x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")
-        ]
+        ])
 
         # inf_appends = ["50k","60k","final"]
         # inf_appends = ["hieu"]
