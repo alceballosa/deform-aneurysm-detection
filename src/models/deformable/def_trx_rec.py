@@ -36,7 +36,7 @@ from src.models.deformable.def_trx_encoder import (
     DeformableTransformerEncoder,
     DeformableTransformerEncoderLayer,
 )
-from src.models.parq.generic_mlp import GenericMLP
+from src.models.deformable.generic_mlp import GenericMLP
 from src.utils.general import get_clones
 from torch import nn
 from torch.nn.init import constant_, normal_, uniform_, xavier_uniform_

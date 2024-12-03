@@ -16,19 +16,13 @@ from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D
-from src.models.deformable import (
-    cnn_backbone,
-    cnn_backbone_1l,
-    cnn_backbone_2l,
-    unet_backbone,
-    unet_backbone_4l,
-)
+from src.models.deformable import cnn_backbone, cnn_backbone_1l, cnn_backbone_2l
 from src.models.deformable.def_trx_rec import build_deformable_transformer
-from src.models.parq.box_processor import BoxProcessor
-from src.models.parq.generic_mlp import GenericMLP
-from src.models.parq.nms import nms
-from src.models.parq.parq_matcher_rec import HungarianMatcherModified
-from src.models.parq.parq_utils import get_3d_corners
+from src.models.deformable.box_processor import BoxProcessor
+from src.models.deformable.generic_mlp import GenericMLP
+from src.models.deformable.nms import nms
+from src.models.deformable.parq_matcher_rec import HungarianMatcherModified
+from src.models.deformable.parq_utils import get_3d_corners
 from src.utils.general import inverse_sigmoid
 from src.utils.losses import (
     bbox_iou_loss,
@@ -46,8 +40,6 @@ build_backbone = {
     "CNN": cnn_backbone.build_backbone,
     "CNN_1L": cnn_backbone_1l.build_backbone,
     "CNN_2L": cnn_backbone_2l.build_backbone,
-    "UNET_4L": unet_backbone_4l.build_backbone,
-    "UNET": unet_backbone.build_backbone,
 }
 
 
@@ -536,20 +528,27 @@ class PARQ_Deformable_R(nn.Module):
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
 
-        imgs = [s["image"] for s in all_samples]
-        imgs = torch.stack(imgs, dim=0)
+        imgs = [s["image"].cpu().numpy() for s in all_samples]
+        imgs = torch.tensor(np.stack(imgs, axis=0))
         imgs = imgs.to(self.device)
 
         vessel_dists = None
         cvs_dists = None
         if self.use_vessel_info in ["pos_emb", "start"]:
-            vessel_dists = [s["mask"] for s in all_samples]
-            vessel_dists = torch.stack(vessel_dists, dim=0)
+            vessel_dists = [s["mask"].cpu().numpy() for s in all_samples]
+            vessel_dists = torch.tensor(np.stack(vessel_dists, axis=0))
             vessel_dists = vessel_dists.to(self.device)
+
+            # vessel_dists = [s["mask"] for s in all_samples]
+            # vessel_dists = torch.stack(vessel_dists, dim=0)
+            # vessel_dists = vessel_dists.to(self.device)
         if self.use_cvs_info in ["start"]:
-            cvs_dists = [s["cvs_mask"] for s in all_samples]
-            cvs_dists = torch.stack(cvs_dists, dim=0)
+            cvs_dists = [s["cvs_mask"].cpu().numpy() for s in all_samples]
+            cvs_dists = torch.tensor(np.stack(cvs_dists, axis=0))
             cvs_dists = cvs_dists.to(self.device)
+            # cvs_dists = [s["cvs_mask"] for s in all_samples]
+            # cvs_dists = torch.stack(cvs_dists, dim=0)
+            # cvs_dists = cvs_dists.to(self.device)
         # imgs = np.stack(imgs)
         # imgs = torch.tensor(imgs, device=self.device)
         imgs = self.normalize_input_values(imgs)

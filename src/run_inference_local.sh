@@ -5,7 +5,7 @@ export ID_PORT=$(($RANDOM+20000))
 #cd /workspace/deform-aneurysm-detection
 export PYTHONPATH=$(pwd):$PYTHONPATH
 CUDA_VISIBLE_DEVICES=$4 python src/train_net.py\
-    --num-gpus 1\
+    --num-gpus 2\
     --config-file "./configs/deform/$1.yaml"\
     --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --eval-only\
