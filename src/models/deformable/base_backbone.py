@@ -7,7 +7,6 @@ method
 from typing import List, Tuple
 
 import torch
-import torchio as tio
 from src.utils.position_embedding import (
     create_global_pos_volume,
     get_3d_sinusoidal_pos_emb,
@@ -54,18 +53,26 @@ class Base_Backbone(nn.Module):
         multiscale_pos_embs = []
         for feat in multiscale_feats:
             pos_volume = create_global_pos_volume(*feat.shape[-3:]).to(self.device)
+            ups = torch.nn.Upsample(
+                size=(feat.shape[-3], feat.shape[-2], feat.shape[-1]),
+                mode="trilinear",
+                #align_corners=True,
+            )
             if vessel_dists is not None:
                 # resize vessel_dists to match the eature level
-                transform = tio.transforms.Resize(
-                    (feat.shape[-3], feat.shape[-2], feat.shape[-1])
-                )
-                vessel_dists_downsampled = torch.stack(
-                    [
-                        transform(vessel_dists[i].cpu())
-                        for i in range(vessel_dists.shape[0])
-                    ],  # type: ignore
-                    dim=0,
-                ).to(self.device)
+                #transform = tio.transforms.Resize(
+                #    (feat.shape[-3], feat.shape[-2], feat.shape[-1])
+                #)
+                vessel_dists_downsampled = ups(vessel_dists)
+                # print(vessel_dists[0].shape, "aaaa")
+                # vessel_dists_downsampled = torch.stack(
+                #     [
+                #         transform(vessel_dists[i].cpu())
+                #         for i in range(vessel_dists.shape[0])
+                #     ],  # type: ignore
+                #     dim=0,
+                # ).to(self.device)
+                # print(vessel_dists_downsampled_2.mean(), vessel_dists_downsampled.mean())
                 pos_emb = get_3d_sinusoidal_pos_plus_vessel_emb(
                     pos_volume,
                     vessel_dists_downsampled,

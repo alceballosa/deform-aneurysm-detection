@@ -987,9 +987,9 @@ if __name__ == "__main__":
         exp_dir = root / f"models/{exp}"
 
         # get all dirs starting with "inference_"
-        inf_appends = [
+        inf_appends = sorted([
             x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")
-        ]
+        ])
 
         # inf_appends = ["50k","60k","final"]
         # inf_appends = ["hieu"]
