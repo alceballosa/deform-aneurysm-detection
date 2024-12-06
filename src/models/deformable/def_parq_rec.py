@@ -527,14 +527,14 @@ class PARQ_Deformable_R(nn.Module):
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
 
-        imgs = [s["image"].cpu().numpy() for s in all_samples]
+        imgs = [s["image"] for s in all_samples]
         imgs = torch.tensor(np.stack(imgs, axis=0))
         imgs = imgs.to(self.device)
 
         vessel_dists = None
         cvs_dists = None
         if self.use_vessel_info in ["pos_emb", "start"]:
-            vessel_dists = [s["mask"].cpu().numpy() for s in all_samples]
+            vessel_dists = [s["mask"] for s in all_samples]
             vessel_dists = torch.tensor(np.stack(vessel_dists, axis=0))
             vessel_dists = vessel_dists.to(self.device)
 
@@ -542,7 +542,7 @@ class PARQ_Deformable_R(nn.Module):
             # vessel_dists = torch.stack(vessel_dists, dim=0)
             # vessel_dists = vessel_dists.to(self.device)
         if self.use_cvs_info in ["start"]:
-            cvs_dists = [s["cvs_mask"].cpu().numpy() for s in all_samples]
+            cvs_dists = [s["cvs_mask"] for s in all_samples]
             cvs_dists = torch.tensor(np.stack(cvs_dists, axis=0))
             cvs_dists = cvs_dists.to(self.device)
             # cvs_dists = [s["cvs_mask"] for s in all_samples]
@@ -575,8 +575,8 @@ class PARQ_Deformable_R(nn.Module):
                 label = int(sample["annot"][i][-1])  # + 1
                 if label in valid_labels:
                     labels.append(label)
-                    center.append(sample["annot"][i][:3].unsqueeze(0))
-                    size.append(sample["annot"][i][3:6].unsqueeze(0))
+                    center.append(torch.tensor(sample["annot"])[i][:3].unsqueeze(0))
+                    size.append(torch.tensor(sample["annot"])[i][3:6].unsqueeze(0))
             labels = torch.Tensor(labels).to(self.device) if len(labels) > 0 else []
 
             center = (

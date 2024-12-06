@@ -117,9 +117,10 @@ class CTADatasetMapper:
                 if self.augmentations:
                     sample = self.augmentations(sample)
                 # sample["image"] = sample["image"] * 2.0 - 1.0  # normalized to -1 ~ 1
-                for k in sample.keys():
-                    if isinstance(sample[k], np.ndarray):
-                        sample[k] = torch.tensor(sample[k])
+                # TODO: review this
+                # for k in sample.keys():
+                #     if isinstance(sample[k], np.ndarray):
+                #         sample[k] = torch.tensor(sample[k])
 
                 random_samples.append(sample)
 

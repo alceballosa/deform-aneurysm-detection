@@ -185,6 +185,7 @@ def build_train_loader(
     if sampler is None:
         sampler = TrainingSampler(len(dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
+    
     return build_batch_data_loader(
         dataset,
         sampler,
