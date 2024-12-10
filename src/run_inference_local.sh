@@ -9,7 +9,7 @@ CUDA_VISIBLE_DEVICES=$4 python src/train_net.py\
     --config-file "./configs/deform/$1.yaml"\
     --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --eval-only\
-    MODEL.WEIGHTS ./models/$1/model_$2.pth
+    MODEL.WEIGHTS ./model_weights/$1/model_$2.pth
 
 python src/postprocess/csv_to_nifti.py --config-file "./configs/deform/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD "$3"
 

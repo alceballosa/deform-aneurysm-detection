@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python src/train_net.py\
     --num-gpus 4\
     --config-file "./configs/deform/$1.yaml"\
     --eval-only\
-    MODEL.WEIGHTS "./models/$1/model_$2.pth" \
+    MODEL.WEIGHTS "./model_weights/$1/model_$2.pth" \
     DATA.DIR.VAL.SCAN_DIR $3\
     DATA.DIR.VAL.VESSEL_DIR $4\
     OUTPUT_DIR $5
