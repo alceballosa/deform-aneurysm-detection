@@ -11,7 +11,6 @@ class ANTsRegistration:
 
         fixed_image = self.fix_img
         moving_image = self.move_img
-        print("a")
         # Perform registration 
         registration_result = ants.registration(fixed=fixed_image, 
                                             moving=moving_image, 

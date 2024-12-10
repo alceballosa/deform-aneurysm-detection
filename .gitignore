@@ -4,11 +4,10 @@ outputs/
 output/
 logs/
 *.pth
-models/
 outputs/
 *.out
 *.pkl
-weights/*
+model_weights/*
 .old
 .prev
 *.pickle

@@ -1,5 +1,8 @@
-export id_gpu=2,3
-export model="decoder_only_no_rec_input_edt_cvs_EXT"
+#!/bin/bash
+
+
+export id_gpu=0,1
+export model="decoder_only_no_rec_input_edt_cvs_nc"
 
 ./src/run_inference_local.sh $model "final" 0.8 $id_gpu
 ./src/run_inference_local.sh $model "0059999" 0.8 $id_gpu
