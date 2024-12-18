@@ -82,7 +82,6 @@ def seed_everything(seed):
 def get_inference_iters(cfg):
     model_weights = cfg.MODEL.WEIGHTS
     if model_weights:
-        model_weights = model_weights.replace(".pth", "").split("/")[-1].split("_")[-1]
         if "final" in model_weights:
             model_weights = "final"
             return model_weights
@@ -93,7 +92,6 @@ def get_inference_iters(cfg):
             return "final"
         else:
             raise ValueError("model weights not found")
-
 
 class Trainer(DefaultTrainer):
     def __init__(self, cfg):
@@ -106,9 +104,17 @@ class Trainer(DefaultTrainer):
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         if output_folder is None:
-            output_folder = os.path.join(
-                cfg.OUTPUT_DIR, "inference_" + get_inference_iters(cfg)
+            results_folder = Path("./results")
+            dataset_folder = Path(cfg.DATA.DIR.VAL.SCAN_DIR).parent.name
+
+            output_folder = (
+                results_folder
+                / dataset_folder
+                / cfg.MODEL.NAME
+                / f"inference_{cfg.MODEL.WEIGHTS}"
             )
+
+            output_folder.mkdir(parents=True, exist_ok=True)
         return CTAEvaluator(
             cfg, dataset_name, distributed=True, output_dir=output_folder
         )
@@ -292,18 +298,10 @@ def setup(args):
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.RESUME = args.resume
-    cfg.OUTPUT_DIR = os.path.join(
-        cfg.OUTPUT_DIR, os.path.split(args.config_file)[-1].replace(".yaml", "")
+    cfg.OUTPUT_DIR = os.path.join(cfg.OUTPUT_DIR, cfg.MODEL.NAME)
+    cfg.MODEL.PATH_WEIGHTS = os.path.join(
+        "./model_weights", cfg.MODEL.NAME, f"model_{cfg.MODEL.WEIGHTS}.pth"
     )
-
-    # use weights from the training folder for eval on other datasets
-    if "EXT" in cfg.MODEL.WEIGHTS:
-        cfg.MODEL.WEIGHTS = cfg.MODEL.WEIGHTS.replace("_EXT", "")
-        Path(cfg.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-    if "TI" in cfg.MODEL.WEIGHTS:
-        cfg.MODEL.WEIGHTS = cfg.MODEL.WEIGHTS.replace("_TI", "")
-        Path(cfg.OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-
     cfg.freeze()
     default_setup(cfg, args)
     # Setup logger for "mask_former" module
@@ -322,8 +320,9 @@ def main(args):
     if args.eval_only:
         model = Trainer.build_model(cfg)
         # model = torch.compile(model)
+
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-            cfg.MODEL.WEIGHTS, resume=args.resume
+            cfg.MODEL.PATH_WEIGHTS, resume=args.resume
         )
         res = Trainer.test(cfg, model)
         # if comm.is_main_process():

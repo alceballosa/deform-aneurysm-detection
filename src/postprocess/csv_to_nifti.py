@@ -12,10 +12,12 @@ if __name__ == "__main__":
     parser = default_argument_parser()
     args = parser.parse_args()
     cfg = setup(args)
-    checkpoint = get_inference_iters_id(cfg.POSTPROCESS.CHECKPOINT)
-    path_outputs_csv = Path(cfg.OUTPUT_DIR) / f"inference_{checkpoint}/predict.csv"
-    df_outputs = pd.read_csv(path_outputs_csv)
-    path_outputs_nifti = Path(cfg.OUTPUT_DIR) / f"inference_{checkpoint}/nifti"
+    checkpoint = cfg.POSTPROCESS.CHECKPOINT
+    dataset_name = Path(cfg.DATA.DIR.VAL.SCAN_DIR).parent.name
+    path_outputs = Path("./results") / dataset_name / cfg.MODEL.NAME
+    path_csv = path_outputs / f"inference_{checkpoint}" / "predict.csv"
+    df_outputs = pd.read_csv(path_csv)
+    path_outputs_nifti = path_outputs / f"inference_{checkpoint}/nifti"
     path_outputs_nifti.mkdir(parents=True, exist_ok=True)
     threshold = float(cfg.POSTPROCESS.THRESHOLD)
     path_label_files = Path(cfg.DATA.DIR.VAL.SCAN_DIR)

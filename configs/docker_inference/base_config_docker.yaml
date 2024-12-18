@@ -1,5 +1,5 @@
 SEED: 1000
-OUTPUT_DIR: "/workspace/cta-det2/outputs"
+OUTPUT_DIR: "./model_weights"
 
 DATASETS:
   TRAIN: ("cta_train",)

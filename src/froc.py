@@ -92,13 +92,13 @@ class FROCEvaluator:
         for cat in self._categories.values():
             n_pos = sum([len(x["box"]) for x in self._gts[cat].values()])
             n_pos_per_cat[cat] = n_pos
-        #print(n_pos_per_cat)
+        # print(n_pos_per_cat)
         self._n_pos_per_cat = n_pos_per_cat
-        if mode == "val":
+        if mode == "internal_test":
             self._images = [f"Ts{i:0>4}.nii.gz" for i in range(1, 153)]
-        elif mode == "train":
+        elif mode == "internal_train":
             self._images = [f"Tr{i:0>4}.nii.gz" for i in range(1, 1187)]
-        elif mode == "ext":
+        elif mode == "external":
             self._images = [f"ExtA{i:0>4}.nii.gz" for i in range(1, 72)] + [
                 f"ExtB{i:0>4}.nii.gz" for i in range(1, 68)
             ]
@@ -603,7 +603,7 @@ class FROCEvaluator:
         self._logger.info(f"got {len(all_imgs)} gt images")
         data = data["annotations"]
 
-        #print("parsing ground truth ...")
+        # print("parsing ground truth ...")
         for instance in tqdm(data):
             disease = results.get(id2disease[instance["category_id"]], {})
             image_box = disease.get(instance["image_id"], {"box": []})
@@ -636,7 +636,7 @@ class FROCEvaluator:
 
         # self._logger.info(f"got {len(all_imgs)} gt images")
 
-        #print("parsing ground truth ...")
+        # print("parsing ground truth ...")
         for seriesuid, rows in data.groupby("seriesuid"):
             all_imgs.append(seriesuid)
             box = np.array(rows[["coordX", "coordY", "coordZ", "w", "h", "d"]])
@@ -652,7 +652,7 @@ class FROCEvaluator:
                 # for i in range(len(box)):
                 #    box[i,3:] = box[i,3:].mean()
 
-            if meta is not None and self._mode not in ["ext",  "hospital"]:
+            if meta is not None and self._mode not in ["ext", "hospital"]:
                 origin = np.array(meta[seriesuid]["origin"])
                 spacing = np.array(meta[seriesuid]["spacing"])
                 # only convert box xyz if needed
@@ -707,7 +707,7 @@ class FROCEvaluator:
             pred_part = pred * spacing + origin * np.array([1, -1, 1])
             return pred_part * np.array([1, -1, 1])
 
-        #print("parsing predictions ...")
+        # print("parsing predictions ...")
         for seriesuid, rows in preds.groupby("seriesuid"):
             box_data = np.array(
                 rows[["coordX", "coordY", "coordZ", "w", "h", "d", "probability"]]
@@ -937,73 +937,37 @@ def remove_by_size(df_preds, size_dict):
 
     return df_preds
 
-
-special_exps = [
-    "deform_decoder_only_rec_shared_step_lr_5_layers",
-    "deform_decoder_only_rec_shared_step_lr_6_layers",
-    "deform_decoder_only_rec_shared_step_lr_6_layers_good",
-]
-
 if __name__ == "__main__":
 
     root = Path("./")
 
+
     label_files = {
-        "train": root / "labels/train0.4_crop.csv",
-        "val": root / "labels/gt/internal_test_crop_0.4.csv",
-        "ext": root / "labels/gt/external_crop_0.4.csv",
-        "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
+        "internal_train": root / "labels/train0.4_crop.csv",
+        "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
+        "external": root / "labels/gt/external_crop_0.4.csv",
         "hospital": root / "labels/gt/hospital_crop_0.4.csv",
-        "dlca_val": root / "labels/test_dlca.csv",
-    }
-
-    size_files = {
-        "train_no_crop": root / "labels/sizes/scan_sizes_train.json",
-        "val_no_crop": root / "labels/sizes/scan_sizes_test.json",
-        "hospital": root / "labels/sizes/hospital.json",
-    }
-
-    meta_files = {
-        "ext": root / "labels/metadata/external_crop_meta.json",
-        "train": root / "labels/metadata/internal_train_crop_meta.json",
-        "val": root / "labels/metadata/internal_test_meta_crop.json",
-        "val_no_crop": root / "labels/metadata/internal_test_meta.json",
-        "hospital": root / "labels/metadata/hospital_meta.json",
     }
 
     max_fppi = 16.0
     min_fppi = 0.0
     fp_scale = "linear"
-    fppi_thrs = [0.125, 0.25, 0.5, 1.0,  2.0, 4.0, 8.0]
+    fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
     n_bootstraps = 10000
     iou_thrs = [0.2, 0.3]
 
     # exp = "deform_decoder_only_input_96_med_bsz"
     # get exp from command line arg
-    exp_base = sys.argv[1]
-    exps = [exp_base, exp_base + "_EXT"]
-
-    for exp in exps:
-        exp_dir = root / f"models/{exp}"
+    exp_base = Path(sys.argv[1])
+    dataset_name = exp_base.name
+    exps = [x for x in exp_base.glob("*")]
+    for exp_dir in exps:
+        # exp_dir = root / f"model_weights/{exp}"
 
         # get all dirs starting with "inference_"
-        inf_appends = sorted([
-            x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")
-        ])
-
-        # inf_appends = ["50k","60k","final"]
-        # inf_appends = ["hieu"]
-        # inf_appends = ["10k","20k","30k"]
-
-        if "TI" in exp:
-            mode = "train"
-        elif "EXT" in exp:
-            mode = "ext"
-        elif "PRIV" in exp:
-            mode = "hospital"
-        else:
-            mode = "val"
-
+        inf_appends = sorted(
+            [x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")]
+        )
 
         for inf_append in inf_appends:
             path_inf = "inference_" + inf_append
@@ -1012,23 +976,10 @@ if __name__ == "__main__":
 
                 print(f"Running iou_thr: {iou_thr} at {inf_append}")
                 n_workers = 8
-                out_dir = root / f"models/{exp}/iou{iou_thr:.1f}_froc_{inf_append}"
-                path_preds = root / f"models/{exp}/{path_inf}/predict.csv"
+                out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
+                path_preds = exp_dir / f"inference_{inf_append}"/ "predict.csv"
                 preds = pd.read_csv(path_preds)
-                
-                out_dir = (
-                    root / f"models/{exp}/iou{iou_thr:.1f}_froc_{inf_append}_crop"
-                )
-
-                if "_TI" in exp:
-                    label_file = label_files["train"]
-                elif "_EXT" in exp:
-                    label_file = label_files["ext"]
-                elif "_PRIV" in exp:
-                    label_file = label_files["hospital"]
-                else:  # VALIDATION - default
-                    label_file = label_files["val"]
-
+                label_file = label_files[dataset_name]
                 logger = setup_logger(output=out_dir, name=__name__ + str(iou_thr))
                 evaluator = FROCEvaluator(
                     label_file=label_file,
@@ -1044,8 +995,8 @@ if __name__ == "__main__":
                     fp_scale=fp_scale,
                     meta_data=None,
                     use_world_xyz=False,
-                    exp_name=exp + "_" + inf_append,
-                    mode=mode,
+                    exp_name=exp_dir.name + "_" + inf_append,
+                    mode=dataset_name,
                 )
                 evaluator.evaluate()
                 evaluator.run_compute_froc(save_fig=True)
