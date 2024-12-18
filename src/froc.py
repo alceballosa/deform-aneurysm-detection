@@ -946,7 +946,7 @@ if __name__ == "__main__":
         "internal_train": root / "labels/train0.4_crop.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
-        "hospital": root / "labels/gt/hospital_crop_0.4.csv",
+        "hospital":"/data/aneurysm/hospital/annotations.csv",
     }
 
     max_fppi = 16.0
@@ -954,7 +954,7 @@ if __name__ == "__main__":
     fp_scale = "linear"
     fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
     n_bootstraps = 10000
-    iou_thrs = [0.1, 0.3]
+    iou_thrs = [0.2, 0.3]
 
     # exp = "deform_decoder_only_input_96_med_bsz"
     # get exp from command line arg
