@@ -63,7 +63,9 @@ def GetBoundingBox_From_Coords_World(coordinates, img_header) -> tuple:
 if __name__ == "__main__":
     print(sys.argv)
     path_label = sys.argv[1]
-    path_save = sys.argv[2]
+    path_vessel = sys.argv[2]
+    path_edt = sys.argv[3]
+    path_save = sys.argv[4]
 
     image_list = os.listdir(path_label)
     list_aneurysms = []
@@ -75,7 +77,12 @@ if __name__ == "__main__":
         )
         if num_features == 0:
             continue
-
+        vessel_header = sitk.ReadImage(os.path.join(path_vessel, i))
+        vessel_arr = sitk.GetArrayFromImage(vessel_header)
+        header_edt = sitk.ReadImage(os.path.join(path_edt, i))
+        edt_array = sitk.GetArrayFromImage(header_edt)
+        artery_arr = (vessel_arr == 1).astype(np.uint8)
+        vein_arr = (vessel_arr == 2).astype(np.uint8)
         region = measure.regionprops(labeled_array)
 
         for j in range(num_features):
@@ -90,7 +97,56 @@ if __name__ == "__main__":
             assert int(volume) == (labeled_array == (j + 1)).sum()
             volume_array = (labeled_array == (j + 1)).astype(np.uint8)
             area_aneurysm = np.sum(volume_array)
+            distance = edt_array[int(z), int(y), int(x)]
+            try:
+                area_intersection_artery = np.sum(
+                    np.logical_and(volume_array, artery_arr)
+                )
+                area_intersection_vein = np.sum(np.logical_and(volume_array, vein_arr))
 
+            except Exception:
+                print(i)
+                if i == "ExtA0032.nii.gz":
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array[:, 119:, 119:], artery_arr)
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array[:, 119:, 119:], vein_arr)
+                    )
+                    # manual fix for this case
+                    x = 284.0
+                    y = 227.0
+                elif i == "ExtB0042.nii.gz":
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array, artery_arr[:-1, :-1, :-1])
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array, vein_arr[:-1, :-1, :-1])
+                    )
+                elif i == "ExtB0061.nii.gz":
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array, artery_arr[:-1, :-1, :-1])
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array, vein_arr[:-1, :-1, :-1])
+                    )
+                elif i == "CA_00036_0000.nii.gz":
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array[20:,:,:], artery_arr[:, 10:, 10:])
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array[20:,:,:], vein_arr[:, 10:, 10:])
+                    )
+                                        
+                else:
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array, artery_arr[:, :-1, :-1])
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array, vein_arr[-1:, :-1, :-1])
+                    )
+            iom_artery = area_intersection_artery / area_aneurysm
+            iom_vein = area_intersection_vein / area_aneurysm
             list_aneurysms.append(
                 [
                     i,
@@ -104,6 +160,9 @@ if __name__ == "__main__":
                     volume,
                     min_axis,
                     maj_axis,
+                    iom_artery,
+                    iom_vein,
+                    distance
                 ]
             )
             print(list_aneurysms[-1])
@@ -122,6 +181,9 @@ if __name__ == "__main__":
             "volume",
             "min_axis",
             "maj_axis",
+            "iom_artery",
+            "iom_vein",
+            "distance_to_artery",
         ],
     )
     df.to_csv(path_save, index=False)

@@ -2,6 +2,10 @@
 
 ![Figure describing the model](diagram.png)
 
+## Changelog
+
+- 12/18/2024: modified the way results are stored for better output organization. Weights should now be placed under `model_weights` instead of `models`. Results for inference will be saved automatically to the `results` folder under the following hierarchy: `results/[dataset_name]/[model_name]/[checkpoint]`. If you wrote any config files of your own, please add a 'name' field following line 5 in the `/configs/deform/decoder_only_no_rec_input_edt.yaml` file. 
+
 
 ## Citing us
 
@@ -29,7 +33,7 @@ Weights can be downloaded from the following link: https://drive.google.com/file
 
 After doing so, create the following chain of folders inside the repository:
 
-`models/decoder_only_no_rec_pe_edt/`
+`model_weights/decoder_only_no_rec_pe_edt/`
 
 And place the weights file inside.
 
@@ -93,6 +97,37 @@ export threshold=0.95
 ```
 
 Output files will be placed under the ```predictions``` folder. You will be able to find a .csv file with all predictions (including those under the confidence threshold) and a folder with nifti files with filtered predictions.
+
+
+### Evaluate outputs
+
+To run evaluation you must create an annotations file. We assume that the annotations files are created based on a 3D segmentation mask the same size of the CT scan where each aneurysm is densely annotated. 
+
+```bash 
+python src/preprocess/get_bbox_csv.py [path_to_cropped_label_files] [output_path_annotations]
+
+```
+
+Alternatively, you can run the file `run_preproc_pipeline_train.sh` making sure to set input paths as specified there (original scans under `og` and masks under `og_label`).
+
+If your labels are in CSV format as bounding boxes you have to make sure they are strictly defined in pixel coordinates. One example of the required structure can be found under `labels/gt/example_annotation.csv`.
+
+Other than this, you need to make the following changes to `src/froc.py`:
+
+- Add new entry with the dataset name and the path to the annotations file to the dict `label_files` on line 945.
+
+- Add a list comprehension that matches all of your filenames under line 106, conditioned to your dataset's name, for example: `self._images = [f"CA_{i:0>5}_0000.nii.gz" for i in range(0, 100)]`
+
+Note: future updates to the repo will streamline things so that these two steps are not required.
+
+Finally, you can run evaluation as follows:
+
+```bash 
+export path_dataset="[path/to/dataset/folder]"
+python src/froc.py ./results/${dataset_path}
+```
+
+You can specify the FPr and IoU thresholds you want to use for evaluation in the same file. Results will be stored under the filename `froc.csv`.
 
 
 ## Training instructions

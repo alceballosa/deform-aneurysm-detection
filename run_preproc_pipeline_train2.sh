@@ -43,7 +43,7 @@ sudo rm -rf ${path_vessel_seg}_temp
 python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
 
 # Obtain bbox csv from segmentation files 
-python src/preprocess/get_bbox_csv.py ${path_label_crop} ${path_vessel_seg} ${path_edt} ${path_annotations}
+python src/preprocess/get_bbox_csv_with_artery_vein.py ${path_label_crop} ${path_vessel_seg} ${path_edt} ${path_annotations}
 
 # Get cvs masks
 python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
