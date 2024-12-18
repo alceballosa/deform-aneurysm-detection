@@ -954,7 +954,7 @@ if __name__ == "__main__":
     fp_scale = "linear"
     fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
     n_bootstraps = 10000
-    iou_thrs = [0.2, 0.3]
+    iou_thrs = [0.1, 0.3]
 
     # exp = "deform_decoder_only_input_96_med_bsz"
     # get exp from command line arg
@@ -978,9 +978,15 @@ if __name__ == "__main__":
                 n_workers = 8
                 out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
                 path_preds = exp_dir / f"inference_{inf_append}"/ "predict.csv"
-                preds = pd.read_csv(path_preds)
+                try:
+                    preds = pd.read_csv(path_preds)
+                except: 
+                    continue
                 label_file = label_files[dataset_name]
                 logger = setup_logger(output=out_dir, name=__name__ + str(iou_thr))
+                if dataset_name == "hospital":
+                    meta_path = root / "labels/metadata/hospital-new.json"
+                    meta = json.load(open(meta_path, "r"))
                 evaluator = FROCEvaluator(
                     label_file=label_file,
                     preds=preds,
@@ -993,7 +999,7 @@ if __name__ == "__main__":
                     n_bootstraps=n_bootstraps,
                     n_workers=n_workers,
                     fp_scale=fp_scale,
-                    meta_data=None,
+                    meta_data= None,
                     use_world_xyz=False,
                     exp_name=exp_dir.name + "_" + inf_append,
                     mode=dataset_name,
