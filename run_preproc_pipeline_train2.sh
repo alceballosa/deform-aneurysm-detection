@@ -26,9 +26,9 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 
 
 # Resample scans to 0.4mm spacing and crop them
-python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
-python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
-python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
+# python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
+# python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
+# python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
 
 # Run vessel segmentation
 sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/Data/aneurysmDetection/output_path/  -v ${path_crop}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
@@ -41,3 +41,14 @@ cp ${path_vessel_seg}_temp/Predictions/* ${path_vessel_seg}/
 sudo rm -rf ${path_vessel_seg}_temp
 # Compute distance maps
 python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
+
+# Obtain bbox csv from segmentation files 
+python src/preprocess/get_bbox_csv.py ${path_label_crop} ${path_vessel_seg} ${path_edt} ${path_annotations}
+
+# Get cvs masks
+python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
+
+python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt
+
+python src/preprocess/compress_distance_maps.py ${path_cvs_masks}_edt 128 90
+python src/preprocess/compress_distance_maps.py ${path_edt} 128 90
