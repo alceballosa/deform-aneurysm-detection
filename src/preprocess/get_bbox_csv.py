@@ -130,12 +130,20 @@ if __name__ == "__main__":
                     area_intersection_vein = np.sum(
                         np.logical_and(volume_array, vein_arr[:-1, :-1, :-1])
                     )
+                elif i == "CA_00036_0000.nii.gz":
+                    area_intersection_artery = np.sum(
+                        np.logical_and(volume_array[20:,:,:], artery_arr[:, 10:, 10:])
+                    )
+                    area_intersection_vein = np.sum(
+                        np.logical_and(volume_array[20:,:,:], vein_arr[:, 10:, 10:])
+                    )
+                                        
                 else:
                     area_intersection_artery = np.sum(
                         np.logical_and(volume_array, artery_arr[:, :-1, :-1])
                     )
                     area_intersection_vein = np.sum(
-                        np.logical_and(volume_array, vein_arr[:, :-1, :-1])
+                        np.logical_and(volume_array, vein_arr[-1:, :-1, :-1])
                     )
             iom_artery = area_intersection_artery / area_aneurysm
             iom_vein = area_intersection_vein / area_aneurysm
