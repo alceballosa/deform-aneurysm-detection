@@ -29,7 +29,7 @@ DATA:
   DIR:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_compressed"
+      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:

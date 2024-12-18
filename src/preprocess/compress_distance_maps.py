@@ -9,8 +9,9 @@ import tqdm
 from joblib import Parallel, delayed
 from pathlib import Path
 
+
 def compress_scan(path_file, path_target, threshold):
-    
+
     scan = sitk.ReadImage(path_file)
     scan_name = Path(path_file).name
     array = sitk.GetArrayFromImage(scan)
@@ -24,7 +25,7 @@ def compress_scan(path_file, path_target, threshold):
 if __name__ == "__main__":
     edt_dir = sys.argv[1]
     threshold = int(sys.argv[2])
-    target_dir = edt_dir + "_compressed"
+    target_dir = edt_dir + "_comp"
     try:
         threads = int(sys.argv[3])
     except IndexError:
