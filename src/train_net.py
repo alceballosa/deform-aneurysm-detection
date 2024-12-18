@@ -111,7 +111,7 @@ class Trainer(DefaultTrainer):
                 results_folder
                 / dataset_folder
                 / cfg.MODEL.NAME
-                / f"inference_{cfg.MODEL.WEIGHTS}"
+                / f"inference_{get_inference_iters(cfg.MODEL.WEIGHTS)}"
             )
 
             output_folder.mkdir(parents=True, exist_ok=True)
