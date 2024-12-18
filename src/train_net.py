@@ -111,7 +111,7 @@ class Trainer(DefaultTrainer):
                 results_folder
                 / dataset_folder
                 / cfg.MODEL.NAME
-                / f"inference_{get_inference_iters(cfg.MODEL.WEIGHTS)}"
+                / f"inference_{get_inference_iters(cfg)}"
             )
 
             output_folder.mkdir(parents=True, exist_ok=True)
@@ -292,7 +292,7 @@ def setup(args):
     """
     cfg = get_cfg()
     # for poly lr schedule
-    add_deeplab_config(cfg)
+    # add_deeplab_config(cfg)
     add_config(cfg)
 
     cfg.merge_from_file(args.config_file)
