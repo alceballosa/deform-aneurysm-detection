@@ -18,7 +18,7 @@ label_files = {
     "val": root / "labels/gt/internal_test_crop_0.4.csv",
     "ext": root / "labels/gt/external_crop_0.4.csv",
     "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
-    "hospital": root / "labels/gt/hospital_crop_0.4.csv",
+    "hospital": root / "labels/gt/hospital.csv",
     #"hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",
 }
 size_files = {

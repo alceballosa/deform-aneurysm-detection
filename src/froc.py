@@ -946,7 +946,7 @@ if __name__ == "__main__":
         "internal_train": root / "labels/train0.4_crop.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
-        "hospital": root / "labels/gt/hospital_crop_0.4.csv",
+        "hospital":"/data/aneurysm/hospital/annotations.csv",
     }
 
     max_fppi = 16.0
