@@ -1,6 +1,7 @@
 import copy
 import time
 
+import edt
 import numpy as np
 import SimpleITK as sitk
 import torch
@@ -11,7 +12,7 @@ from src import transform
 from .crop import InstanceCrop
 from .crop2 import InstanceCrop2
 from .split_comb import SplitComb
-import edt 
+
 DATA_MAPPER_REGISTRY = Registry("DATA_MAPPER")
 
 
@@ -129,13 +130,13 @@ class CTADatasetMapper:
             #     patches, nzhw = self.split_comb.split(data.pop("image"))
             #     dataset_dict["patches"] = torch.tensor(np.concatenate(patches, axis=0))
             #     dataset_dict["nzhw"] = nzhw
-            dataset_dict["image"] = torch.tensor(data["image"])
+            dataset_dict["image"] = torch.tensor(data["image"], device="cpu")
             dataset_dict["image_spacing"] = data["image_spacing"]
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
-                dataset_dict["mask"] = torch.tensor(data["mask"])
-                
+                dataset_dict["mask"] = torch.tensor(data["mask"], device="cpu")
+
             if self.cfg.MODEL.USE_CVS_INFO != "no":
-                dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"])
+                dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"], device="cpu")
         # end = time.perf_counter()
         # print("data processing and augmentation", end - end_loading)
         # print("data loading", end_loading - start)
@@ -146,12 +147,12 @@ class CTADatasetMapper:
 
     def get_distance_map(self, mask):
 
-        distances = edt.sdf(mask, black_border=False, parallel = 8)
+        distances = edt.sdf(mask, black_border=False, parallel=8)
         # distances[distances > 0] = 0
         return distances
 
     def load_data(self, dataset_dict):
-        outputs = {}  
+        outputs = {}
         image = sitk.ReadImage(dataset_dict["file_name"])
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x

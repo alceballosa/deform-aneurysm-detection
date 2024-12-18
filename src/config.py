@@ -11,7 +11,6 @@ def setup(args):
     Create configs and perform basic setups.
     """
     cfg = get_cfg()
-    # for poly lr schedule
     add_config(cfg)
 
     cfg.merge_from_file(args.config_file)
@@ -36,11 +35,14 @@ def get_inference_iters_id(checkpoint):
 def add_config(cfg):
 
     # only for older parq models
+    cfg.MODEL.NAME = ""
     cfg.MODEL.ENCODER_TYPE = "UNET"
     cfg.MODEL.USE_VESSEL_INFO = "no"
     cfg.MODEL.USE_CVS_INFO = "no"
     cfg.MODEL.D_MODEL = 384
     cfg.MODEL.EVAL_VIZ_MODE = False
+    cfg.MODEL.WEIGHTS = None
+    cfg.MODEL.PATH_WEIGHTS = ""
 
     cfg.MODEL.CONV_MODEL = CN()
     cfg.MODEL.CONV_MODEL.BACKBONE_TYPE = "CNN"  # for newer deform models

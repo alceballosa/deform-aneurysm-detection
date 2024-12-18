@@ -101,8 +101,8 @@ def get_cvs_mask(
                 save_path=output_path_bbox,
             )
             break
-        except:
-            print("Failed to compute, re-trying")
+        except Exception as e:
+            print(e, "Failed to compute, re-trying")
     return cvs_bbox_img
 
     # remove aneurysm bbox which overlap with vein region

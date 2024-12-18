@@ -3,6 +3,7 @@ outputs/
 .vscode*
 output/
 logs/
+results/
 *.pth
 outputs/
 *.out

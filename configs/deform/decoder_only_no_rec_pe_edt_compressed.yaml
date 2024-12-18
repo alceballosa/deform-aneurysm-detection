@@ -2,6 +2,7 @@ _BASE_: deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
+  NAME: "decoder_only_no_rec_pe_edt_compressed"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "pos_emb" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
