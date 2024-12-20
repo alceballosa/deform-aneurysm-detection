@@ -2,7 +2,7 @@
 
 
 export id_gpu=0,1,2,3
-export model="decoder_only_no_rec_input_edt_cvs_nc_PRIV"
+export model="decoder_only_no_rec_input_edt_cvs_PRIV"
 
 ./src/run_inference_local.sh $model "0051999" 0.8 $id_gpu
 ./src/run_inference_local.sh $model "final" 0.8 $id_gpu
@@ -15,5 +15,5 @@ export model="decoder_only_no_rec_input_edt_cvs_nc_PRIV"
 ./src/run_inference_local.sh $model "0043999" 0.8 $id_gpu
 ./src/run_inference_local.sh $model "0039999" 0.8 $id_gpu
 ./src/run_inference_local.sh $model "0029999" 0.8 $id_gpu
-
+./src/run_inference_local.sh $model "0019999" 0.8 $id_gpu
 
