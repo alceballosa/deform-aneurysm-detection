@@ -50,7 +50,6 @@ class FROCEvaluator:
         save_curves=False,
         min_fppi=1e-4,
         fp_scale="linear",
-        meta_data=None,
         exp_name=None,
         use_world_xyz=True,
         mode="val",
@@ -82,10 +81,10 @@ class FROCEvaluator:
         self._exp_name = exp_name
         # self._gts, self._categories, self._images = self.parse_gt_json(label_file)
         self._gts, self._categories, self._images = self.parse_gt_csv(
-            label_file, meta=meta_data
+            label_file
         )
         # self._dts = self.parse_dt_json(preds, self._categories)
-        self._dts = self.parse_dt_csv(preds, self._categories, meta=meta_data)
+        self._dts = self.parse_dt_csv(preds, self._categories)
 
         # compute totol pos per category
         n_pos_per_cat = {}
@@ -620,7 +619,7 @@ class FROCEvaluator:
 
         return results, id2disease, all_imgs
 
-    def parse_gt_csv(self, path, meta=None):
+    def parse_gt_csv(self, path):
         """
         json file follows coco ground truth format
         return
@@ -651,12 +650,6 @@ class FROCEvaluator:
                 box[:, 3:] = sides
                 # for i in range(len(box)):
                 #    box[i,3:] = box[i,3:].mean()
-
-            if meta is not None and self._mode not in ["ext", "hospital"]:
-                origin = np.array(meta[seriesuid]["origin"])
-                spacing = np.array(meta[seriesuid]["spacing"])
-                # only convert box xyz if needed
-                box[:, :3] = box[:, :3] * spacing + origin
 
             box = xyzwhd2xyzxyz(torch.tensor(box))
 
@@ -696,7 +689,7 @@ class FROCEvaluator:
 
         return results
 
-    def parse_dt_csv(self, preds, id2disease, meta=None):
+    def parse_dt_csv(self, preds, id2disease):
         """
         args: preds: prediction_df
         return dict(disease-> image_id -> {"box": tensor, "score": tensor})
@@ -712,20 +705,6 @@ class FROCEvaluator:
             box_data = np.array(
                 rows[["coordX", "coordY", "coordZ", "w", "h", "d", "probability"]]
             )
-
-            # convert box in pixel coordinate to world coordinates
-
-            if meta is not None:
-
-                origin = np.array(meta[seriesuid]["origin"])
-                spacing = np.array(meta[seriesuid]["spacing"])
-                # only convert box xyz if needed
-
-                if self._mode == "hospital":
-                    box_data[:, :3] = fix_bad_origin(box_data[:, :3], spacing, origin)
-                else:
-                    box_data[:, :3] = box_data[:, :3] * spacing + origin
-                box_data[:, 3:6] *= spacing
             results[seriesuid] = {"box": box_data[:, :6], "score": box_data[:, -1]}
 
         # convert to tensor and sort box
@@ -937,16 +916,16 @@ def remove_by_size(df_preds, size_dict):
 
     return df_preds
 
+
 if __name__ == "__main__":
 
     root = Path("./")
-
 
     label_files = {
         "internal_train": root / "labels/train0.4_crop.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
-        "hospital":"/data/aneurysm/hospital/annotations.csv",
+        "hospital": "/data/aneurysm/hospital/annotations.csv",
     }
 
     max_fppi = 16.0
@@ -956,13 +935,11 @@ if __name__ == "__main__":
     n_bootstraps = 10000
     iou_thrs = [0.2, 0.3]
 
-    # exp = "deform_decoder_only_input_96_med_bsz"
     # get exp from command line arg
     exp_base = Path(sys.argv[1])
     dataset_name = exp_base.name
     exps = [x for x in exp_base.glob("*")]
     for exp_dir in exps:
-        # exp_dir = root / f"model_weights/{exp}"
 
         # get all dirs starting with "inference_"
         inf_appends = sorted(
@@ -977,16 +954,14 @@ if __name__ == "__main__":
                 print(f"Running iou_thr: {iou_thr} at {inf_append}")
                 n_workers = 8
                 out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
-                path_preds = exp_dir / f"inference_{inf_append}"/ "predict.csv"
+                path_preds = exp_dir / f"inference_{inf_append}" / "predict.csv"
                 try:
                     preds = pd.read_csv(path_preds)
-                except: 
+                except FileNotFoundError:
                     continue
                 label_file = label_files[dataset_name]
                 logger = setup_logger(output=out_dir, name=__name__ + str(iou_thr))
-                if dataset_name == "hospital":
-                    meta_path = root / "labels/metadata/hospital-new.json"
-                    meta = json.load(open(meta_path, "r"))
+
                 evaluator = FROCEvaluator(
                     label_file=label_file,
                     preds=preds,
@@ -999,7 +974,6 @@ if __name__ == "__main__":
                     n_bootstraps=n_bootstraps,
                     n_workers=n_workers,
                     fp_scale=fp_scale,
-                    meta_data= None,
                     use_world_xyz=False,
                     exp_name=exp_dir.name + "_" + inf_append,
                     mode=dataset_name,
@@ -1007,21 +981,3 @@ if __name__ == "__main__":
                 evaluator.evaluate()
                 evaluator.run_compute_froc(save_fig=True)
                 print("\n")
-
-        # evaluator._compute_bootstrap()
-        # evaluator._process_bootstrap()
-
-# if "_TI" in exp:
-#     label_file = workspace_root / "labels/train0.4.csv"
-#     val_meta_path = workspace_root / "labels/internal_train_meta.json"
-#     mode = "train"
-#     sizes = pd.read_json(
-#         workspace_root / "labels/scan_sizes_train.json"
-#     )
-# sizes = pd.read_json(
-#     workspace_root / "labels/scan_sizes_train_crop.json"
-# )
-# label_file = "/home/ceballosarroyo.a/workspace/medical/cta-det2/labels/test0.4_worldcoordinate_scale.csv"
-# label_file = workspace_root / "labels/test0.4_worldcoordinate_scale.csv"
-# is_crop_in_exp = True <- don't use this hack
-# put the name in the special_exps list
