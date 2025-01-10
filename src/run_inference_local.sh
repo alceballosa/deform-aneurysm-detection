@@ -11,5 +11,5 @@ CUDA_VISIBLE_DEVICES=$5 python src/train_net.py\
     --eval-only\
     MODEL.WEIGHTS $3
 
-python src/postprocess/csv_to_nifti.py --config-file "./configs/deform/$2.yaml" POSTPROCESS.CHECKPOINT "$3" POSTPROCESS.THRESHOLD "$4"
+python src/postprocess/csv_to_nifti.py --config-file "./configs/$1/$2.yaml" POSTPROCESS.CHECKPOINT "$3" POSTPROCESS.THRESHOLD "$4"
 

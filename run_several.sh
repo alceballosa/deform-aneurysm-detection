@@ -3,7 +3,7 @@
 
 export id_gpu=0,1,2,3
 export family="vivit"
-export model="vivit_decoder_only_no_rec_input_edt"
+export model="vivit_4l_decoder_only_no_rec_input_edt_PRIV"
 
 ./src/run_inference_local.sh $family $model "0051999" 0.8 $id_gpu
 ./src/run_inference_local.sh $family $model "final" 0.8 $id_gpu

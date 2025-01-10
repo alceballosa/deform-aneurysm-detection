@@ -26,7 +26,7 @@ def build_backbone(cfg):
         temporal_depth=3,  # depth of the temporal transformer
         heads=8,
         mlp_dim=cfg.MODEL.D_MODEL * 2,
-        variant="factorized_self_attention",  # or 'factorized_self_attention'
+        variant=cfg.MODEL.TRANS_MODEL.VARIANT,  # or 'factorized_self_attention'
     )
     return v
 
