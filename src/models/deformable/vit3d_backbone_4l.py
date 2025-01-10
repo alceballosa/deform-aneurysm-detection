@@ -7,22 +7,19 @@ from einops import rearrange, reduce, repeat
 from einops.layers.torch import Rearrange
 from src.models.deformable.base_backbone import Base_Backbone
 from torch import nn
-
-# import F from torch 
-
 from torch.nn import functional as F
+import numpy as np
+# import F from torch
+
 
 # helpers
-
-
-
 
 
 def build_backbone(cfg):
     """
     Builds the UNET Encoder for the PARQ model.
     """
-    
+
     target_spatial_shape = 8
     image_size = cfg.DATA.PATCH_SIZE[1]
 
@@ -34,14 +31,12 @@ def build_backbone(cfg):
         frames=cfg.DATA.PATCH_SIZE[0],  # number of frames
         image_patch_size=trx_patch_size,  # image patch size
         frame_patch_size=trx_patch_size,  # frame patch size
-        num_classes=2,
+        depth=6,
+        num_classes=1,
         channels=cfg.DATA.N_CHANNELS,
         dim=cfg.MODEL.D_MODEL,
-        spatial_depth=3,  # depth of the spatial transformer
-        temporal_depth=3,  # depth of the temporal transformer
         heads=8,
         mlp_dim=cfg.MODEL.D_MODEL * 2,
-        variant=cfg.MODEL.TRANS_MODEL.VARIANT,  # or 'factorized_self_attention'
     )
     return v
 
@@ -52,8 +47,6 @@ def exists(val):
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
-
-
 
 
 class Conv3d(torch.nn.Conv3d):
@@ -86,15 +79,62 @@ class Conv3d(torch.nn.Conv3d):
         # 2. features needed by exporting module to torchscript are added in PyTorch 1.6 or
         # later version, `Conv2d` in these PyTorch versions has already supported empty inputs.
 
-
         x = F.conv3d(
-            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups
+            x,
+            self.weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
         )
         if self.norm is not None:
             x = self.norm(x)
         if self.activation is not None:
             x = self.activation(x)
         return x
+
+
+class FeedForward(nn.Module):
+    def __init__(self, dim, hidden_dim, dropout=0.0):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, dim),
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+# helpers
+
+
+def pair(t):
+    return t if isinstance(t, tuple) else (t, t)
+
+
+def identity(x):
+    return x
+
+
+def get_norm(norm, out_channels):
+    if norm == "BN":
+        return nn.BatchNorm3d(out_channels)
+    elif norm == "LN":
+        return nn.LayerNorm(out_channels)
+    elif norm == "":
+        return identity
+    else:
+        raise NotImplementedError(f"norm={norm} is not supported yet.")
+
+
+# classes
+
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0):
@@ -151,7 +191,6 @@ class Attention(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0):
         super().__init__()
-        self.norm = nn.LayerNorm(dim)
         self.layers = nn.ModuleList([])
         for _ in range(depth):
             self.layers.append(
@@ -167,51 +206,8 @@ class Transformer(nn.Module):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
-        return self.norm(x)
+        return x
 
-
-class FactorizedTransformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0):
-        super().__init__()
-        self.norm = nn.LayerNorm(dim)
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(
-                nn.ModuleList(
-                    [
-                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                        Attention(dim, heads=heads, dim_head=dim_head, dropout=dropout),
-                        FeedForward(dim, mlp_dim, dropout=dropout),
-                    ]
-                )
-            )
-
-    def forward(self, x):
-        b, f, n, _ = x.shape
-        for spatial_attn, temporal_attn, ff in self.layers:
-            x = rearrange(x, "b f n d -> (b f) n d")
-            x = spatial_attn(x) + x
-            x = rearrange(x, "(b f) n d -> (b n) f d", b=b, f=f)
-            x = temporal_attn(x) + x
-            x = ff(x) + x
-            x = rearrange(x, "(b n) f d -> b f n d", b=b, n=n)
-
-        return self.norm(x)
-
-
-def identity(x):
-    return x
-
-
-def get_norm(norm, out_channels):
-    if norm == "BN":
-        return nn.BatchNorm3d(out_channels)
-    elif norm == "LN":
-        return nn.LayerNorm(out_channels)
-    elif norm == "":
-        return identity
-    else:
-        raise NotImplementedError(f"norm={norm} is not supported yet.")
 
 class ViT(Base_Backbone):
     def __init__(
@@ -224,8 +220,7 @@ class ViT(Base_Backbone):
         frame_patch_size,
         num_classes,
         dim,
-        spatial_depth,
-        temporal_depth,
+        depth,
         heads,
         mlp_dim,
         pool="cls",
@@ -233,10 +228,8 @@ class ViT(Base_Backbone):
         dim_head=64,
         dropout=0.0,
         emb_dropout=0.0,
-        variant="factorized_encoder",
     ):
         super(ViT, self).__init__(cfg)
-        self.cfg = cfg
 
         # TODO: make this part less hacky
         self.input_proj_list = [identity, identity, identity, identity]
@@ -250,16 +243,12 @@ class ViT(Base_Backbone):
         assert (
             frames % frame_patch_size == 0
         ), "Frames must be divisible by frame patch size"
-        assert variant in (
-            "factorized_encoder",
-            "factorized_self_attention",
-        ), f"variant = {variant} is not implemented"
 
-        num_image_patches = (image_height // patch_height) * (
-            image_width // patch_width
+        num_patches = (
+            (image_height // patch_height)
+            * (image_width // patch_width)
+            * (frames // frame_patch_size)
         )
-        num_frame_patches = frames // frame_patch_size
-
         patch_dim = channels * patch_height * patch_width * frame_patch_size
 
         assert pool in {
@@ -267,11 +256,9 @@ class ViT(Base_Backbone):
             "mean",
         }, "pool type must be either cls (cls token) or mean (mean pooling)"
 
-        self.global_average_pool = pool == "mean"
-
         self.to_patch_embedding = nn.Sequential(
             Rearrange(
-                "b c (f pf) (h p1) (w p2) -> b f (h w) (p1 p2 pf c)",
+                "b c (f pf) (h p1) (w p2) -> b (f h w) (p1 p2 pf c)",
                 p1=patch_height,
                 p2=patch_width,
                 pf=frame_patch_size,
@@ -281,52 +268,21 @@ class ViT(Base_Backbone):
             nn.LayerNorm(dim),
         )
 
-        self.pos_embedding = nn.Parameter(
-            torch.randn(1, num_frame_patches, num_image_patches, dim)
-        )
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
         self.dropout = nn.Dropout(emb_dropout)
 
-        self.spatial_cls_token = (
-            nn.Parameter(torch.randn(1, 1, dim))
-            if not self.global_average_pool
-            else None
-        )
-
-        if variant == "factorized_encoder":
-            print(variant)
-            self.temporal_cls_token = (
-                nn.Parameter(torch.randn(1, 1, dim))
-                if not self.global_average_pool
-                else None
-            )
-            self.spatial_transformer = Transformer(
-                dim, spatial_depth, heads, dim_head, mlp_dim, dropout
-            )
-            self.temporal_transformer = Transformer(
-                dim, temporal_depth, heads, dim_head, mlp_dim, dropout
-            )
-        elif variant == "factorized_self_attention":
-            assert (
-                spatial_depth == temporal_depth
-            ), "Spatial and temporal depth must be the same for factorized self-attention"
-            self.factorized_transformer = FactorizedTransformer(
-                dim, spatial_depth, heads, dim_head, mlp_dim, dropout
-            )
+        self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, dropout)
 
         self.pool = pool
-        # self.to_latent = nn.Identity()
 
-        # self.mlp_head = nn.Linear(dim, num_classes)
-        self.variant = variant
-
-        # Multistage
 
         self.scale_factors = (4.0, 2.0, 1.0, 0.5)
         self.stages = []
         norm = "LN"
         use_bias = norm == ""
-        spatial_scales = [8*4, 8*2, 8*1, 8//2]
-    
+        spatial_scales = [8 * 4, 8 * 2, 8 * 1, 8 // 2]
+
         for idx, scale in enumerate(self.scale_factors):
             # TODO: verify this
             spatial_scale = spatial_scales[idx]
@@ -336,7 +292,15 @@ class ViT(Base_Backbone):
             if scale == 4.0:
                 layers = [
                     nn.ConvTranspose3d(dim, dim // 2, kernel_size=2, stride=2),
-                    get_norm(norm, [dim // 2, spatial_scales[1], spatial_scales[1], spatial_scales[1]]),
+                    get_norm(
+                        norm,
+                        [
+                            dim // 2,
+                            spatial_scales[1],
+                            spatial_scales[1],
+                            spatial_scales[1],
+                        ],
+                    ),
                     nn.GELU(),
                     nn.ConvTranspose3d(dim // 2, dim // 4, kernel_size=2, stride=2),
                 ]
@@ -348,7 +312,7 @@ class ViT(Base_Backbone):
                 layers = []
             elif scale == 0.5:
                 layers = [nn.MaxPool3d(kernel_size=2, stride=2)]
-                
+
             else:
                 raise NotImplementedError(f"scale_factor={scale} is not supported yet.")
             layers.extend(
@@ -358,7 +322,10 @@ class ViT(Base_Backbone):
                         out_channels,
                         kernel_size=1,
                         bias=use_bias,
-                        norm=get_norm(norm, [out_channels, spatial_scale, spatial_scale, spatial_scale]),
+                        norm=get_norm(
+                            norm,
+                            [out_channels, spatial_scale, spatial_scale, spatial_scale],
+                        ),
                     ),
                     Conv3d(
                         out_channels,
@@ -366,7 +333,10 @@ class ViT(Base_Backbone):
                         kernel_size=3,
                         padding=1,
                         bias=use_bias,
-                        norm=get_norm(norm, [out_channels, spatial_scale, spatial_scale, spatial_scale]),
+                        norm=get_norm(
+                            norm,
+                            [out_channels, spatial_scale, spatial_scale, spatial_scale],
+                        ),
                     ),
                 ]
             )
@@ -374,67 +344,25 @@ class ViT(Base_Backbone):
             self.stages.append(layers)
         self.stages = nn.ModuleList(self.stages)
 
-    def forward_vit(self, x):
-        x = self.to_patch_embedding(x)
-        b, f, n, _ = x.shape
+    def forward_vit(self, video):
+        x = self.to_patch_embedding(video)
+        b, n, _ = x.shape
 
-        x = x + self.pos_embedding[:, :f, :n]
-
-        if exists(self.spatial_cls_token):
-            spatial_cls_tokens = repeat(
-                self.spatial_cls_token, "1 1 d -> b f 1 d", b=b, f=f
-            )
-            x = torch.cat((spatial_cls_tokens, x), dim=2)
-
+        cls_tokens = repeat(self.cls_token, "1 1 d -> b 1 d", b=b)
+        x = torch.cat((cls_tokens, x), dim=1)
+        x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
 
-        if self.variant == "factorized_encoder":
-            x = rearrange(x, "b f n d -> (b f) n d")
+        x = self.transformer(x)
+        x = x[:, 1:, :]
+        spatial_dim = int(np.cbrt(x.shape[-2]))
+        
+        x = rearrange(
+            x, "b (z x y) c -> b c z x y", x=spatial_dim, y=spatial_dim, z=spatial_dim
+        ).contiguous()
+        
 
-            # attend across space
-
-            x = self.spatial_transformer(x)
-            x = rearrange(x, "(b f) n d -> b f n d", b=b)
-
-            # excise out the spatial cls tokens or average pool for temporal attention
-
-            x = (
-                x[:, :, 0]
-                if not self.global_average_pool
-                else reduce(x, "b f n d -> b f d", "mean")
-            )
-
-            # append temporal CLS tokens
-
-            if exists(self.temporal_cls_token):
-                temporal_cls_tokens = repeat(
-                    self.temporal_cls_token, "1 1 d-> b 1 d", b=b
-                )
-
-                x = torch.cat((temporal_cls_tokens, x), dim=1)
-
-            # attend across time
-
-            x = self.temporal_transformer(x)
-            print(x.shape)
-            
-
-            # excise out temporal cls token or average pool
-
-            # x = x[:, 0] if not self.global_average_pool else reduce(x, 'b f d -> b d', 'mean')
-
-        elif self.variant == "factorized_self_attention":
-            x = self.factorized_transformer(x)
-            # remove temporal cls token
-            x = x[:, :, 1:, :]
-            spatial_dim = int(x.shape[-2] ** 0.5)
-            x = rearrange(x, "b z (x y) c -> b z x y c", x=spatial_dim, y=spatial_dim)
-            # make channels the second dim
-            x = rearrange(x, "b z x y c -> b c z x y").contiguous()
-            # x = x[:, 0, 0] if not self.global_average_pool else reduce(x, 'b f n d -> b d', 'mean')
-
-        # x = self.to_latent(x)
-        return x  # self.mlp_head(x)
+        return x
 
     def encode_multiscale_feats(self, x) -> List:
         x = self.forward_vit(x)

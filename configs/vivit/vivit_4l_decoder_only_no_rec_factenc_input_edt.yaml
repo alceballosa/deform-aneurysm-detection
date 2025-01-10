@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "vivit_4l_decoder_only_no_rec_input_edt"
+  NAME: "vivit_4l_decoder_only_no_rec_factenc_input_edt"
   META_ARCHITECTURE: "PARQ_ViViT"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -14,6 +14,8 @@ MODEL:
     N_LEVELS: 4
   CONV_MODEL:
     BACKBONE_TYPE: "ViViT_4L"
+  TRANS_MODEL:
+    VARIANT: "factorized_self_attention"
 SOLVER:
   SCANS_PER_BATCH: 8
   SAMPLES_PER_SCAN: 8

@@ -44,6 +44,9 @@ def add_config(cfg):
     cfg.MODEL.WEIGHTS = None
     cfg.MODEL.PATH_WEIGHTS = ""
 
+    cfg.MODEL.TRANS_MODEL = CN()
+    cfg.MODEL.TRANS_MODEL.VARIANT = "factorized_self_attention"
+    
     cfg.MODEL.CONV_MODEL = CN()
     cfg.MODEL.CONV_MODEL.BACKBONE_TYPE = "CNN"  # for newer deform models
     cfg.MODEL.CONV_MODEL.N_BLOCKS = [2, 3, 3, 3]
@@ -77,6 +80,8 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.USE_VESSEL_INFO = False
 
     cfg.MODEL.DEFORMABLE.FIXED_ATTENTION = False
+    
+
 
     # the ratio of the original image size to the parq volume size
     # this value must be adjusted when the stride and conv filter size change
