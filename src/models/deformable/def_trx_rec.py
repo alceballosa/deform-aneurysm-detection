@@ -62,6 +62,7 @@ def build_deformable_transformer(cfg):
         n_levels=cfg.MODEL.DEFORMABLE.N_LEVELS,
         offset_init=cfg.MODEL.DEFORMABLE.OFFSET_INIT,
         use_fixed_attn=cfg.MODEL.DEFORMABLE.FIXED_ATTENTION,
+        use_deform_attn=cfg.MODEL.DEFORMABLE.USE_DEFORM_ATTN,
         decoder_only=cfg.MODEL.DEFORMABLE.DECODER_ONLY,
         with_recurrence=cfg.MODEL.DEFORMABLE.WITH_RECURRENCE,
         with_stepwise_loss=cfg.MODEL.DEFORMABLE.WITH_STEPWISE_LOSS,
@@ -147,6 +148,7 @@ class Transformer(nn.Module):
         return_intermediate_dec=False,
         shared_heads=True,
         use_fixed_attn=False,
+        use_deform_attn=True,
         # TODO
         # TODO: make this work, URGENT
     ):
@@ -187,7 +189,8 @@ class Transformer(nn.Module):
             dec_heads,
             n_dec_points,
             offset_init,
-            use_fixed_attn
+            use_fixed_attn,
+            use_deform_attn,
         )
         self.decoder = DeformableTransformerDecoder(
             decoder_layer,
@@ -196,6 +199,7 @@ class Transformer(nn.Module):
             with_stepwise_loss,
             return_intermediate=return_intermediate_dec,
             shared_heads=shared_heads,
+            use_deform_attn=use_deform_attn,
         )
 
         self.decoder.center_head = center_head
