@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "vit3d_1l_fa_decoder_only_no_rec_input_edt"
+  NAME: "hiera_4l_decoder_only_no_rec_input_edt"
   META_ARCHITECTURE: "PARQ_ViViT"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -11,10 +11,9 @@ MODEL:
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
-    N_LEVELS: 1
-    USE_DEFORM_ATTN: False
+    N_LEVELS: 4
   CONV_MODEL:
-    BACKBONE_TYPE: "ViT3D_1L"
+    BACKBONE_TYPE: "Hiera_4L"
 SOLVER:
   SCANS_PER_BATCH: 8
   SAMPLES_PER_SCAN: 8
