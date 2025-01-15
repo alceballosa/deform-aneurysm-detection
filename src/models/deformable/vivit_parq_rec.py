@@ -17,7 +17,7 @@ from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D
-from src.models.deformable import cnn_backbone, cnn_backbone_1l, cnn_backbone_2l, vivit_backbone_1l, vivit_backbone_4l, vit3d_backbone_4l, vit3d_backbone_1l
+from src.models.deformable import cnn_backbone, cnn_backbone_1l, cnn_backbone_2l, vivit_backbone_1l, vivit_backbone_4l, vit3d_backbone_4l, vit3d_backbone_1l, hiera_backbone_4l
 from src.models.deformable.def_trx_rec import build_deformable_transformer
 from src.models.deformable.box_processor import BoxProcessor
 from src.models.deformable.generic_mlp import GenericMLP
@@ -43,6 +43,7 @@ build_backbone = {
     "ViViT_4L": vivit_backbone_4l.build_backbone,
     "ViT3D_4L": vit3d_backbone_4l.build_backbone,
     "ViT3D_1L": vit3d_backbone_1l.build_backbone,
+    "Hiera_4L": hiera_backbone_4l.build_backbone,
 }
 
 
@@ -607,7 +608,7 @@ class PARQ_ViViT(nn.Module):
         return target_list
 
     def normalize_input_values(self, x: torch.Tensor):
-        if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L", "ViViT_1L", "ViViT_4L", "ViT3D_4L", "ViT3D_1L"]:
+        if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L", "ViViT_1L", "ViViT_4L", "ViT3D_4L", "ViT3D_1L", "Hiera_4L"]:
             min_value, max_value = self.cfg.DATA.WINDOW
             x.clamp_(min=min_value, max=max_value)
             x -= (min_value + max_value) / 2

@@ -18,14 +18,22 @@ class DeformableTransformerDecoderLayer(nn.Module):
         n_points=4,
         offset_init="strict",
         use_fixed_attn=False,
+        use_deform_attn=True,
     ):
         super().__init__()
 
         # cross attention
-        deform_attn_cls = MSDeformAttnFix if use_fixed_attn else MSDeformAttn
-        self.cross_attn = deform_attn_cls(
-            d_model, n_levels, n_heads, n_points, offset_init
-        )
+
+        self.use_deform_attn = use_deform_attn
+        if not use_deform_attn:
+            assert n_levels == 1, "non-deformable attention only supports 1 level"
+            print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
+            self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
+        else:
+            deform_attn_cls = MSDeformAttnFix if use_fixed_attn else MSDeformAttn
+            self.cross_attn = deform_attn_cls(
+                d_model, n_levels, n_heads, n_points, offset_init
+            )
         self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(d_model)
 
@@ -70,15 +78,25 @@ class DeformableTransformerDecoderLayer(nn.Module):
         )[0].transpose(0, 1)
         ref = ref + self.dropout2(ref2)
         ref = self.norm2(ref)
-        
+
         # cross attention
-        ref2, sampling_locations, attn_weights = self.cross_attn(
-            self.with_pos_embed(ref, ref_pos_embed),
-            ref_loc,
-            self.with_pos_embed(global_feats, global_pos_embed),
-            global_feats_spatial_shapes,
-            level_start_index,
-        )
+        if not self.use_deform_attn:
+            q = self.with_pos_embed(ref, ref_pos_embed)
+            k =  self.with_pos_embed(global_feats, global_pos_embed)
+
+            ref2 = self.cross_attn(
+                q.transpose(0,1),k.transpose(0,1),k.transpose(0,1)
+            )[0].transpose(0,1)
+            sampling_locations = None
+            attn_weights = None
+        else:
+            ref2, sampling_locations, attn_weights = self.cross_attn(
+                self.with_pos_embed(ref, ref_pos_embed),
+                ref_loc,
+                self.with_pos_embed(global_feats, global_pos_embed),
+                global_feats_spatial_shapes,
+                level_start_index,
+            )
         ref = ref + self.dropout1(ref2)
         ref = self.norm1(ref)
 
@@ -97,6 +115,7 @@ class DeformableTransformerDecoder(nn.Module):
         with_stepwise_loss=False,
         shared_heads=False,
         return_intermediate=False,
+        use_deform_attn=True,
     ):
         super().__init__()
         self.layers = get_clones(decoder_layer, num_layers)
@@ -105,6 +124,7 @@ class DeformableTransformerDecoder(nn.Module):
         # hack implementation for iterative bounding box refinement and two-stage Deformable DETR
         self.with_recurrence = with_recurrence
         self.with_stepwise_loss = with_stepwise_loss
+        self.use_deform_attn = use_deform_attn
         self.bbox_embed = None
         self.class_embed = None
         self.shared_heads = shared_heads
@@ -173,19 +193,35 @@ class DeformableTransformerDecoder(nn.Module):
                 src_level_start_index,
             )
 
-            viz_outputs_list.append(
-                {
-                    "spatial_shapes": sampling_locations[4].to("cpu").detach().numpy(),
-                    "offset_normalizer": sampling_locations[2].to("cpu").detach().numpy(),
-                    "reference_points": sampling_locations[3].to("cpu").detach().numpy(),
-                    "sampling_offsets": sampling_locations[1].to("cpu").detach().numpy(),
-                    "sampling_locations": sampling_locations[0].to("cpu").detach().numpy(),
-                    "pre_refinement_center": ref_loc.to("cpu")
-                    .detach()
-                    .numpy(),
-                    "attn_weights": attn_weights.to("cpu").detach().numpy(),
-                }
-            )
+            if self.use_deform_attn:
+                viz_outputs_list.append(
+                    {
+                        "spatial_shapes": sampling_locations[4]
+                        .to("cpu")
+                        .detach()
+                        .numpy(),
+                        "offset_normalizer": sampling_locations[2]
+                        .to("cpu")
+                        .detach()
+                        .numpy(),
+                        "reference_points": sampling_locations[3]
+                        .to("cpu")
+                        .detach()
+                        .numpy(),
+                        "sampling_offsets": sampling_locations[1]
+                        .to("cpu")
+                        .detach()
+                        .numpy(),
+                        "sampling_locations": sampling_locations[0]
+                        .to("cpu")
+                        .detach()
+                        .numpy(),
+                        "pre_refinement_center": ref_loc.to("cpu").detach().numpy(),
+                        "attn_weights": attn_weights.to("cpu").detach().numpy(),
+                    }
+                )
+            else:
+                viz_outputs_list.append({})
 
             if self.with_recurrence or lid == self.num_layers - 1:
                 prev_ref_loc = ref_loc

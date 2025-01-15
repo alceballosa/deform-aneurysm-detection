@@ -51,7 +51,10 @@ def process(path_im, path_mask):
         mask = sitk.ReadImage(path_mask)
         tgt_path_mask = Path(str(path_mask.parent) + "_0.4") / path_mask.name
     space = np.array(image.GetSpacing())
-    if np.abs(space - target_spacing).max() < 0.01:
+    if space.shape == (4,):
+        print("\n4D image, skipping:", path_im)
+        return
+    if np.abs(space[0:3] - target_spacing[0:3]).max() < 0.01:
         print("Maintained original spacing:", space)
         sitk.WriteImage(image, str(tgt_path_im))
         if path_mask:
