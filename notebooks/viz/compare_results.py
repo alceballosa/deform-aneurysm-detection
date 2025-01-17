@@ -66,4 +66,5 @@ for j, dataset in enumerate(datasets):
         plt.savefig(f"./results/{dataset}/{model}/{dataset}_{model}.png")
         image = wandb.Image(f"./results/{dataset}/{model}/{dataset}_{model}.png")
         run.log({f"{dataset}_{model}": image})
+        print(dataset, model)
         plt.show()
