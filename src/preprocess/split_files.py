@@ -9,10 +9,10 @@ import sys
 def split_files(input_folder, output_folder):
     files = os.listdir(input_folder)
     files.sort()
-    for i in range(0, len(files), 100):
+    for i in range(1140, len(files), 20):
         subfolder = os.path.join(output_folder, str(i))
         os.makedirs(subfolder, exist_ok=True)
-        for j in range(i, min(i + 100, len(files))):
+        for j in range(i, min(i + 20, len(files))):
             # move 
             shutil.copy(os.path.join(input_folder, files[j]), subfolder)
             # create a symlink to each file 
