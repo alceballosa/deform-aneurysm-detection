@@ -14,6 +14,7 @@ MODEL:
     N_LEVELS: 4
   CONV_MODEL:
     BACKBONE_TYPE: "Hiera_4L"
+
 SOLVER:
   SCANS_PER_BATCH: 8
   SAMPLES_PER_SCAN: 8
@@ -21,6 +22,8 @@ SOLVER:
     ENABLED: True
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
+  AMP:
+    ENABLED: False
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
