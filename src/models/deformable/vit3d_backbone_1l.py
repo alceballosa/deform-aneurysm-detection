@@ -24,6 +24,7 @@ def build_backbone(cfg):
     image_size = cfg.DATA.PATCH_SIZE[1]
 
     trx_patch_size = image_size // target_spatial_shape
+    trx_patch_size = 4
 
     v = ViT(
         cfg=cfg,
@@ -31,7 +32,7 @@ def build_backbone(cfg):
         frames=cfg.DATA.PATCH_SIZE[0],  # number of frames
         image_patch_size=trx_patch_size,  # image patch size
         frame_patch_size=trx_patch_size,  # frame patch size
-        depth=6,
+        depth=3,
         num_classes=1,
         channels=cfg.DATA.N_CHANNELS,
         dim=cfg.MODEL.D_MODEL,

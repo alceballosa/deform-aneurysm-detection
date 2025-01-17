@@ -308,5 +308,4 @@ class ViT(Base_Backbone):
 
         # x = self.to_latent(x)
 
-
         return [x]  # self.mlp_head(x)
