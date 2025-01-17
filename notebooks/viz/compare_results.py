@@ -11,8 +11,9 @@ wandb.login()
 run = wandb.init(
     # Set the project where this run will be logged
     project="aneurysm-logging",
-    id="results",
-    name="results",
+    id="res",
+    name="res",
+    reinit=True,
 )
 
 path_results = "./results"
