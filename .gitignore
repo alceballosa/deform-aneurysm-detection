@@ -13,5 +13,6 @@ model_weights/*
 .prev
 *.pickle
 .cache
+wandb/
 *.nii.gz
 SyN_iteration9_antsBTPtemplate1.nii.gz
