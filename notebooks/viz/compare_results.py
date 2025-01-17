@@ -19,6 +19,9 @@ run = wandb.init(
 path_results = "./results"
 datasets = ["internal_test", "external"]
 
+path_images = Path("./results/images")
+path_images.mkdir(exist_ok=True)
+
 models_dict_path = "./notebooks/viz/model_dict.json"
 with open(models_dict_path) as f:
     models_dict = json.load(f)
@@ -64,8 +67,8 @@ for j, dataset in enumerate(datasets):
             ax.yaxis.set_major_locator(plt.MultipleLocator(0.05))
             dataset = example[0]
             ax.grid(True)
-        plt.savefig(f"./results/{dataset}/{model}/{dataset}_{model}.png")
-        image = wandb.Image(f"./results/{dataset}/{model}/{dataset}_{model}.png")
+        plt.savefig(f"./results/images/{dataset}_{model}.png")
+        image = wandb.Image(f"./results/images/{dataset}_{model}.png")
         run.log({f"{dataset}_{model}": image})
         print(dataset, model)
         plt.show()
