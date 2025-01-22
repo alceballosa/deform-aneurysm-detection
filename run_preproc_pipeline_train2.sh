@@ -26,9 +26,9 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 
 
 #Resample scans to 0.4mm spacing and crop them
-# python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
-# python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
-# python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
+python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
+python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
+python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
 mkdir ${path_crop}_split
 python src/preprocess/split_files.py ${path_crop} ${path_crop}_split
 # mkdir ${path_vessel_seg}
