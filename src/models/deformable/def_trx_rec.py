@@ -254,9 +254,11 @@ class Transformer(nn.Module):
         extracted_feats_flatten = []
         lvl_pos_embed_flatten = []
         spatial_shapes = []
+        
         for lvl, (feat, pos_embed) in enumerate(
             zip(multiscale_feats, multiscale_pos_embs)
-        ):
+        ):  
+            
             _, _, d, h, w = feat.shape
             spatial_shape = d, h, w
             spatial_shapes.append(spatial_shape)
