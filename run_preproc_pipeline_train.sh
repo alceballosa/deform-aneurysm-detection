@@ -9,7 +9,7 @@ conda activate cta
 # for testing on unnanotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/aneurysm/hospital"
+export path_base="/data/aneurysm/cmha"
 
 export path_og="${path_base}/og"
 export path_label_og="${path_base}/og_label"
@@ -26,19 +26,25 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 
 
 # Resample scans to 0.4mm spacing and crop them
-python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
-python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
-python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
+# python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
+# python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
+# python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
 
-# Run vessel segmentation
-sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/Data/aneurysmDetection/output_path/  -v ${path_crop}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1 -v 1150
+# mkdir ${path_vessel_seg}
 
-# Keep only relevant files 
-mkdir ${path_vessel_seg}
-sudo rm  ${path_vessel_seg}_temp/Predictions/CA_*
-sudo rm ${path_vessel_seg}_temp/Predictions/*.json 
-cp ${path_vessel_seg}_temp/Predictions/* ${path_vessel_seg}/
-sudo rm -rf ${path_vessel_seg}_temp
+for folder in ${path_crop}_split/*; do
+    if [ -d "$folder" ]; then
+        # Run vessel segmentation
+        mkdir ${folder}_temp
+        sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 0 --continue_prediction
+        # Keep only relevant files 
+        
+        sudo rm  ${folder}_temp/Predictions/CA_*
+        sudo rm ${folder}_temp/Predictions/*.json 
+        cp ${folder}_temp/Predictions/* ${path_vessel_seg}/
+        sudo rm -rf ${folder}_temp
+    fi
+done
 # Compute distance maps
 python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
 # Obtain bbox csv from segmentation files 

@@ -21,4 +21,5 @@ seaborn
 ipykernel
 termcolor
 antspyx
+typing_extensions==4.11.0
 # python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
