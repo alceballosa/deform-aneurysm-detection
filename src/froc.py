@@ -103,6 +103,9 @@ class FROCEvaluator:
             ]
         elif mode == "priv" or mode == "hospital":
             self._images = [f"CA_{i:0>5}_0000.nii.gz" for i in range(0, 38)]
+        elif mode == "hospital140":
+            self._images = [f"CB_{i:0>5}_0000.nii.gz" for i in range(0, 144)]
+
 
     def evaluate(self):
         # compute iou
@@ -551,7 +554,7 @@ class FROCEvaluator:
         # compute area
         area1 = (box_list1[:, 3:] - box_list1[:, :3]).prod(dim=1)
         area2 = (box_list2[:, 3:] - box_list2[:, :3]).prod(dim=1)
-        if self._mode not in ["hospital"]:
+        if self._mode not in ["hospital", "hospital140"]:
             return intersection / (area1[:, None] + area2[None, :] - intersection)
         else:
             # print("Using iom")
@@ -639,7 +642,7 @@ class FROCEvaluator:
         for seriesuid, rows in data.groupby("seriesuid"):
             all_imgs.append(seriesuid)
             box = np.array(rows[["coordX", "coordY", "coordZ", "w", "h", "d"]])
-            if self._mode == "hospital":
+            if self._mode in ["hospital","hospital140"]:
                 sides = box[:, 3:]
 
                 minimum_side = np.argmin(sides, axis=1)
@@ -926,6 +929,7 @@ if __name__ == "__main__":
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
+        "hospital140": "/data/aneurysm/hospital140/og_annotation.csv",
     }
 
     max_fppi = 16.0
