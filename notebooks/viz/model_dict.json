@@ -12,5 +12,8 @@
     "hiera_4l_decoder_only_no_rec_input_edt": "Hiera (4L)",
     "one_layer_decoder_only_no_rec_input_edt_cvs": "CNN backbone (1L) (+CVS)",
     "vivit_decoder_only_no_rec_input_edt": "ViViT (4L)",
-    "vivit_decoder_only_no_rec_input_edt_cvs": "ViViT (4L) (+CVS)"
+    "vivit_decoder_only_no_rec_input_edt_cvs": "ViViT (4L) (+CVS)",
+    "one_layer_fa_decoder_only_no_rec_input_edt": "CNN backbone (1L) + Full Attn in Decoder",
+    "decoder_only_no_rec_input_edt": "CNN backbone (4L)",
+    "svit3d_1l_decoder_only_no_rec_input_edt": "S-ViT3D (1L)"
 }
