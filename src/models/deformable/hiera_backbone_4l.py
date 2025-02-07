@@ -26,7 +26,7 @@ from pyparsing import C
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.models.layers import DropPath, Mlp
+from timm.layers import DropPath, Mlp
 from src.models.deformable.base_backbone import Base_Backbone
 from src.models.deformable.hiera_utils import (
     Reroll,
