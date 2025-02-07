@@ -1,5 +1,3 @@
-
-
 import nibabel as nib
 import numpy as np
 import ants
@@ -66,15 +64,19 @@ class NibImage():
     def find_cvs_bbox(self, data, save=False, save_path=None):
 
         indices = np.argwhere(data == 1)
-
+        x_shape, y_shape, z_shape = data.shape
         # Determine the bounding box
         bbox = np.zeros(data.shape)
         #try:
         x_min, y_min, z_min = np.min(indices, axis=0)
         x_max, y_max, z_max = np.max(indices, axis=0)
 
+        x_range = [np.maximum(x_min,0), np.minimum(x_max,x_shape-1)]
+        y_range = [np.maximum(y_min,0), np.minimum(y_max,y_shape-1)]
+        z_range = [np.maximum(z_min,0), np.minimum(z_max,z_shape-1)]
         
-        bbox[x_min:x_max, y_min:y_max, z_min:z_max] = 1
+        bbox[x_range[0]:x_range[1], y_range[0]:y_range[1], z_range[0]:z_range[1]] = 1
+        #bbox[x_min:x_max, y_min:y_max, z_min:z_max] = 1
         
         """except:
             print("Could not create bounding box")

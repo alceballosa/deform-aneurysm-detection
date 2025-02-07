@@ -105,6 +105,8 @@ class FROCEvaluator:
             self._images = [f"CA_{i:0>5}_0000.nii.gz" for i in range(0, 38)]
         elif mode == "hospital140":
             self._images = [f"CB_{i:0>5}_0000.nii.gz" for i in range(0, 144)]
+        elif mode == "cmha":
+            self._images = [f"cta_images_head_AHMU1218{i:0>3}.nii.gz" for i in range(1, 144)]
 
 
     def evaluate(self):
@@ -929,7 +931,8 @@ if __name__ == "__main__":
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
-        "hospital140": "/home/alceballosa/workspace/medical/deform-aneurysm-detection/labels/gt/hospital140.csv",
+        "hospital140": "/data/aneurysm/hospital140/og_annotation.csv",
+        "cmha": "/data/aneurysm/cmha/annotations.csv"
     }
 
     max_fppi = 16.0

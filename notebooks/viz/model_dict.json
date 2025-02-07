@@ -13,10 +13,13 @@
     "one_layer_decoder_only_no_rec_input_edt_cvs": "CNN backbone (1L) (+CVS)",
     "vivit_decoder_only_no_rec_input_edt": "ViViT (4L)",
     "vivit_decoder_only_no_rec_input_edt_cvs": "ViViT (4L) (+CVS)",
+    "vit3d_4l_decoder_only_no_rec_input_edt": "ViT3D (4L)",
+    "one_layer_decoder_only_no_rec_input_edt": "CNN backbone (1L)",
     "vit3d_b_1l_decoder_only_no_rec_input_edt": "ViT3D (1L)",
     "one_layer_fa_decoder_only_no_rec_input_edt": "CNN backbone (1L) + Full Attn in Decoder",
     "decoder_only_no_rec_input_edt": "CNN backbone (4L)",
     "svit3d_1l_decoder_only_no_rec_input_edt": "S-ViT3D (1L)",
     "svit3d_1l_fa_decoder_only_no_rec_input_edt": "S-ViT3D (1L) + Full Attn in Decoder",
-    "svit3d_4l_decoder_only_no_rec_input_edt": "S-ViT3D (4L)"
+    "svit3d_4l_decoder_only_no_rec_input_edt": "S-ViT3D (4L)",
+    "svit3d_1l_decoder_only_no_rec": "Pretrained (l=0.9) S-ViT3D (1L)"
 }

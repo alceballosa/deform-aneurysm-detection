@@ -330,7 +330,30 @@ def main(args):
         return res
 
     trainer = Trainer(cfg)
+
     trainer.resume_or_load(resume=args.resume)
+
+    if cfg.MODEL.TRANS_MODEL.USE_PRETRAINED_ENCODER == True:
+        path_weights = cfg.MODEL.TRANS_MODEL.PRETRAINED_ENCODER_PATH
+        encoder_weights = torch.load(path_weights)["model"]
+        # rename all weights by prepending "module.backbone." to the key
+        # also print all weight names
+        encoder_weights = {
+            f"module.backbone.{k.replace('model.module.','')}": v for k, v in encoder_weights.items()
+        }  
+
+        # load all comaptible weights into trainer.model
+        model_dict = trainer.model.state_dict()
+        encoder_dict = {k: v for k, v in encoder_weights.items() if k in model_dict}
+        # print all compatible weights and non-comaptible ones
+        print("Loading encoder weights...\n\n\n")
+        print("Compatible weights: ", encoder_dict.keys())
+        print("\n")
+        print("Non-compatible weights: ", set(encoder_weights.keys()) - set(model_dict.keys()))
+        model_dict.update(encoder_dict)
+        trainer.model.load_state_dict(model_dict)
+        # TODO: fix resume for this case
+
     did_training = True
 
     return trainer.train()
