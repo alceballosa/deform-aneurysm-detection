@@ -17,7 +17,7 @@ class ANTsRegistration:
                                             type_of_transform='Affine',
                                             grad_step=0.15,
                                             reg_iterations=(100, 70, 40),
-                                            random_seed=35,
+                                            #random_seed=35,
                                             )
         
         # apply transformation matrix to mask
@@ -56,7 +56,7 @@ class ANTsRegistration:
                                             type_of_transform='Affine',
                                             grad_step=0.15,
                                             reg_iterations=(100, 70, 40),
-                                            random_seed=35,
+                                            #random_seed=35,
                                             )
         # apply transformation matrix to mask
         transformed_mask = ants.apply_transforms(fixed=fixed_image, moving=mask_image,

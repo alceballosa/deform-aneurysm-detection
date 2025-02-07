@@ -45,6 +45,7 @@ def resample(
 
 
 def process(path_im, path_mask):
+
     image = sitk.ReadImage(path_im)
     tgt_path_im = Path(str(path_im.parent) + "_0.4") / path_im.name
     if path_mask:
@@ -54,6 +55,7 @@ def process(path_im, path_mask):
     if space.shape == (4,):
         print("\n4D image, skipping:", path_im)
         return
+
     if np.abs(space[0:3] - target_spacing[0:3]).max() < 0.01:
         print("Maintained original spacing:", space)
         sitk.WriteImage(image, str(tgt_path_im))
@@ -64,6 +66,10 @@ def process(path_im, path_mask):
         image_resampled = resample(
             itkimage=image, newSpacing=target_spacing, label=False
         )
+        shape = np.array(image_resampled.GetSize())
+        if shape[2] == 0:
+            print("\nEmpty image after resample, skipping:", path_im)
+            return
         if path_mask:
             mask_resampled = resample(
                 itkimage=mask, newSpacing=target_spacing, label=True

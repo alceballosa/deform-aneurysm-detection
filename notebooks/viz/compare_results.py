@@ -17,7 +17,7 @@ run = wandb.init(
 )
 
 path_results = "./results"
-datasets = ["internal_test", "external"]
+datasets = ["internal_test", "external", "cmha"]
 
 path_images = Path("./results/images")
 path_images.mkdir(exist_ok=True)

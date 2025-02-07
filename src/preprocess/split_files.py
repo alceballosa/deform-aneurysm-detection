@@ -10,6 +10,7 @@ def split_files(input_folder, output_folder):
     files = os.listdir(input_folder)
     files.sort()
     for i in range(0, len(files), 20):
+        print("Processing files from {} to {}".format(i, min(i + 20, len(files))))
         subfolder = os.path.join(output_folder, str(i))
         os.makedirs(subfolder, exist_ok=True)
         for j in range(i, min(i + 20, len(files))):

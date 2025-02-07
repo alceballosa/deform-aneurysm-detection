@@ -46,6 +46,9 @@ def add_config(cfg):
 
     cfg.MODEL.TRANS_MODEL = CN()
     cfg.MODEL.TRANS_MODEL.VARIANT = "factorized_self_attention"
+    cfg.MODEL.TRANS_MODEL.USE_PRETRAINED_ENCODER = False
+    cfg.MODEL.TRANS_MODEL.PRETRAINED_ENCODER_PATH = ""
+    cfg.MODEL.TRANS_MODEL.FROZEN_PRETRAINED_ENCODER = False
     
     cfg.MODEL.CONV_MODEL = CN()
     cfg.MODEL.CONV_MODEL.BACKBONE_TYPE = "CNN"  # for newer deform models
