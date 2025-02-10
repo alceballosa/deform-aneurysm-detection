@@ -32,11 +32,11 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 
 mkdir ${path_vessel_seg}
 
-for folder in ${path_crop}_split_2/*; do
+for folder in ${path_crop}_split_3/*; do
     if [ -d "$folder" ]; then
         # Run vessel segmentation
         mkdir ${folder}_temp
-        sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+        sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 2
         # Keep only relevant files 
         
         sudo rm  ${folder}_temp/Predictions/CA_*

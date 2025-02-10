@@ -10,9 +10,14 @@ crop_padding = 15
 
 
 def crop_scan(path_file, path_target):
-    scan = sitk.ReadImage(path_file)
-    scan_name = path_file.name
-    array = sitk.GetArrayFromImage(scan)
+    try:
+        scan = sitk.ReadImage(path_file)
+        scan_name = path_file.name
+        array = sitk.GetArrayFromImage(scan)
+    except Exception as e:
+        print(f"Error in {path_file}: {e}")
+        return
+
     if array.shape[0] > crop_threshold:
         crop_point = array.shape[0] - crop_threshold
         crop = sitk.CropImageFilter()

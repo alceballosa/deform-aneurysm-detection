@@ -20,4 +20,5 @@
     "decoder_only_no_rec_input_edt": "CNN backbone (4L)",
     "svit3d_1l_decoder_only_no_rec_input_edt": "S-ViT3D (1L)",
     "svit3d_1l_decoder_only_no_rec": "Pretrained (l=0.9) S-ViT3D (1L)",
+    "sivit_1l_decoder_only_no_rec_input_edt": "S-ViT3D (1L)"
 }

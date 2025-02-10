@@ -8,7 +8,7 @@ conda activate cta
 # for training or evaluating on annotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/pt_sinoct"
+export path_base="/data/pt_rsna"
 
 export path_og="${path_base}/og"
 export path_resampled=${path_og}_0.4 
