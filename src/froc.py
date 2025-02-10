@@ -931,8 +931,8 @@ if __name__ == "__main__":
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root / "labels/gt/external_crop_0.4.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
-        "hospital140": "/data/aneurysm/hospital140/og_annotation.csv",
-        "cmha": "/data/aneurysm/cmha/annotations.csv",
+        "hospital140": "/data/aneurysm/hospital140/annotations.csv",
+        "cmha": "/data/aneurysm/cmha/annotations.csv"
     }
 
     max_fppi = 16.0
