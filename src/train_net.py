@@ -344,6 +344,7 @@ def main(args):
 
         # load all comaptible weights into trainer.model
         model_dict = trainer.model.state_dict()
+        
         encoder_dict = {k: v for k, v in encoder_weights.items() if k in model_dict}
         # print all compatible weights and non-comaptible ones
         print("Loading encoder weights...\n\n\n")

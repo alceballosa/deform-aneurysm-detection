@@ -24,5 +24,7 @@
     "svit3d_4l_decoder_only_no_rec_input_edt": "S-ViT3D (4L)",
     "svit3d_1l_decoder_only_no_rec": "Pretrained (l=0.9) S-ViT3D (1L)",
     "sivit_1l_decoder_only_no_rec_input_edt": "S-ViT3D (1L)",
-    "svit3d_1l_decoder_only_no_rec_npt": "S-ViT3D (1L)"
+    "svit3d_1l_decoder_only_no_rec_npt": "S-ViT3D (1L)",
+    "pt_vivit_1l_s_decoder_only_no_rec": "Pretrained ViViT (1L) (Short)",
+    "pt_npt_vivit_1l_s_decoder_only_no_rec": "Not-Pretrained ViViT (1L) (Short)"
 }
