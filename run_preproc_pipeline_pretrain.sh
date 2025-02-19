@@ -8,7 +8,7 @@ conda activate cta
 # for training or evaluating on annotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/pt_rsna"
+export path_base="/data/pt_sinoct"
 
 export path_og="${path_base}/og"
 export path_resampled=${path_og}_0.4 
@@ -22,7 +22,7 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 
 # Resample scans to 0.4mm spacing and crop them
 # python src/preprocess/resample_scans.py ${path_og} 
-python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
+# python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
 
 # Split all files in the folder into subfolders with 20 files each using bash
 
@@ -56,10 +56,10 @@ python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
 # done
 
 # # # Compute distance maps
-# # python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
+python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 90
 
 # # # # Get cvs masks
-# # # python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
+# python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
 
 # # python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt
 
