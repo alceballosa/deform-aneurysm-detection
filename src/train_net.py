@@ -333,7 +333,10 @@ def main(args):
 
     trainer.resume_or_load(resume=args.resume)
 
-    if cfg.MODEL.TRANS_MODEL.USE_PRETRAINED_ENCODER == True:
+    last_checkpoint = cfg.OUTPUT_DIR + "/last_checkpoint"
+    is_resume = os.path.exists(last_checkpoint)
+
+    if cfg.MODEL.TRANS_MODEL.USE_PRETRAINED_ENCODER == True and not is_resume:
         path_weights = cfg.MODEL.TRANS_MODEL.PRETRAINED_ENCODER_PATH
         encoder_weights = torch.load(path_weights)["model"]
         # rename all weights by prepending "module.backbone." to the key
