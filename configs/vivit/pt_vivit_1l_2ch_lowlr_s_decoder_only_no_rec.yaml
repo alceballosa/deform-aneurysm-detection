@@ -1,0 +1,50 @@
+_BASE_: ../deform/deform_base_crop_vessel.yaml
+SEED: 2000
+
+MODEL:
+  NAME: "pt_vivit_1l_2ch_lowlr_s_decoder_only_no_rec"
+  META_ARCHITECTURE: "PARQ_ViViT"
+  USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
+  USE_CVS_INFO: "no"
+  DEFORMABLE:
+    DECODER_ONLY: True
+    WITH_RECURRENCE: False
+    SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+    N_LEVELS: 1
+  TRANS_MODEL:
+    USE_PRETRAINED_ENCODER: True
+    PRETRAINED_ENCODER_PATH:  "/home/azureuser/workspace/medical/head-ct-pretraining/output_vivit_mae_2_ch_adamw/checkpoint0100.pth"
+  CONV_MODEL:
+    BACKBONE_TYPE: "ViViT_1L"
+SOLVER:
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 8
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
+  SCHED_CYCLE: 30000
+  BASE_LR: 0.0001
+  MIN_LR: 0.000005
+  MAX_ITER: 30000
+  FLAT_ITER: 30000
+TEST:
+  PATCHES_PER_ITER: 48 #  24 = ~12GB
+  NMS_TOPK: 40
+DATALOADER:
+  NUM_WORKERS: 8
+DATA:
+  PATCH_SIZE: [64, 64, 64]
+  OVERLAP: [32, 32, 32]
+  N_CHANNELS: 2  # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  DIR:
+    TRAIN:
+      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
+      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
+      ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
+
+    VAL:
+      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
+      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
+      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"

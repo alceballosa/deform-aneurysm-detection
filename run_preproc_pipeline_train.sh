@@ -18,7 +18,7 @@ export path_label_resampled=${path_label_og}_0.4
 export path_vessel_seg="${path_base}/crop_0.4_vessel"
 export path_crop="${path_base}/crop_0.4"
 export path_label_crop="${path_base}/crop_0.4_label"
-export path_edt="${path_base}/crop_0.4_vessel_edt"
+export path_edt="${path_base}/crop_0.4_vessel_edt_comp"
 export path_annotations="${path_base}/annotations.csv"
 export path_cvs_outputs="${path_base}/cvs_temp"
 export path_cvs_masks="${path_base}/cvs_mask"
@@ -46,7 +46,7 @@ for folder in ${path_crop}_split/*; do
     fi
 done
 # Compute distance maps
-python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt}
+python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 32 1
 # Obtain bbox csv from segmentation files 
 
 # get annotations

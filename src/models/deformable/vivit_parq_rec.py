@@ -334,7 +334,7 @@ class PARQ_ViViT(nn.Module):
         """
 
         if self.use_vessel_info == "start":
-            x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
+            x = torch.cat((x, vessel_dists / float(self.cfg.DATA.PATCH_SIZE[0])), dim=1)
             vessel_dists = None  # no need to keep using this
             if self.use_cvs_info == "start":
                 x = torch.cat((x, cvs_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
@@ -614,6 +614,7 @@ class PARQ_ViViT(nn.Module):
             x.clamp_(min=min_value, max=max_value)
             x -= (min_value + max_value) / 2
             x /= (max_value - min_value) / 2
+
         elif self.backbone_type in ["SAM3D", "SAM2D"]:
             if self.backbone_type == "SAM2D":
                 # replicate across channels axis

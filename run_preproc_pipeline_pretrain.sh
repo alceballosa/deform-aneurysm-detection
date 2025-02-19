@@ -14,7 +14,7 @@ export path_og="${path_base}/og"
 export path_resampled=${path_og}_0.4 
 export path_vessel_seg="${path_base}/crop_0.4_vessel"
 export path_crop="${path_base}/crop_0.4"
-export path_edt="${path_base}/crop_0.4_vessel_edt"
+export path_edt="${path_base}/crop_0.4_vessel_edt_comp"
 export path_cvs_outputs="${path_base}/cvs_temp"
 export path_cvs_masks="${path_base}/cvs_mask"
 export path_cvs_bbox="${path_base}/cvs_bbox"
@@ -56,7 +56,7 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 # done
 
 # # # Compute distance maps
-python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 90
+python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 90 1
 
 # # # # Get cvs masks
 # python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
