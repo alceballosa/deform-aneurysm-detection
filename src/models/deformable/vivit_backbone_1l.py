@@ -217,11 +217,11 @@ class ViT(Base_Backbone):
         )
         self.dropout = nn.Dropout(emb_dropout)
 
-        # self.spatial_cls_token = (
-        #     nn.Parameter(torch.randn(1, 1, dim))
-        #     if not self.global_average_pool
-        #     else None
-        # )
+        self.spatial_cls_token = (
+            nn.Parameter(torch.randn(1, 1, dim))
+            if not self.global_average_pool
+            else None
+        )
 
         if variant == "factorized_encoder":
             self.temporal_cls_token = (
@@ -255,11 +255,11 @@ class ViT(Base_Backbone):
 
         x = x + self.pos_embedding[:, :f, :n]
 
-        # if exists(self.spatial_cls_token):
-        #     spatial_cls_tokens = repeat(
-        #         self.spatial_cls_token, "1 1 d -> b f 1 d", b=b, f=f
-        #     )
-        #     x = torch.cat((spatial_cls_tokens, x), dim=2)
+        if exists(self.spatial_cls_token):
+            spatial_cls_tokens = repeat(
+                self.spatial_cls_token, "1 1 d -> b f 1 d", b=b, f=f
+            )
+            x = torch.cat((spatial_cls_tokens, x), dim=2)
 
         x = self.dropout(x)
 
@@ -300,7 +300,7 @@ class ViT(Base_Backbone):
             x = self.factorized_transformer(x)
             # remove temporal cls token
             #print(x.shape)
-            #x = x[:, :, 1:, :]
+            x = x[:, :, 1:, :]
             spatial_dim = int(x.shape[-2] ** 0.5)
             x = rearrange(x, "b z (x y) c -> b z x y c", x=spatial_dim, y=spatial_dim)
             # make channels the second dim 
