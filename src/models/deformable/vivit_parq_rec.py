@@ -609,21 +609,12 @@ class PARQ_ViViT(nn.Module):
         return target_list
 
     def normalize_input_values(self, x: torch.Tensor):
-        if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L", "SimpleViT3D_1L", "ViViT_1L", "ViViT_4L", "ViT3D_4L", "ViT3D_1L", "Hiera_4L"]:
-            min_value, max_value = self.cfg.DATA.WINDOW
-            x.clamp_(min=min_value, max=max_value)
-            x -= (min_value + max_value) / 2
-            x /= (max_value - min_value) / 2
 
-        elif self.backbone_type in ["SAM3D", "SAM2D"]:
-            if self.backbone_type == "SAM2D":
-                # replicate across channels axis
+        min_value, max_value = self.cfg.DATA.WINDOW
+        x.clamp_(min=min_value, max=max_value)
+        x -= (min_value + max_value) / 2
+        x /= (max_value - min_value) / 2
 
-                x = einops.repeat(x, "b c d h w -> b (c rep) d h w", rep=3)
-
-            x = (x - self.pixel_mean) / self.pixel_std
-        else:
-            raise NotImplementedError(f"no encoder type {self.backbone_type}")
 
         return x
 
