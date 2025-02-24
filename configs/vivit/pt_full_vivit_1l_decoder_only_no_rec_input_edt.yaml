@@ -2,9 +2,9 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "pt_vivit_1l_2ch_s_decoder_only_no_rec"
+  NAME: "pt_full_vivit_1l_decoder_only_no_rec_input_edt"
   META_ARCHITECTURE: "PARQ_ViViT"
-  USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
+  USE_VESSEL_INFO: "no" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   DEFORMABLE:
     DECODER_ONLY: True
@@ -14,7 +14,7 @@ MODEL:
     N_LEVELS: 1
   TRANS_MODEL:
     USE_PRETRAINED_ENCODER: True
-    PRETRAINED_ENCODER_PATH:  "/home/alceballosa/workspace/medical/head-ct-pretraining/output_vivit_mae_2_ch_adamw/checkpoint0070.pth"
+    PRETRAINED_ENCODER_PATH:  "/home/alceballosa/workspace/medical/head-ct-pretraining/output_vivit_mae_1_ch_highres_adamw/checkpoint0100.pth"
   CONV_MODEL:
     BACKBONE_TYPE: "ViViT_1L"
 SOLVER:
@@ -24,11 +24,8 @@ SOLVER:
     ENABLED: True
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
-  SCHED_CYCLE: 30000
-  BASE_LR: 0.0001
-  MIN_LR: 0.000005
-  MAX_ITER: 30000
-  FLAT_ITER: 30000
+  AMP:
+    ENABLED: False
 TEST:
   PATCHES_PER_ITER: 48 #  24 = ~12GB
   NMS_TOPK: 40
@@ -37,7 +34,7 @@ DATALOADER:
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
-  N_CHANNELS: 2  # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  N_CHANNELS: 1 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
