@@ -17,8 +17,8 @@ def build_backbone(cfg):
         cfg=cfg,
         image_size=cfg.DATA.PATCH_SIZE[1],  # image size
         frames=cfg.DATA.PATCH_SIZE[0],  # number of frames
-        image_patch_size=4,  # image patch size
-        frame_patch_size=4,  # frame patch size
+        image_patch_size=cfg.MODEL.TRANS_MODEL.PATCH_SIZE,  # image patch size
+        frame_patch_size=cfg.MODEL.TRANS_MODEL.PATCH_SIZE,  # frame patch size
         num_classes=1,
         channels=cfg.DATA.N_CHANNELS,
         dim=cfg.MODEL.D_MODEL,
