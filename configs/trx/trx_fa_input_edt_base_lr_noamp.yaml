@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "trx_fa_input_edt_high_lr"
+  NAME: "trx_fa_input_edt_base_lr_noamp"
   META_ARCHITECTURE: "PARQ_ViViT"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
