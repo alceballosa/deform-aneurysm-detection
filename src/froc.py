@@ -195,6 +195,9 @@ class FROCEvaluator:
             )
             results.append(np.interp(fppi_thrs, FPpI, recalls))
             print(np.interp(fppi_thrs, FPpI, _))
+            thres = np.interp(fppi_thrs, FPpI, _)
+            np.save(os.path.join(self._out_dir, f"thres_{category}.npy"), thres)
+            print(os.path.join(self._out_dir, f"thres_{category}.npy"))
             if save_fig:
                 self._save_fig(recalls, FPpI, category)
 
