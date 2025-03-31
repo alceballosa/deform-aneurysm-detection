@@ -2,16 +2,16 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "cnn_4l_input_edt_cvs"
+  NAME: "cnn_4l_nd_input_edt"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
-  USE_CVS_INFO: "start"
+  USE_CVS_INFO: "no"
   DEFORMABLE:
     DECODER_ONLY: True
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
-    USE_DEFORM_ATTN: True
+    USE_DEFORM_ATTN: False
     N_LEVELS: 4
 SOLVER:
   SCANS_PER_BATCH: 8
@@ -40,7 +40,7 @@ DATALOADER:
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
-  N_CHANNELS: 3 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"

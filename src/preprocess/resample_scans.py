@@ -3,7 +3,6 @@ Resample images to 0.4mm spacing. The target dir will be
 the same as the input dir with "_0.4" appended to the name.
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -44,8 +43,28 @@ def resample(
     return itkimgResampled
 
 
-def process(path_im, path_mask):
+def fix_case(im_sitk, mask_sitk, name):
+    """
+    Manually fixes some cases where masks and images have different sizes
+    resulting in misalignment.
+    """
+    if name == "ExtA0009.nii.gz":
+        print("Fixing case", name)
+        im_np = sitk.GetArrayFromImage(im_sitk)
+        im_np = im_np[10:-5, :, :]
+        im_sitk = sitk.GetImageFromArray(im_np)
+        im_sitk.CopyInformation(mask_sitk)
+    elif name == "ExtA0032.nii.gz":
+        print("Fixing case", name)
+        im_np = sitk.GetArrayFromImage(im_sitk)
+        mask_np = sitk.GetArrayFromImage(mask_sitk)
+        mask_np = mask_np[:, 49:-49, 49:-49]
+        mask_sitk = sitk.GetImageFromArray(mask_np)
+        mask_sitk.CopyInformation(im_sitk)
+    return im_sitk, mask_sitk
 
+
+def process(path_im, path_mask):
     image = sitk.ReadImage(path_im)
     tgt_path_im = Path(str(path_im.parent) + "_0.4") / path_im.name
     if path_mask:
@@ -62,7 +81,8 @@ def process(path_im, path_mask):
         if path_mask:
             sitk.WriteImage(mask, str(tgt_path_mask))
     else:
-
+        # optionally fix certain cases where mask and image may not match
+        image, mask = fix_case(image, mask, path_im.name)
         image_resampled = resample(
             itkimage=image, newSpacing=target_spacing, label=False
         )
@@ -74,11 +94,11 @@ def process(path_im, path_mask):
             mask_resampled = resample(
                 itkimage=mask, newSpacing=target_spacing, label=True
             )
+            print(path_im, image.GetSize(), path_mask, mask.GetSize())
             assert image_resampled.GetSize() == mask_resampled.GetSize()
         new_spacing = image_resampled.GetSpacing()
 
-        print("Spacing before:", space, image.GetSize())
-        print("Spacing after:", new_spacing, image_resampled.GetSize())
+        print("Spacing/size before and after:", space, image.GetSize(), new_spacing, image_resampled.GetSize())
 
         sitk.WriteImage(image_resampled, tgt_path_im)
         if path_mask:

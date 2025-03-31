@@ -15,7 +15,7 @@ import time
 
 import nibabel as nib
 import tqdm
-from AntsRegisteration import ANTsRegistration
+from AntsRegistration import ANTsRegistration
 from NibImage import NibImage
 
 
