@@ -80,12 +80,11 @@ class FROCEvaluator:
         self._logger = logging.getLogger(__name__) if logger is None else logger
         self._exp_name = exp_name
         # self._gts, self._categories, self._images = self.parse_gt_json(label_file)
-        self._gts, self._categories, self._images = self.parse_gt_csv(
-            label_file
-        )
+        self._gts, self._categories, self._images = self.parse_gt_csv(label_file)
         # self._dts = self.parse_dt_json(preds, self._categories)
         self._dts = self.parse_dt_csv(preds, self._categories)
-
+        self.preds = preds
+        self.label_file = pd.read_csv(label_file)
         # compute totol pos per category
         n_pos_per_cat = {}
         for cat in self._categories.values():
@@ -93,21 +92,14 @@ class FROCEvaluator:
             n_pos_per_cat[cat] = n_pos
         # print(n_pos_per_cat)
         self._n_pos_per_cat = n_pos_per_cat
-        if mode == "internal_test":
-            self._images = [f"Ts{i:0>4}.nii.gz" for i in range(1, 153)]
-        elif mode == "internal_train":
-            self._images = [f"Tr{i:0>4}.nii.gz" for i in range(1, 1187)]
-        elif mode == "external":
-            self._images = [f"ExtA{i:0>4}.nii.gz" for i in range(1, 72)] + [
-                f"ExtB{i:0>4}.nii.gz" for i in range(1, 68)
-            ]
-        elif mode == "priv" or mode == "hospital":
-            self._images = [f"CA_{i:0>5}_0000.nii.gz" for i in range(0, 38)]
-        elif mode == "hospital140":
-            self._images = [f"CB_{i:0>5}_0000.nii.gz" for i in range(0, 144)]
-        elif mode == "cmha":
-            self._images = [f"cta_images_head_AHMU1218{i:0>3}.nii.gz" for i in range(1, 144)]
-
+        self._images = sorted(
+            list(
+                set(
+                    self.preds["seriesuid"].unique().tolist()
+                    + self.label_file["seriesuid"].unique().tolist()
+                )
+            )
+        )
 
     def evaluate(self):
         # compute iou
@@ -647,7 +639,7 @@ class FROCEvaluator:
         for seriesuid, rows in data.groupby("seriesuid"):
             all_imgs.append(seriesuid)
             box = np.array(rows[["coordX", "coordY", "coordZ", "w", "h", "d"]])
-            if self._mode in ["hospital","hospital140"]:
+            if self._mode in ["hospital", "hospital140"]:
                 sides = box[:, 3:]
 
                 minimum_side = np.argmin(sides, axis=1)
@@ -932,16 +924,16 @@ if __name__ == "__main__":
     label_files = {
         "internal_train": root / "labels/train0.4_crop.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
-        "external": root / "labels/gt/external_crop_0.4.csv",
+        "external": "/home/azureuser/workspace/medical/data/aneurysm/external/annotations.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
         "hospital140": "/data/aneurysm/hospital140/annotations.csv",
-        "cmha": "/data/aneurysm/cmha/annotations.csv"
+        "cmha": "/data/aneurysm/cmha/annotations.csv",
     }
 
-    max_fppi = 16.0
+    max_fppi = 8.0
     min_fppi = 0.0
     fp_scale = "linear"
-    fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
+    fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0,]
     n_bootstraps = 10000
     iou_thrs = [0.2, 0.3]
 

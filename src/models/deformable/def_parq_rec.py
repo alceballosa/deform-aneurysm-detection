@@ -264,7 +264,8 @@ class PARQ_Deformable_R(nn.Module):
         object_ids = outputs[:, 0] != -1
         outputs = outputs[object_ids]
         if len(outputs) > 0:
-            keep = nms_3D(outputs[:, 1:], overlap=0.05, top_k=self.cfg.TEST.NMS_TOPK)
+            keep = nms_3D(outputs[:, 1:], overlap=0.05,  top_k= self.cfg.TEST.NMS_TOPK)
+            # keep = nms_3D(outputs[:, 1:], overlap=0.5, top_k=120)#self.cfg.TEST.NMS_TOPK)
             outputs = outputs[keep]
 
         vizmode = self.cfg.MODEL.EVAL_VIZ_MODE
@@ -510,9 +511,9 @@ class PARQ_Deformable_R(nn.Module):
         corners = get_3d_corners(center_predict_flat, size_predict_flat)
         corners = corners.reshape(bs, n_queries, 8, 3)
         # TODO: filter out of bounds
-        valid = torch.ones_like(center_predict[..., 0]).bool()
-        pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
-        pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
+        #valid = torch.ones_like(center_predict[..., 0]).bool()
+        #pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
+        #pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
         dets = torch.ones((bs, n_queries, 8)) * -1
         for j in range(bs):
             for i in range(n_queries):
