@@ -31,7 +31,7 @@ python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
 python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
 mkdir ${path_crop}_split
 python src/preprocess/split_files.py ${path_crop} ${path_crop}_split
-# mkdir ${path_vessel_seg}
+mkdir ${path_vessel_seg}
 
 for folder in ${path_crop}_split/*; do
     if [ -d "$folder" ]; then
@@ -57,5 +57,3 @@ python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_ou
 
 python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt_comp 90 1
 
-#python src/preprocess/compress_distance_maps.py ${path_cvs_masks}_edt 128 90
-#python src/preprocess/compress_distance_maps.py ${path_edt} 128 90

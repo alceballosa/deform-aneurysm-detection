@@ -6,6 +6,9 @@ from src.utils.general import get_activation_fn, get_clones, inverse_sigmoid
 from torch import nn
 
 
+
+
+
 class DeformableTransformerDecoderLayer(nn.Module):
     def __init__(
         self,
@@ -26,7 +29,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
 
         self.use_deform_attn = use_deform_attn
         if not use_deform_attn:
-            assert n_levels == 1, "non-deformable attention only supports 1 level"
+            # assert n_levels == 1, "non-deformable attention only supports 1 level"
             print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
             self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
         else:
@@ -82,7 +85,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         # cross attention
         if not self.use_deform_attn:
             q = self.with_pos_embed(ref, ref_pos_embed)
-            k =  self.with_pos_embed(global_feats, global_pos_embed)
+            k = self.with_pos_embed(global_feats, global_pos_embed)
 
             ref2 = self.cross_attn(
                 q.transpose(0,1),k.transpose(0,1),k.transpose(0,1)
