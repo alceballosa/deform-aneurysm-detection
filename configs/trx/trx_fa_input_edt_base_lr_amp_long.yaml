@@ -2,9 +2,9 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "trx_fa_input_edt_base_lr_amp"
+  NAME: "trx_fa_input_edt_base_lr_amp_long"
   META_ARCHITECTURE: "PARQ_ViViT"
-  USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
+  USE_VESSEL_INFO: "input" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   DEFORMABLE:
     DECODER_ONLY: True
@@ -25,16 +25,15 @@ SOLVER:
   OPTIMIZER: "ADAMW"
   AMP:
     ENABLED: True
-  SCHED_CYCLE: 68000
+  SCHED_CYCLE: 100000
   BASE_LR: 0.0001
-  MIN_LR: 0.00005
-  MAX_ITER: 68000
-  FLAT_ITER: 68000
+  MIN_LR: 0.000025
+  MAX_ITER: 100000
+  FLAT_ITER: 100000
   CLIP_GRADIENTS:
     ENABLED: False
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
-
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
@@ -43,7 +42,7 @@ DATALOADER:
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
-  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  N_CHANNELS: 1 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"

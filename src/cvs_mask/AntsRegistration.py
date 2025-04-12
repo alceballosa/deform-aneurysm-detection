@@ -1,6 +1,8 @@
 
 import ants
 import numpy as np
+import random
+
 
 class ANTsRegistration:
     def __init__(self, fix_img_path, move_img_path):
@@ -12,6 +14,7 @@ class ANTsRegistration:
         fixed_image = self.fix_img
         moving_image = self.move_img
         # Perform registration 
+        seed = random.randint(0, 10000)
         registration_result = ants.registration(fixed=fixed_image, 
                                             moving=moving_image, 
                                             type_of_transform='Affine',
@@ -51,6 +54,7 @@ class ANTsRegistration:
         #fixed_image_clip = ants.from_numpy(fixed_image_arr, spacing=fixed_image.spacing, origin=fixed_image.origin, direction=fixed_image.direction)
         
         # Perform registration
+        # some cases might require changing to 'Similarity'
         registration_result = ants.registration(fixed=fixed_image, 
                                             moving=moving_image, 
                                             type_of_transform='Affine',

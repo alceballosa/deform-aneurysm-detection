@@ -139,6 +139,7 @@ if __name__ == "__main__":
         output_path_mask = os.path.join(output_folder_mask, i)
         output_path_bbox = os.path.join(output_folder_bbox, i)
         # check if file exists 
+        print(os.path.isfile(output_path_mask), os.path.isfile(output_path_bbox))
         if os.path.isfile(output_path_mask) and os.path.isfile(output_path_bbox):
             print(f"{i} was already done.")
             continue

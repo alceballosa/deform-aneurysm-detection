@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "trx_fa_input_edt_base_lr_amp"
+  NAME: "trx_fa_input_edt_high_lr_amp"
   META_ARCHITECTURE: "PARQ_ViViT"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -22,11 +22,11 @@ SOLVER:
     ENABLED: True
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
-  OPTIMIZER: "ADAMW"
+  OPTIMIZER: "ADAMW_8BIT"
   AMP:
     ENABLED: True
   SCHED_CYCLE: 68000
-  BASE_LR: 0.0001
+  BASE_LR: 0.005
   MIN_LR: 0.00005
   MAX_ITER: 68000
   FLAT_ITER: 68000
@@ -34,7 +34,6 @@ SOLVER:
     ENABLED: False
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
-
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
