@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "cnn_4l_input_edt_amp_ogopt"
+  NAME: "cnn_4l_nd_input_edt_amp_ogopt"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -11,7 +11,7 @@ MODEL:
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
-    USE_DEFORM_ATTN: True
+    USE_DEFORM_ATTN: False
     N_LEVELS: 4
 SOLVER:
   SCANS_PER_BATCH: 8
@@ -29,7 +29,7 @@ SOLVER:
   MAX_ITER: 68000
   FLAT_ITER: 68000
 TEST:
-  PATCHES_PER_ITER: 48 #  24 = ~12GB
+  PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
   NUM_WORKERS: 8
