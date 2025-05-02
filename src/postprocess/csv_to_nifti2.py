@@ -9,6 +9,7 @@ import sys
 
 if __name__ == "__main__":
     path_labels = {
+        "internal_train": "/data/aneurysm/internal_train/crop_0.4_label",
         "internal_test": "/data/aneurysm/internal_test/crop_0.4_label",
         "cmha": "/data/aneurysm/cmha/crop_0.4_label",
         "external": "/data/aneurysm/external/crop_0.4_label",

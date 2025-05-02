@@ -6,6 +6,7 @@ inf_appends = {
     "postprocess": "50k",
     "one_layer_decoder_only_no_rec_input_edt": "52k",
     "cnn_4l_input_edt": "48k",
+    "cnn_4l_input_edt_amp_ogopt": "52k",
 }
 
 thresholds = {
@@ -15,5 +16,6 @@ thresholds = {
     "decoder_only_no_rec_input_edt_cvs": 0.8840903,
     "postprocess": 0.84456074,
     "one_layer_decoder_only_no_rec_input_edt": 0.95163065,
-    "cnn_4l_input_edt": 0.95446762,
+    "cnn_4l_input_edt": 0.8951697,
+    "cnn_4l_input_edt_amp_ogopt": 0.8,
 }

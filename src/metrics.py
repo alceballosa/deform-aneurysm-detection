@@ -14,7 +14,7 @@ else:
     root = Path("./")
 
 label_files = {
-    "train": root / "labels/train0.4_crop.csv",
+    "internal_train": root / "labels/gt/internal_train_crop_0.4.csv",
     "val": root / "labels/gt/internal_test_crop_0.4.csv",
     "ext": root / "labels/gt/external_crop_0.4.csv",
     "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
@@ -22,6 +22,7 @@ label_files = {
 
         "hospital140": "/data/aneurysm/hospital140/annotations.csv",
     #"hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",
+    "cmha": "/data/aneurysm/cmha/annotations.csv",
 }
 size_files = {
     "train_no_crop": root / "labels/sizes/scan_sizes_train.json",
