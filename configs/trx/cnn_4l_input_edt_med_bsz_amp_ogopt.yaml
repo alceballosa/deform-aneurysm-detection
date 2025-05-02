@@ -2,8 +2,8 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "trx_fa_input_edt_higher_lr_amp_ogopt"
-  META_ARCHITECTURE: "PARQ_ViViT"
+  NAME: "cnn_4l_input_edt_med_bsz_amp_ogopt"
+  META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   DEFORMABLE:
@@ -11,12 +11,10 @@ MODEL:
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
-    USE_DEFORM_ATTN: False
-    N_LEVELS: 1
-  CONV_MODEL:
-    BACKBONE_TYPE: "ViViT_1L"
+    USE_DEFORM_ATTN: True
+    N_LEVELS: 4
 SOLVER:
-  SCANS_PER_BATCH: 8
+  SCANS_PER_BATCH: 16
   SAMPLES_PER_SCAN: 8
   CLIP_GRADIENTS:
     ENABLED: True
@@ -27,14 +25,18 @@ SOLVER:
     ENABLED: True
   SCHED_CYCLE: 68000
   BASE_LR: 0.0001
-  MIN_LR: 0.00001
+  MIN_LR:  0.00005
   MAX_ITER: 68000
   FLAT_ITER: 68000
+  CLIP_GRADIENTS:
+    ENABLED: False
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 8
+  NUM_WORKERS: 16
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
@@ -43,9 +45,11 @@ DATA:
     TRAIN:
       SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
       VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "/data/aneurysm/internal_train/cvs_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
       SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
       VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "/data/aneurysm/internal_test/cvs_mask_edt_comp"

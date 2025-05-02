@@ -922,7 +922,7 @@ if __name__ == "__main__":
     root = Path("./")
 
     label_files = {
-        "internal_train": root / "labels/train0.4_crop.csv",
+        "internal_train":"/data/aneurysm/internal_train/annotations.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": "/home/azureuser/workspace/medical/data/aneurysm/external/annotations.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
