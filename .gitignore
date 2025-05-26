@@ -9,6 +9,7 @@ outputs/
 *.out
 *.pkl
 model_weights/*
+model_weights_*/*
 .old
 .prev
 *.pickle

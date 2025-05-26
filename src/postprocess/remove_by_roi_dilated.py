@@ -12,10 +12,12 @@ mask_cache = {
 
 }
 
+
 def remove_by_roi(preds, dataset_name):
+    path_root = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")
     if dataset_name in ["internal_test","external","cmha","hospital140"]:
-        folder_brain = Path(f"/data/aneurysm/{dataset_name}/crop_0.4_totalseg/")
-        folder_cvs = Path(f"/data/aneurysm/{dataset_name}/cvs_bbox/")
+        folder_brain = path_root / f"{dataset_name}/crop_0.4_totalseg/"
+        folder_cvs = path_root / f"{dataset_name}/cvs_bbox/"
         all_seriesuid = preds["seriesuid"].unique()
         selected_preds = []
         for seriesuid in all_seriesuid:

@@ -921,13 +921,15 @@ if __name__ == "__main__":
 
     root = Path("./")
 
+    root_data = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")    
+
     label_files = {
         "internal_train":"/data/aneurysm/internal_train/annotations.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
-        "external": "/home/azureuser/workspace/medical/data/aneurysm/external/annotations.csv",
+        "external": root_data / "external/annotations.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
         "hospital140": "/data/aneurysm/hospital140/annotations.csv",
-        "cmha": "/data/aneurysm/cmha/annotations.csv",
+        "cmha": root_data / "cmha/annotations.csv",
     }
 
     max_fppi = 8.0
