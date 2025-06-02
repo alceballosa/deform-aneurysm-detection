@@ -383,6 +383,8 @@ class PARQ_Deformable_R(nn.Module):
                 # category loss for the case with no target objects
                 valid_bs_cls += 1
                 if len(matched_indices[i]) == 0:
+                    
+                    
                     if self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.DO_CLF_FOCAL:
                         cat_loss = (
                             no_targets_focal_loss(
@@ -392,7 +394,7 @@ class PARQ_Deformable_R(nn.Module):
                             )
                             * self.loss_weights["cls_w"]
                         )
-                    else:
+                    else:                        
                         cat_loss = (
                             no_targets_cross_entropy_loss(
                                 out_dict["class_logits"][i], self.class_weight
@@ -441,6 +443,7 @@ class PARQ_Deformable_R(nn.Module):
                             dtype=torch.int64,
                             device=out_dict["class_logits"].device,
                         )
+                        
                         classes_target[matched_indices[i][0]] = matched_classes_target
                         # TODO: review punish mask how it works and looks
                         if punish_mask is not None:
@@ -448,17 +451,23 @@ class PARQ_Deformable_R(nn.Module):
                                 self.class_weight.to(matched_classes_target.device),
                                 reduction="none",
                             )
+                            #print(punish_mask[i])
+                            #print(out_dict["class_logits"][i].shape, classes_target.shape)
+
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
-
+                            #cat_loss_w = cat_loss.mean()
                             cat_loss = (cat_loss * punish_mask[i]).sum() / punish_mask[
                                 i
                             ].sum()
+
+                            
                         else:
                             cross_entropy = torch.nn.CrossEntropyLoss(
                                 self.class_weight.to(matched_classes_target.device)
                             )
+                            
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )

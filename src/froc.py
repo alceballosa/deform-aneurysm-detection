@@ -928,7 +928,7 @@ if __name__ == "__main__":
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root_data / "external/annotations.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
-        "hospital140": "/data/aneurysm/hospital140/annotations.csv",
+        "hospital140": root_data / "hospital140/annotations.csv",
         "cmha": root_data / "cmha/annotations.csv",
     }
 

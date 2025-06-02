@@ -925,12 +925,13 @@ if __name__ == "__main__":
 
     root = Path("./")
 
+    root_data = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")  
     label_files = {
         "internal_train": root / "labels/train0.4_crop.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": "/home/azureuser/workspace/medical/data/aneurysm/external/annotations.csv",
         "hospital": "/data/aneurysm/hospital/annotations.csv",
-        "hospital140": "/data/aneurysm/hospital140/annotations.csv",
+        "hospital140": root_data / "hospital140/annotations.csv",
         "cmha": "/data/aneurysm/cmha/annotations.csv",
     }
 
