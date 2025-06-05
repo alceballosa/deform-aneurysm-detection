@@ -20,3 +20,4 @@ SyN_iteration9_antsBTPtemplate1.nii.gz
 notebooks/stats/*.csv
 notebooks/stats/*.png
 notebooks/stats/results_paper/*
+*.code-workspace

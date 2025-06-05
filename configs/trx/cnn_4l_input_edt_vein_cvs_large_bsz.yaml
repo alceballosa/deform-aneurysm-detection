@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "cnn_4l_input_edt_vein_cvs"
+  NAME: "cnn_4l_input_edt_vein_cvs_large_bsz"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "start"
@@ -14,7 +14,7 @@ MODEL:
     USE_DEFORM_ATTN: True
     N_LEVELS: 4
 SOLVER:
-  SCANS_PER_BATCH: 8
+  SCANS_PER_BATCH: 32
   SAMPLES_PER_SCAN: 8
   CLIP_GRADIENTS:
     ENABLED: True
@@ -36,7 +36,7 @@ TEST:
   PATCHES_PER_ITER: 128 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 16
+  NUM_WORKERS: 64
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
