@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "cnn_4l_input_edt_fp"
+  NAME: "cnn_4l_input_edt_fp_fix"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -43,9 +43,9 @@ DATA:
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
-      VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp"
-      ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_mixed_fps.csv"
+      SCAN_DIR: "/dev/shm/internal_train/crop_0.4"
+      VESSEL_DIR: "/dev/shm/internal_train/crop_0.4_vessel_edt_comp"
+      ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_mixed_fps_fix.csv"
 
     VAL:
       SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/crop_0.4"
