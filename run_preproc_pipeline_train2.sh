@@ -1,6 +1,6 @@
 #!/bin/bash
 eval "$(conda shell.bash hook)"
-conda activate cta 
+conda activate cta2
 
 # define the folder containing the data
 # for training/evaluation, the scans should be in a folder called "og"
@@ -9,7 +9,7 @@ conda activate cta
 # for testing on unnanotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/aneurysm/cmha"
+export path_base="/scratch/ceballosarroyo.a/aneurysm/cta_datasets/hospital140"
 
 export path_og="${path_base}/og"
 export path_label_og="${path_base}/og_label"

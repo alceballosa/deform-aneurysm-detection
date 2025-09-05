@@ -43,7 +43,7 @@ DATA:
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/dev/shm/internal_train/crop_0.4"
+      SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
       VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_confirmed_fps.csv"
 

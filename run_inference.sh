@@ -1,17 +1,22 @@
 #!/bin/bash
 eval "$(conda shell.bash hook)"
-conda activate cta 
-export ID_PORT=$(($RANDOM+20010))
+conda activate cta2 
+export ID_PORT=$(($RANDOM+20000))
+#cd /workspace/deform-aneurysm-detection
 export PYTHONPATH=$(pwd):$PYTHONPATH
-CUDA_VISIBLE_DEVICES=0,1,2,3 python src/train_net.py\
-    --num-gpus 4\
-    --config-file "./configs/deform/$1.yaml"\
+
+
+
+python src/train_net.py\
+    --num-gpus $6\
+    --config-file "./configs/$2/$3.yaml"\
+    --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --eval-only\
-    MODEL.WEIGHTS "$2" \
-    DATA.DIR.VAL.SCAN_DIR $3\
-    DATA.DIR.VAL.VESSEL_DIR $4\
-    OUTPUT_DIR $5
-
-
-
-python src/postprocess/csv_to_nifti.py --config-file "./configs/deform/$1.yaml" POSTPROCESS.CHECKPOINT "$2" POSTPROCESS.THRESHOLD $6 OUTPUT_DIR $5 DATA.DIR.VAL.SCAN_DIR $3
+    MODEL.WEIGHTS $4\
+    DATA.DIR.VAL.SCAN_DIR "$1/crop_0.4"\
+    DATA.DIR.VAL.ANNOTATION_FILE "./labels/gt/internal_test_crop_0.4.csv"\
+    DATA.DIR.VAL.VESSEL_DIR "$1/crop_0.4_vessel_edt_comp"\
+    DATA.DIR.VAL.CVS_DIR "$1/vein_mask_edt_comp"\
+    DATALOADER.NUM_WORKERS 16\
+    TEST.PATCHES_PER_ITER 64
+    

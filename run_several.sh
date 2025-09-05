@@ -1,21 +1,39 @@
 #!/bin/bash
 
-
-export id_gpu=0,1,2,3
 export family="deform"
 
-export model="decoder_only_no_rec_input_edt"
+export model="$1"
+export num_gpu="$2"
+export root_folder="/scratch/ceballosarroyo.a/aneurysm/cta_datasets"
+export dataset_folder = "${root_folder}/internal_test"
 
-./src/run_inference_local.sh $family $model "0051999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "final" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0059999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0055999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0053999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0049999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0047999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0045999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0043999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0039999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0029999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0019999" 0.8 $id_gpu
-./src/run_inference_local.sh $family $model "0009999" 0.8 $id_gpu
+./run_inference.sh $dataset_folder $family $model "0063999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0059999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0055999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0051999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0047999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0039999" 0.8 $num_gpu
+
+export dataset_folder = "${root_folder}/cmha"
+
+./run_inference.sh $dataset_folder $family $model "0063999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0059999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0055999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0051999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0047999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0039999" 0.8 $num_gpu
+
+export root_folder="/scratch/ceballosarroyo.a/aneurysm/cta_datasets/external"
+
+./run_inference.sh $dataset_folder $family $model "0063999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0059999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0055999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0051999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0047999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0039999" 0.8 $num_gpu
+
+
+
