@@ -2,10 +2,10 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "saug_cnn_4l_short_input_edt"
+  NAME: "zaug_cnn_4l_short_input_edt_vein"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
-  USE_CVS_INFO: "no"
+  USE_CVS_INFO: "start"
   DEFORMABLE:
     DECODER_ONLY: True
     WITH_RECURRENCE: False
@@ -33,16 +33,15 @@ TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 1 # TODO: back to 8
+  NUM_WORKERS: 16
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
 
-  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  N_CHANNELS: 3 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   CROPPING_AUG:
-    ROTATION: [90.0, 90.0, 90.0]
+    ROTATION: [0.0, 0.0, 0.0]
     SPACING: [0.9, 1.8]
-    SPLINE_PROB: 1.0 # TODO: back to 0.5
   DIR:
     TRAIN:
       SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
@@ -52,9 +51,9 @@ DATA:
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/crop_0.4"
+      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
-      VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/cvs_mask_edt_comp"
+      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "/data/aneurysm/internal_test/cvs_mask_edt_comp"
 
 

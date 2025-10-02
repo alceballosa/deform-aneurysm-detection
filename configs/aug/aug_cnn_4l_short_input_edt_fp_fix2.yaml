@@ -45,6 +45,7 @@ DATA:
   DIR:
     TRAIN:
       SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
+      LABEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_label"
       VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp"
       CVS_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_mixed_fps_fix.csv"

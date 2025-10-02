@@ -27,10 +27,11 @@ class InstanceCrop2(InstanceCrop):
         instance_loc = all_loc[
             np.sum([all_cls == cls for cls in self.sample_cls], axis=0, dtype="bool")
         ]
-        
+
         image_itk = sitk.GetImageFromArray(image)
         shadow = np.zeros(image.shape)
         shadow_itk = sitk.GetImageFromArray(shadow)
+        label_itk = sitk.GetImageFromArray(sample["label"])
         shape = image.shape
 
         has_vessel_seg = "mask" in sample.keys()
@@ -44,10 +45,10 @@ class InstanceCrop2(InstanceCrop):
             cvs_mask = sample["cvs_mask"]
             cvs_mask_itk = sitk.GetImageFromArray(cvs_mask)
         
-
         re_spacing = np.array(self.spacing) / np.array(self.base_spacing)
         crop_size = np.array(self.crop_size) * re_spacing
         overlap = self.overlap * re_spacing
+
 
         if self.sample_num > 1:
             if len(instance_loc) > 0:
@@ -58,9 +59,6 @@ class InstanceCrop2(InstanceCrop):
             # sample 0 or 1 randomly
             num_pos_samples = np.random.choice([0, 1], p=[1 - self.tp_ratio, self.tp_ratio])
         num_rand_samples = self.sample_num - num_pos_samples
-
-        # print("\nMUESTRAS POSITIVAS", num_pos_samples)
-        # print("MUESTRAS ALEATORIASs", num_rand_samples)
 
         # get center at regular grids
         z_stride = crop_size[0] - overlap[0]
@@ -125,6 +123,7 @@ class InstanceCrop2(InstanceCrop):
             space_crops.append(space)
 
         CT_crops = []
+        label_crops = []
         if has_vessel_seg:
             vessel_crops = []
         if has_cvs_mask:
@@ -134,9 +133,18 @@ class InstanceCrop2(InstanceCrop):
             matrix = matrix_crops[i]
             space = space_crops[i]
             image_itk_crop = reorient(
-                image_itk, matrix, spacing=list(space), interp1=sitk.sitkLinear
+                image_itk, matrix, crop_size, spacing=list(space), interp1=sitk.sitkLinear
             )
             image_crop = sitk.GetArrayFromImage(image_itk_crop)
+            label_itk_crop = reorient(
+                label_itk,
+                matrix,
+                crop_size,
+                spacing=list(space),
+                interp1=sitk.sitkNearestNeighbor,
+            )
+            label_crop = sitk.GetArrayFromImage(label_itk_crop).astype("uint8")
+            label_crops.append(np.expand_dims(label_crop, axis=0))
             CT_crops.append(np.expand_dims(image_crop, axis=0))
             image_spacing_crops.append(space)
             
@@ -144,8 +152,9 @@ class InstanceCrop2(InstanceCrop):
                 vessel_itk_crop = reorient(
                     vessel_itk,
                     matrix,
+                    crop_size,
                     spacing=list(space),
-                    interp1=sitk.sitkNearestNeighbor,
+                    interp1=sitk.sitkLinear,
                 )
                 vessel_crop = sitk.GetArrayFromImage(vessel_itk_crop)
                 vessel_crops.append(np.expand_dims(vessel_crop, axis=0))
@@ -153,8 +162,9 @@ class InstanceCrop2(InstanceCrop):
                 cvs_itk_crop = reorient(
                     cvs_mask_itk,
                     matrix,
+                    crop_size,
                     spacing=list(space),
-                    interp1=sitk.sitkNearestNeighbor,
+                    interp1=sitk.sitkLinear,
                 )
                 cvs_crop = sitk.GetArrayFromImage(cvs_itk_crop)
                 cvs_crops.append(np.expand_dims(cvs_crop, axis=0))
@@ -168,10 +178,7 @@ class InstanceCrop2(InstanceCrop):
 
             scale_spacing = image_spacing_crops[i]
             real_space = scale_spacing
-            #print(scale_spacing)
-            #print(image_spacing)
-            #print(rad)
-            #print("----")
+
             # NOTE: aqui se hizo lo de world coordinates
             if len(rad) > 0:
                 rad = rad / real_space  # convert pixel coord
@@ -181,6 +188,10 @@ class InstanceCrop2(InstanceCrop):
             sample["ctr"] = ctr
             sample["rad"] = rad
             sample["cls"] = cla
+            sample["label"] = label_crops[i]
+            # save with itk 
+
+            #print(sample["ctr"], sample["cls"], sample["image"].shape)
             if has_vessel_seg:
                 sample["mask"] = vessel_crops[i]
                 sample["volume"] = vessel_crops[i].sum()

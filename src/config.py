@@ -171,13 +171,14 @@ def add_config(cfg):
     cfg.DATA.DIR = CN()
     cfg.DATA.DIR.TRAIN = CN()
     cfg.DATA.DIR.TRAIN.SCAN_DIR = ""
+    cfg.DATA.DIR.TRAIN.LABEL_DIR = "" 
     cfg.DATA.DIR.TRAIN.ANNOTATION_FILE = ""
     cfg.DATA.DIR.TRAIN.VESSEL_DIR = ""
     cfg.DATA.DIR.TRAIN.CVS_DIR = ""
     cfg.DATA.DIR.VAL = CN()
     cfg.DATA.DIR.VAL.SCAN_DIR = ""
     cfg.DATA.DIR.VAL.ANNOTATION_FILE = ""
-
+    cfg.DATA.DIR.VAL.LABEL_DIR = "" 
     cfg.DATA.DIR.VAL.VESSEL_DIR = ""
     cfg.DATA.DIR.VAL.CVS_DIR = ""
 
@@ -187,6 +188,7 @@ def add_config(cfg):
     cfg.DATA.CROPPING_AUG.SPACING = [0.9, 1.2]
     cfg.DATA.CROPPING_AUG.BLANK_SIDE = 0
     cfg.DATA.CROPPING_AUG.TP_RATIO = 0.5
+    cfg.DATA.CROPPING_AUG.SPLINE_PROB = 0.0
 
     cfg.CUSTOM = CN()
     cfg.CUSTOM.DATASET_FUNCTION = "CTADatasetFunction"

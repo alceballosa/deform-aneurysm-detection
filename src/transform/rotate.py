@@ -148,6 +148,12 @@ class RandomTranspose(AbstractTransform):
                 ctr_t[:, 1] = temp[:, transpose[2] - 1]
                 ctr_t[:, 2] = temp[:, transpose[3] - 1]
                 image_t = np.transpose(image_t, transpose)
+            if "label" in sample:
+                label_t = sample["label"]
+                for transpose in transpose_list:
+                    label_t = np.transpose(label_t, transpose)
+                sample["label"] = label_t
+
 
             sample["image"] = image_t
             sample["ctr"] = ctr_t
@@ -175,7 +181,11 @@ class RandomMaskTranspose(RandomTranspose):
             for transpose in transpose_list:
                 image_t = np.transpose(image_t, transpose)
             sample["image"] = image_t
-
+            if "label" in sample:
+                label_t = sample["label"]
+                for transpose in transpose_list:
+                    label_t = np.transpose(label_t, transpose)
+                sample["label"] = label_t
             if "mask" in sample:
                 mask_t = sample["mask"]
                 for transpose in transpose_list:
@@ -231,6 +241,16 @@ class RandomMaskRotate(RandomRotate):
             else:
                 image_t = self.__apply_transformation(image, transform_param_list, 1)
             sample["image"] = image_t
+
+            if "label" in sample:
+                label = sample["label"]
+                label_t = self.__apply_transformation(label, transform_param_list, 0)
+                sample["label"] = label_t
+            
+            if "cvs_mask" in sample:
+                cvs_mask = sample["cvs_mask"]
+                cvs_mask_t = self.__apply_transformation(cvs_mask, transform_param_list, 0)
+                sample["cvs_mask"] = cvs_mask_t
 
             if "mask" in sample:
                 mask = sample["mask"]

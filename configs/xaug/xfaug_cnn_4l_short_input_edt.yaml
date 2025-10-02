@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "saug_cnn_4l_short_input_edt"
+  NAME: "xfaug_cnn_4l_short_input_edt"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -33,16 +33,16 @@ TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 1 # TODO: back to 8
+  NUM_WORKERS: 8 # TODO: back to 8
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   CROPPING_AUG:
-    ROTATION: [90.0, 90.0, 90.0]
+    ROTATION: [0.0, 0.0, 0.0]
     SPACING: [0.9, 1.8]
-    SPLINE_PROB: 1.0 # TODO: back to 0.5
+    SPLINE_PROB: 0.5 # TODO: back to 0.5
   DIR:
     TRAIN:
       SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"

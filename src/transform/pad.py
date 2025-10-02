@@ -49,6 +49,15 @@ class Pad(AbstractTransform):
 
         sample["image"] = image_t
 
+        if "label" in sample:
+            label = sample["label"]
+            label_t = (
+                np.pad(label, pad, "constant", constant_values=0)
+                if (max(margin) > 0)
+                else label
+            )
+            sample["label"] = label_t
+
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() + margin_lower
 
@@ -96,6 +105,14 @@ class MaskPad(Pad):
                 else mask
             )
             sample["mask"] = mask_t
+        if "label" in sample:
+            label = sample["label"]
+            label_t = (
+                np.pad(label, pad, "constant", constant_values=0)
+                if (max(margin) > 0)
+                else label
+            )
+            sample["label"] = label_t
         if "cvs_mask" in sample:
             cvs_mask = sample["cvs_mask"]
             cvs_mask_t = (

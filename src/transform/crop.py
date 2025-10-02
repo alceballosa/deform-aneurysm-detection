@@ -103,6 +103,12 @@ class RandomCrop(object):
         image_t = crop_ND_volume_with_bounding_box(image, crop_min, crop_max)
         sample["image"] = image_t
 
+        if "label" in sample:
+            label = sample["label"]
+            label_t = crop_ND_volume_with_bounding_box(label, crop_min, crop_max)
+            sample["label"] = label_t
+            
+
         crop_max_label = [ind // self.label_down for ind in crop_max]
         crop_max_label[0] = crop_max[0]
         crop_min_label = [ind // self.label_down for ind in crop_min]
@@ -167,7 +173,10 @@ class RandomMaskCrop(RandomCrop):
             cvs_mask = sample["cvs_mask"]
             cvs_mask_t = crop_ND_volume_with_bounding_box(cvs_mask, crop_min, crop_max)
             sample["cvs_mask"] = cvs_mask_t
-
+        if "label" in sample:
+            label = sample["label"]
+            label_t = crop_ND_volume_with_bounding_box(label, crop_min, crop_max)
+            sample["label"] = label_t
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() - crop_min[1:]
 

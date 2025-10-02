@@ -1,6 +1,6 @@
 import copy
+import os
 import time
-import os 
 
 import edt
 import numpy as np
@@ -8,6 +8,8 @@ import SimpleITK as sitk
 import torch
 import torchvision
 from detectron2.utils.registry import Registry
+
+import dataset
 from src import transform
 
 from .crop import InstanceCrop
@@ -19,7 +21,11 @@ DATA_MAPPER_REGISTRY = Registry("DATA_MAPPER")
 
 @DATA_MAPPER_REGISTRY.register()
 class CTADatasetMapper:
-    LESION_LABELS = ["aneurysm"]
+    LESION_LABELS = ["aneurysm", "non_aneurysm"]
+    LESION_IDS = {
+        "aneurysm": 0,  # aneurysm
+        "non_aneurysm": 1,  # non_aneurysm
+    }
 
     def __init__(self, cfg, mode):
         """
@@ -79,6 +85,7 @@ class CTADatasetMapper:
         crop_size = self.cfg.DATA.PATCH_SIZE
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
             transform_list_train = [
+                transform.SplineTransform(self.cfg.DATA.CROPPING_AUG.SPLINE_PROB),
                 transform.RandomFlip(
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
@@ -94,6 +101,7 @@ class CTADatasetMapper:
             return train_transform
         else:
             transform_list_train = [
+                transform.SplineTransform(self.cfg.DATA.CROPPING_AUG.SPLINE_PROB),
                 transform.RandomMaskFlip(
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
@@ -115,9 +123,18 @@ class CTADatasetMapper:
         if self.mode == "train":
             samples = self.crop_fn(data)
             random_samples = []
-            for sample in samples:
+            for i, sample in enumerate(samples):
                 if self.augmentations:
                     sample = self.augmentations(sample)
+                    # img_to_save = sitk.GetImageFromArray(sample["image"][0])
+                    # label_to_save = sitk.GetImageFromArray(sample["label"][0])
+                    # if i > 1:
+                    #    raise ValueError("stop")
+                    # save files
+                    # sitk.WriteImage(img_to_save, f"./img_{i}.nii.gz")
+                    # sitk.WriteImage(label_to_save, f"./label_{i}.nii.gz")
+                    # print(sample["ctr"], sample["rad"], sample["image"].shape) #, sample["ctr_orig"])
+
                 # sample["image"] = sample["image"] * 2.0 - 1.0  # normalized to -1 ~ 1
                 # TODO: review this
                 # for k in sample.keys():
@@ -133,6 +150,7 @@ class CTADatasetMapper:
             #     dataset_dict["nzhw"] = nzhw
             dataset_dict["image"] = torch.tensor(data["image"], device="cpu")
             dataset_dict["image_spacing"] = data["image_spacing"]
+            
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
                 dataset_dict["mask"] = torch.tensor(data["mask"], device="cpu")
 
@@ -154,12 +172,21 @@ class CTADatasetMapper:
 
     def load_data(self, dataset_dict):
         outputs = {}
-        image = sitk.ReadImage(dataset_dict["file_name"])
+        # image = sitk.ReadImage(dataset_dict["file_name"])
+        image = maybe_read_from_ram(dataset_dict["file_name"])
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
-        # NOTE: normalize on gpu is faster
-        # image = self.normalize(image)  # normalized
+        
         outputs["image"] = image
+
+        if "label_file_name" in dataset_dict:
+            label = sitk.GetArrayFromImage(
+                sitk.ReadImage(dataset_dict["label_file_name"])
+            ).astype("uint8")
+            outputs["label"] = label
+
+        # NOTE: normalize on gpu is faster
+
         outputs["image_spacing"] = image_spacing
         outputs["scan_id"] = dataset_dict["scan_id"]
 
@@ -169,14 +196,19 @@ class CTADatasetMapper:
             all_loc = all_loc[:, ::-1]  # convert z,y,x
             all_rad = csv_label[:, 3:6].astype("float32")  # w,h,d
             all_rad = all_rad[:, ::-1]  # convert d,h,w
-            lesion_index = np.sum(
-                [csv_label[:, -1] == label for label in self.LESION_LABELS],
-                axis=0,
-                dtype="bool",
-            )
-            all_cls = np.ones(shape=(all_loc.shape[0]), dtype="int8") * (-1)
+            all_cls_text = csv_label[:, -1]  # lesion type
+            all_cls = np.array(
+                [self.LESION_IDS[label] for label in all_cls_text], dtype="int8"
+            )  # convert to int8
+            # lesion_index = np.sum(
+            #    [csv_label[:, -1] == label for label in self.LESION_LABELS],
+            #    axis=0,
+            #    dtype="bool",
+            # )
+            # all_cls = np.zeros(shape=(all_loc.shape[0]), dtype="int8") # * (-1)
             # TODO: roll back
-            all_cls[lesion_index] = 0
+            # all_cls[lesion_index] = 0
+
             outputs["all_loc"] = all_loc
             outputs["all_rad"] = all_rad
             outputs["all_cls"] = all_cls
@@ -184,11 +216,14 @@ class CTADatasetMapper:
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
             return outputs
         else:
-            vessel_header = sitk.ReadImage(dataset_dict["vessel_file_name"])
+
+            # vessel_header = sitk.ReadImage(dataset_dict["vessel_file_name"])
+            vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
             vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
             outputs["mask"] = vessel
             if self.cfg.MODEL.USE_CVS_INFO != "no":
-                cvs_header = sitk.ReadImage(dataset_dict["cvs_file_name"])
+                # cvs_header = sitk.ReadImage(dataset_dict["cvs_file_name"])
+                cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])
                 cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
                 # cvs = self.get_distance_map(cvs)
                 outputs["cvs_mask"] = cvs
@@ -201,6 +236,32 @@ class CTADatasetMapper:
         data[data < min_value] = min_value
         data = (data - min_value) / (max_value - min_value)
         return data
+
+
+def maybe_read_from_ram(file_name):
+    """
+    Tries to read a file from RAM (specifically /dev/shm), if not
+    defaults to OG location.
+    """
+    new_folder = "/dev/shm/"
+    sample_name = "/".join(file_name.split("/")[-3:])
+    new_file_name = os.path.join(new_folder, sample_name)
+    try:
+        size_og = os.path.getsize(file_name)
+        size_new = os.path.getsize(new_file_name)
+        if size_og == size_new:
+            # print(f"Reading from RAM: {new_file_name}")
+            return sitk.ReadImage(new_file_name)
+        else:
+            print(
+                f"Sz mismatch: {file_name} ({size_og}) != {new_file_name} ({size_new})"
+            )
+            return sitk.ReadImage(file_name)
+    except:
+        # print(
+        #    f"File not found in RAM: {new_file_name}, reading from original location."
+        # )
+        return sitk.ReadImage(file_name)
 
 
 def sphere(r=1):

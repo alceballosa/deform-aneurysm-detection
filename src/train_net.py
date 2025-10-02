@@ -52,6 +52,7 @@ from detectron2.modeling import build_model
 from detectron2.projects.deeplab import add_deeplab_config, build_lr_scheduler
 from detectron2.solver.build import maybe_add_gradient_clipping
 from detectron2.utils.logger import setup_logger
+
 from src import dataset, models
 from src.config import add_config
 from src.dataset import (
@@ -93,6 +94,7 @@ def get_inference_iters(cfg):
         else:
             raise ValueError("model weights not found")
 
+
 class Trainer(DefaultTrainer):
     def __init__(self, cfg):
         super(Trainer, self).__init__(cfg)
@@ -113,7 +115,6 @@ class Trainer(DefaultTrainer):
                 / cfg.MODEL.NAME
                 / f"inference_{get_inference_iters(cfg)}"
             )
-
             output_folder.mkdir(parents=True, exist_ok=True)
         return CTAEvaluator(
             cfg, dataset_name, distributed=True, output_dir=output_folder
@@ -297,32 +298,54 @@ def setup(args):
 
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
+    cfg.EVAL_ONLY = args.eval_only
     cfg.RESUME = args.resume
     cfg.OUTPUT_DIR = os.path.join(cfg.OUTPUT_DIR, cfg.MODEL.NAME)
     cfg.MODEL.PATH_WEIGHTS = os.path.join(
         "./model_weights", cfg.MODEL.NAME, f"model_{cfg.MODEL.WEIGHTS}.pth"
     )
     cfg.freeze()
-    default_setup(cfg, args)
     # Setup logger for "mask_former" module
-    setup_logger(output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="src")
+
     return cfg
 
 
-def main(args):
+def test_if_result_exists(cfg):
+    """
+    Verifies whether the result already exists.
+    """
+    results_folder = Path("./results")
+    dataset_folder = Path(cfg.DATA.DIR.VAL.SCAN_DIR).parent.name
+
+    output_folder = (
+        results_folder
+        / dataset_folder
+        / cfg.MODEL.NAME
+        / f"inference_{get_inference_iters(cfg)}"
+    )
+    if (output_folder / "predict.csv").exists():
+
+        return True
+    else:
+        return False
+
+
+def main(cfg, args):
     global did_training
-    cfg = setup(args)
+
+    default_setup(cfg, args)
+    setup_logger(output=cfg.OUTPUT_DIR, distributed_rank=comm.get_rank(), name="src")
     setup_data_catalog(cfg)
 
     seed = cfg.SEED
     seed_everything(seed)
 
-    if args.eval_only:
+    if cfg.EVAL_ONLY:
         model = Trainer.build_model(cfg)
         # model = torch.compile(model)
 
         DetectionCheckpointer(model, save_dir=cfg.OUTPUT_DIR).resume_or_load(
-            cfg.MODEL.PATH_WEIGHTS, resume=args.resume
+            cfg.MODEL.PATH_WEIGHTS, resume=cfg.RESUME
         )
         res = Trainer.test(cfg, model)
         # if comm.is_main_process():
@@ -331,7 +354,7 @@ def main(args):
 
     trainer = Trainer(cfg)
 
-    trainer.resume_or_load(resume=args.resume)
+    trainer.resume_or_load(resume=cfg.RESUME)
 
     last_checkpoint = cfg.OUTPUT_DIR + "/last_checkpoint"
     is_resume = os.path.exists(last_checkpoint)
@@ -342,18 +365,22 @@ def main(args):
         # rename all weights by prepending "module.backbone." to the key
         # also print all weight names
         encoder_weights = {
-            f"module.backbone.{k.replace('model.module.','')}": v for k, v in encoder_weights.items()
-        }  
+            f"module.backbone.{k.replace('model.module.','')}": v
+            for k, v in encoder_weights.items()
+        }
 
         # load all comaptible weights into trainer.model
         model_dict = trainer.model.state_dict()
-        
+
         encoder_dict = {k: v for k, v in encoder_weights.items() if k in model_dict}
         # print all compatible weights and non-comaptible ones
         print("Loading encoder weights...\n\n\n")
         print("Compatible weights: ", encoder_dict.keys())
         print("\n")
-        print("Non-compatible weights: ", set(encoder_weights.keys()) - set(model_dict.keys()))
+        print(
+            "Non-compatible weights: ",
+            set(encoder_weights.keys()) - set(model_dict.keys()),
+        )
         model_dict.update(encoder_dict)
         trainer.model.load_state_dict(model_dict)
         # TODO: fix resume for this case
@@ -366,8 +393,14 @@ def main(args):
 if __name__ == "__main__":
     parser = default_argument_parser()
     args = parser.parse_args()
+
     print("Command Line Args:", args)
     timeout = datetime.timedelta(hours=2)
+    cfg = setup(args)
+    if cfg.EVAL_ONLY:
+        if test_if_result_exists(cfg):
+            print(f"Inference run for {cfg.MODEL.WEIGHTS} done previously, aborting.")
+            sys.exit(0)
     launch(
         main,
         args.num_gpus,
@@ -375,5 +408,5 @@ if __name__ == "__main__":
         machine_rank=args.machine_rank,
         dist_url=args.dist_url,
         timeout=timeout,
-        args=(args,),
+        args=(cfg, args),
     )

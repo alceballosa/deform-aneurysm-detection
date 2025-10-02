@@ -1,8 +1,8 @@
 _BASE_: ../deform/deform_base_crop_vessel.yaml
-SEED: 2000
+SEED: 14000
 
 MODEL:
-  NAME: "saug_cnn_4l_short_input_edt"
+  NAME: "saug_cnn_4l_short_input_edt3"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -40,7 +40,7 @@ DATA:
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   CROPPING_AUG:
-    ROTATION: [90.0, 90.0, 90.0]
+    ROTATION: [0.0, 0.0, 0.0]
     SPACING: [0.9, 1.8]
     SPLINE_PROB: 1.0 # TODO: back to 0.5
   DIR:

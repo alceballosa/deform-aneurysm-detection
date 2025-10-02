@@ -27,6 +27,7 @@ def setup_data_catalog(cfg):
     datasets = set(cfg.DATASETS.TRAIN + cfg.DATASETS.TEST)
     for dataset in datasets:
         mode = dataset.split("_")[-1]
+        print(dataset, mode)
         register_dataset(dataset, mode)
 
 
@@ -42,12 +43,7 @@ class CTADatasetFunction:
             "train": self.cfg.DATA.DIR.TRAIN,
             "val": self.cfg.DATA.DIR.VAL,
         }[self.mode]
-        # NOTE: here is where we can reduce dataset size for debugging
-        scan_ids = sorted(os.listdir(data_dir_cfg.SCAN_DIR))  # [6:7]
-        if self.cfg.MODEL.EVAL_VIZ_MODE:
-            print("MODO EVALLL")
-            scan_ids = scan_ids[4:12]
-
+        scan_ids = sorted(os.listdir(data_dir_cfg.SCAN_DIR))
         annotations = (
             np.array(
                 pd.read_csv(data_dir_cfg.ANNOTATION_FILE)[
@@ -63,18 +59,21 @@ class CTADatasetFunction:
             record = {}
             record["scan_id"] = scan_id
             record["file_name"] = resolve_path(os.path.join(data_dir_cfg.SCAN_DIR, scan_id))
+            if data_dir_cfg.LABEL_DIR != "":
+                record["label_file_name"] = resolve_path(os.path.join(data_dir_cfg.LABEL_DIR, scan_id))
             record["annotations"] = (
                 annotations[annotations[:, 0] == scan_id, 1:]
                 if self.mode == "train"
                 else None
             )
+            
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
                 record["vessel_file_name"] = resolve_path(os.path.join(
                     data_dir_cfg.VESSEL_DIR, scan_id
                 ))
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 record["cvs_file_name"] = resolve_path(os.path.join(data_dir_cfg.CVS_DIR, scan_id))
-
+            
             dataset_dicts.append(record)
         if self.cfg.CUSTOM.DEBUG:
             return dataset_dicts[: self.cfg.CUSTOM.DEBUG_DATASET_SIZE]

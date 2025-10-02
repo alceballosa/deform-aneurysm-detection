@@ -42,6 +42,10 @@ class RandomFlip(AbstractTransform):
             # current pytorch does not support negative strides
             image_t = np.flip(image, flip_axis).copy()
             sample["image"] = image_t
+            
+            if "label" in sample:
+                label = sample["label"]
+                sample["label"] = np.flip(label, flip_axis).copy()
 
             if "ctr" in sample:
                 coord = sample["ctr"].copy()
@@ -86,6 +90,10 @@ class RandomMaskFlip(AbstractTransform):
             # current pytorch does not support negative strides
             image_t = np.flip(image, flip_axis).copy()
             sample["image"] = image_t
+
+            if "label" in sample:
+                label = sample["label"]
+                sample["label"] = np.flip(label, flip_axis).copy()
 
             if "mask" in sample:
                 mask = sample["mask"]

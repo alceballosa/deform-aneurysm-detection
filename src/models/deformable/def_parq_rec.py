@@ -196,8 +196,8 @@ class PARQ_Deformable_R(nn.Module):
             return self._forward_eval(input_batch)
 
     def _forward_train(self, input_batch):
-        if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
-            get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
+        #if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
+        #    get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
         targets = self.preprocess_train_labels(input_batch)
         box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
@@ -445,6 +445,7 @@ class PARQ_Deformable_R(nn.Module):
                         )
                         
                         classes_target[matched_indices[i][0]] = matched_classes_target
+                        
                         # TODO: review punish mask how it works and looks
                         if punish_mask is not None:
                             cross_entropy = torch.nn.CrossEntropyLoss(
@@ -471,6 +472,7 @@ class PARQ_Deformable_R(nn.Module):
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
+                        
 
                     cat_loss *= self.loss_weights["cls_w"]
                     loss_total += cat_loss
@@ -536,7 +538,6 @@ class PARQ_Deformable_R(nn.Module):
 
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
-
         imgs = [s["image"] for s in all_samples]
         imgs = torch.tensor(np.stack(imgs, axis=0))
         imgs = imgs.to(self.device)
