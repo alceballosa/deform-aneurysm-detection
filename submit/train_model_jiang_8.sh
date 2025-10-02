@@ -5,8 +5,8 @@
 #SBATCH --partition=jiang
 #SBATCH --time=150:00:00
 #SBATCH --mem=512
-#SBATCH --gres=gpu:a5000:8
-#SBATCH --cpus-per-task=64
+#SBATCH --gres=gpu:a6000:8
+#SBATCH --cpus-per-task=72
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0

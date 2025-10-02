@@ -3,15 +3,15 @@
 #SBATCH --mail-user=ceballosarroyo.a@northeastern.edu
 #SBATCH --nodes=1
 #SBATCH --partition=jiang
-#SBATCH --time=72:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mem=512
-#SBATCH --gres=gpu:a6000:4
-#SBATCH --cpus-per-task=32
+#SBATCH --gres=gpu:a6000:2
+#SBATCH --cpus-per-task=8
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0
 
-export NUM_GPUS=4
+export NUM_GPUS=1
 export CONFIG_NAME=${SLURM_JOB_NAME}
 
 echo $SLURM_GRES;

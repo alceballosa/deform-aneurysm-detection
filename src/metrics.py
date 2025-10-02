@@ -15,14 +15,14 @@ else:
 
 label_files = {
     "internal_train": root / "labels/gt/internal_train_crop_0.4.csv",
-    "val": root / "labels/gt/internal_test_crop_0.4.csv",
-    "ext": root / "labels/gt/external_crop_0.4.csv",
+    "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
+    "external": root / "labels/gt/external_crop_0.4.csv",
     "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
     "hospital": root / "labels/gt/hospital.csv",
 
-        "hospital140": "/data/aneurysm/hospital140/annotations.csv",
+        "hospital140": "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/hospital140/annotations.csv",
     #"hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",
-    "cmha": "/data/aneurysm/cmha/annotations.csv",
+    "cmha": "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/cmha/annotations.csv",
 }
 size_files = {
     "train_no_crop": root / "labels/sizes/scan_sizes_train.json",
@@ -31,9 +31,9 @@ size_files = {
 }
 
 meta_files = {
-    "ext": root / "labels/metadata/external_crop_meta.json",
+    "external": root / "labels/metadata/external_crop_meta.json",
     "train": root / "labels/metadata/internal_train_crop_meta.json",
-    "val": root / "labels/metadata/internal_test_meta_crop.json",
+    "internal_test": root / "labels/metadata/internal_test_meta_crop.json",
     "val_no_crop": root / "labels/metadata/internal_test_meta.json",
     "hospital": root / "labels/metadata/hospital_meta.json",
 }
