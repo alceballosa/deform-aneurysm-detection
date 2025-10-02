@@ -166,10 +166,12 @@ class InstanceCrop(object):
         for i in index:
             matrix = matrix_crops[i]
             space = space_crops[i]
+            
             image_itk_crop = reorient(
-                image_itk, matrix, spacing=list(space), interp1=sitk.sitkLinear
+                image_itk, matrix, crop_size, spacing=list(space), interp1=sitk.sitkLinear
             )
             image_crop = sitk.GetArrayFromImage(image_itk_crop)
+            
             CT_crops.append(np.expand_dims(image_crop, axis=0))
             image_spacing_crops.append(space)
 
@@ -213,7 +215,6 @@ class InstanceCrop(object):
         Y = O + np.array([0, crop_size[1] - 1, 0])
         X = O + np.array([0, 0, crop_size[2] - 1])
         matrix = np.array([O, X, Y, Z])
-
         # random rotation
         if self.rand_rot is not None:
             matrix = rand_rot_coord(
@@ -233,13 +234,13 @@ class InstanceCrop(object):
             )
         else:
             space = re_spacing
-
         matrix = matrix[:, ::-1]  # in itk axis
 
         # make new itk image object from transformation matrix
         image_itk_crop = reorient(
             shadow_itk,
             matrix,
+            crop_size,
             spacing=list(space),
             interp1=sitk.sitkNearestNeighbor,
         )
@@ -342,7 +343,7 @@ def convert_to_one_hot(label, class_num):
     return label_prob
 
 
-def reorient(itk_img, mark_matrix, spacing=[1.0, 1.0, 1.0], interp1=sitk.sitkLinear):
+def reorient(itk_img, mark_matrix, crop_size, spacing=[1.0, 1.0, 1.0], interp1=sitk.sitkLinear):
     """
     itk_img: image to reorient
     mark_matric: physical mark point
@@ -377,11 +378,14 @@ def reorient(itk_img, mark_matrix, spacing=[1.0, 1.0, 1.0], interp1=sitk.sitkLin
         np.linalg.norm(y_mark - origin) / spacing[1],
         np.linalg.norm(z_mark - origin) / spacing[2],
     )
-    size_reorient = (
-        int(np.ceil(x + 0.5)),
-        int(np.ceil(y + 0.5)),
-        int(np.ceil(z + 0.5)),
-    )
+
+    # size_reorient = (
+    #     int(np.ceil(x + 0.5)),
+    #     int(np.ceil(y + 0.5)),
+    #     int(np.ceil(z + 0.5)),
+    # )
+    # TODO: verify if this messes up performance
+    size_reorient = (int(crop_size[0]), int(crop_size[1]), int(crop_size[2]))
 
     filter_resample.SetOutputOrigin(origin_reorient)
     filter_resample.SetOutputDirection(direction_reorient)
