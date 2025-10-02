@@ -9,14 +9,16 @@ export root_folder="/scratch/ceballosarroyo.a/aneurysm/cta_datasets"
 export dataset="hospital140"
 export dataset_folder="${root_folder}/${dataset}"
 
-
+./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0012999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+
+
+
 
 export dataset="cmha"
 export dataset_folder="${root_folder}/${dataset}"
