@@ -115,6 +115,8 @@ class CTADatasetMapper:
             train_transform = torchvision.transforms.Compose(transform_list_train)
             return train_transform
 
+    
+
     def __call__(self, dataset_dict):
         # start = time.perf_counter()
         dataset_dict = copy.deepcopy(dataset_dict)
@@ -124,15 +126,34 @@ class CTADatasetMapper:
             samples = self.crop_fn(data)
             random_samples = []
             for i, sample in enumerate(samples):
-                if self.augmentations:
+                if self.augmentations:                  
                     sample = self.augmentations(sample)
+                    # if i > 8:
+                    #     raise ValueError("stop")
+                    
+                    # with open(f"./scans_test/sample_{sample['scan_id']}_{i}.pkl", "wb") as f:
+                    #     import pickle
+                    #     pickle.dump(sample, f)
+
+
                     # img_to_save = sitk.GetImageFromArray(sample["image"][0])
                     # label_to_save = sitk.GetImageFromArray(sample["label"][0])
-                    # if i > 1:
+                    # if i > 5:
                     #    raise ValueError("stop")
-                    # save files
-                    # sitk.WriteImage(img_to_save, f"./img_{i}.nii.gz")
-                    # sitk.WriteImage(label_to_save, f"./label_{i}.nii.gz")
+                    # # save files
+                    # import pickle
+                    # if self.cfg.DATA.CROPPING_AUG.SPLINE_PROB > 0.5:
+                    #     dict_data = {"img": img_to_save, "label": label_to_save, "ctr": sample["ctr"], "rad": sample["rad"], "points": sample["points"], "points_target":sample["points_target"]}
+                    #     with open(f"./trans_{i}.pkl", "wb") as f:
+                    #         pickle.dump(dict_data, f)
+                    #     #sitk.WriteImage(img_to_save, f"./img_{i}.nii.gz")
+                    #     #sitk.WriteImage(label_to_save, f"./label_{i}.nii.gz")
+                    # else:
+                    #     #sitk.WriteImage(img_to_save, f"./img{i}_orig.nii.gz")
+                    #     #sitk.WriteImage(label_to_save, f"./label{i}_orig.nii.gz")
+                    #     dict_data = {"img": img_to_save, "label": label_to_save, "ctr": sample["ctr"], "rad": sample["rad"]}
+                    #     with open(f"./orig_{i}.pkl", "wb") as f:
+                    #         pickle.dump(dict_data, f)
                     # print(sample["ctr"], sample["rad"], sample["image"].shape) #, sample["ctr_orig"])
 
                 # sample["image"] = sample["image"] * 2.0 - 1.0  # normalized to -1 ~ 1
@@ -140,7 +161,6 @@ class CTADatasetMapper:
                 # for k in sample.keys():
                 #     if isinstance(sample[k], np.ndarray):
                 #         sample[k] = torch.tensor(sample[k])
-
                 random_samples.append(sample)
 
             dataset_dict["samples"] = random_samples

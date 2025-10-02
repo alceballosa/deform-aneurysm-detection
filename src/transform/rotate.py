@@ -153,8 +153,15 @@ class RandomTranspose(AbstractTransform):
                 for transpose in transpose_list:
                     label_t = np.transpose(label_t, transpose)
                 sample["label"] = label_t
-
-
+            if "rad" in sample and len(sample["rad"]) > 0:
+                # rad contains the height, width, depth of the bbox
+                rad = sample["rad"].copy()
+                for transpose in transpose_list:
+                    temp_rad = rad.copy()
+                    rad[:, 0] = temp_rad[:, transpose[1] - 1]
+                    rad[:, 1] = temp_rad[:, transpose[2] - 1]
+                    rad[:, 2] = temp_rad[:, transpose[3] - 1]
+                sample["rad"] = rad
             sample["image"] = image_t
             sample["ctr"] = ctr_t
 
@@ -206,6 +213,17 @@ class RandomMaskTranspose(RandomTranspose):
                     ctr_t[:, 2] = temp_ctr[:, transpose[3] - 1]
 
                 sample["ctr"] = ctr_t
+
+            if "rad" in sample and len(sample["rad"]) > 0:
+                # rad contains the height, width, depth of the bbox
+                rad = sample["rad"].copy()
+                for transpose in transpose_list:
+                    temp_rad = rad.copy()
+                    rad[:, 0] = temp_rad[:, transpose[1] - 1]
+                    rad[:, 1] = temp_rad[:, transpose[2] - 1]
+                    rad[:, 2] = temp_rad[:, transpose[3] - 1]
+
+                sample["rad"] = rad
 
 
             # assert mask_t.sum() == sample["volume"]

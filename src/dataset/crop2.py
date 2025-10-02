@@ -16,7 +16,9 @@ class InstanceCrop2(InstanceCrop):
     """
 
     def __call__(self, sample):
+        
         image = sample["image"].astype("float32")
+        scan_id = sample["scan_id"]
         all_loc = sample["all_loc"]
         all_rad = sample["all_rad"]
         all_cls = sample["all_cls"]
@@ -179,19 +181,16 @@ class InstanceCrop2(InstanceCrop):
             scale_spacing = image_spacing_crops[i]
             real_space = scale_spacing
 
-            # NOTE: aqui se hizo lo de world coordinates
             if len(rad) > 0:
                 rad = rad / real_space  # convert pixel coord
-            
             sample = {}
+            sample["scan_id"] = scan_id
             sample["image"] = CT_crops[i]
             sample["ctr"] = ctr
             sample["rad"] = rad
             sample["cls"] = cla
             sample["label"] = label_crops[i]
-            # save with itk 
 
-            #print(sample["ctr"], sample["cls"], sample["image"].shape)
             if has_vessel_seg:
                 sample["mask"] = vessel_crops[i]
                 sample["volume"] = vessel_crops[i].sum()
