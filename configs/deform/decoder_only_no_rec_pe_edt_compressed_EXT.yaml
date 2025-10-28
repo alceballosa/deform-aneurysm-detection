@@ -30,10 +30,10 @@ DATA:
   N_CHANNELS: 1
   DIR:
     TRAIN:
-      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/external/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/external/crop_0.4_vessel_edt_comp"
+      SCAN_DIR: "external/crop_0.4"
+      VESSEL_DIR: "external/crop_0.4_vessel_edt_comp"

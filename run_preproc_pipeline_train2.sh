@@ -9,7 +9,7 @@ conda activate cta2
 # for testing on unnanotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/scratch/ceballosarroyo.a/aneurysm/cta_datasets/hospital140"
+export path_base="/projects/vig/Datasets/aneurysm/cta_datasets/hospital140"
 
 export path_og="${path_base}/og"
 export path_label_og="${path_base}/og_label"
@@ -41,7 +41,7 @@ export path_vein_masks="${path_base}/vein_mask_edt_comp"
 #     if [ -d "$folder" ]; then
 #         # Run vessel segmentation
 #         mkdir ${folder}_temp
-#         sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 0 --continue_prediction
+#         sudo docker run --gpus all -it --rm -v ${folder}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${folder}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 0 --continue_prediction
 #         # Keep only relevant files 
         
 #         sudo rm  ${folder}_temp/Predictions/CA_*
@@ -62,4 +62,4 @@ export path_vein_masks="${path_base}/vein_mask_edt_comp"
 # python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt_comp 90 1
 
 mkdir ${path_vein_masks}
-python src/preprocess/compute_vein_minus_csv_distance_map.py ${path_vessel_seg} ${path_cvs_masks}  ${path_vein_masks} 90 1
+python src/preprocess/compute_vein_minus_csv_distance_map.py ${path_vessel_seg} ${path_cvs_masks}  ${path_vein_masks} 12 1

@@ -23,4 +23,6 @@ termcolor
 antspyx
 typing_extensions==4.11.0
 timm
+nnunetv2
+antspyx
 # python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'

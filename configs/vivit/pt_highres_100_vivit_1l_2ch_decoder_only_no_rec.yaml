@@ -14,7 +14,7 @@ MODEL:
     N_LEVELS: 1
   TRANS_MODEL:
     USE_PRETRAINED_ENCODER: True
-    PRETRAINED_ENCODER_PATH:  "/home/azureuser/workspace/medical/head-ct-pretraining/output_vivit_mae_2_ch_highres_adamw/checkpoint0100.pth"
+    PRETRAINED_ENCODER_PATH: "/home/azureuser/workspace/medical/head-ct-pretraining/output_vivit_mae_2_ch_highres_adamw/checkpoint0100.pth"
   CONV_MODEL:
     BACKBONE_TYPE: "ViViT_1L"
 SOLVER:
@@ -32,14 +32,14 @@ DATALOADER:
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
-  N_CHANNELS: 2  # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
+      SCAN_DIR: "internal_test/crop_0.4"
+      VESSEL_DIR: "internal_test/crop_0.4_vessel_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"

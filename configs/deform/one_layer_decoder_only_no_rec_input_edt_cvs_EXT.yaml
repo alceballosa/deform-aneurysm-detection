@@ -21,7 +21,7 @@ SOLVER:
     ENABLED: True
     CLIP_TYPE: "full_model"
     CLIP_VALUE: 5.0
-  
+
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
@@ -33,12 +33,12 @@ DATA:
   N_CHANNELS: 3 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/data/aneurysm/internal_train/cvs_mask_edt_comp"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_train/cvs_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/external/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/external/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/data/aneurysm/external/cvs_mask_edt_comp"
+      SCAN_DIR: "external/crop_0.4"
+      VESSEL_DIR: "external/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "external/cvs_mask_edt_comp"

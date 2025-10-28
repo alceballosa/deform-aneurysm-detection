@@ -15,11 +15,13 @@ import pandas as pd
 import SimpleITK as sitk
 import torch
 import torch.multiprocessing as mp
-from log_utils import setup_logger
 from sklearn.metrics._ranking import _binary_clf_curve
 from tabulate import tabulate
 from torch.multiprocessing import Process, set_start_method
 from tqdm import tqdm
+
+from log_utils import setup_logger
+from metrics import label_files
 
 DISEASE = "aneurysm"
 np.set_printoptions(linewidth=310)
@@ -918,22 +920,21 @@ def remove_by_size(df_preds, size_dict):
     return df_preds
 
 
-
-
-
 if __name__ == "__main__":
 
     root = Path("./")
 
-    root_data = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")  
-    label_files = {
-        "internal_train": root / "labels/train0.4_crop.csv",
-        "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
-        "external": root_data / "external/annotations.csv",
-        "hospital": "/data/aneurysm/hospital/annotations.csv",
-        "hospital140": root_data / "hospital140/annotations_aneurysm_extra.csv",
-        "cmha": root_data / "cmha/annotations.csv",
-    }
+
+
+    root_data = Path("/projects/vig/Datasets/aneurysm/cta_datasets")
+    # label_files = {
+    #     "internal_train": root / "labels/train0.4_crop.csv",
+    #     "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
+    #     "external": root_data / "external/annotations.csv",
+    #     "hospital": "/projects/vig/Datasets/aneurysm/cta_datasets/hospital/annotations.csv",
+    #     "hospital140": root_data / "hospital140/annotations_aneurysm_extra.csv",
+    #     "cmha": root_data / "cmha/annotations.csv",
+    # }
 
     max_fppi = 8.0
     min_fppi = 0.0
@@ -952,8 +953,10 @@ if __name__ == "__main__":
 
     # get exp from command line arg
     exp_base = Path(sys.argv[1])
+    mode = None if len(sys.argv) < 3 else sys.argv[2]
     dataset_name = exp_base.name
     exps = [x for x in exp_base.glob("*")]
+
     for exp_dir in exps:
 
         # get all dirs starting with "inference_"
@@ -968,12 +971,54 @@ if __name__ == "__main__":
 
                 print(f"Running iou_thr: {iou_thr} at {inf_append}")
                 n_workers = 8
-                out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
-                
-                path_preds = exp_dir / f"inference_{inf_append}" / "predict_roi_dilated.csv"
+
+                if mode == "0" or mode is None:
+                    out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
+
+                    path_preds = (
+                        exp_dir / f"inference_{inf_append}" / "predict_roi_dilated.csv"
+                    )
+                elif mode in ["base", "1", "2", "3", "4", "5"]:
+                    out_dir = (
+                        exp_dir / f"mode_{mode}" / f"iou{iou_thr:.1f}_froc_{inf_append}"
+                    )
+                    path_preds = (
+                        exp_dir / f"inference_{inf_append}" / "predict_roi_jisoo.csv"
+                    )
                 try:
                     preds = pd.read_csv(path_preds)
-                    preds = preds[preds["overlap"] > 0.5]
+                    if mode == "0" or mode is None:
+                        # remove preds that have overlap with brain <= 0.5
+                        preds = preds[preds["overlap"] > 0.5]
+                    elif mode == "base":
+                        # no filtering
+                        preds = preds.copy()
+                    elif mode == "1":
+                        # remove preds that have overlap with enhanced brain <= 0.5
+                        preds = preds[preds["overlap_enhanced_brain"] > 0.5]
+                    elif mode == "2":
+                        # remove preds that have any overlap with vein
+                        preds = preds[preds["overlap_vein"] == 0]
+                    elif mode == "3":
+                        # remove preds that have more overlap with vein than artery
+                        preds = preds[
+                            (preds["overlap_vein"] <= preds["overlap_artery"])
+                        ]
+                    elif mode == "5":
+                        # remove preds that have more overlap with vein than artery
+                        # then keep those with overlap with enhanced brain > 0.5
+                        preds = preds[
+                            (preds["overlap_vein"] <= preds["overlap_artery"])
+                            & (preds["overlap_enhanced_brain"] > 0.5)
+                        ]
+                    elif mode == "4":
+                        # remove preds that have any overlap with vein
+                        # then keep those with overlap with enhanced brain > 0.5
+                        preds = preds[preds["overlap_vein"] == 0]
+                        preds = preds[preds["overlap_enhanced_brain"] > 0.5]
+                        
+                    else:
+                        raise ValueError("Invalid mode")
 
                 except FileNotFoundError:
                     continue

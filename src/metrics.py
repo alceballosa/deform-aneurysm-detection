@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import SimpleITK as sitk
 from skimage import measure
+
 from utils.general import is_notebook
 
 if is_notebook():
@@ -13,16 +14,20 @@ if is_notebook():
 else:
     root = Path("./")
 
+root_data = Path("/projects/vig/Datasets/aneurysm/cta_datasets/")
+
 label_files = {
     "internal_train": root / "labels/gt/internal_train_crop_0.4.csv",
-    "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
-    "external": root / "labels/gt/external_crop_0.4.csv",
-    "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
+    # "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
+    "internal_test": root_data / "internal_test/annotations.csv",
+    "external": root_data / "external/annotations.csv",
+    # "external": root / "labels/gt/external_crop_0.4.csv",
+    # "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
     "hospital": root / "labels/gt/hospital.csv",
-
-        "hospital140": "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/hospital140/annotations.csv",
-    #"hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",
-    "cmha": "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/cmha/annotations.csv",
+    # "hospital140": "/scratch/ceballospital140/annotations_aneurysm_extra.csv",
+    "hospital140": root_data / "hospital140/annotations_aneurysm.csv",
+    # "hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",
+    "cmha": root_data / "cmha/annotations.csv",
 }
 size_files = {
     "train_no_crop": root / "labels/sizes/scan_sizes_train.json",

@@ -33,7 +33,7 @@ mkdir /dev/shm/internal_train
 /usr/sbin/sshd -D -p 2219 -f /dev/null -h ${HOME}/.ssh/alberto_neu &
 
 echo "Copying data in background...";
-{ cp -r  /scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4; } & { cp -r  /scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp; } & { cp -r  /scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp; } &
+{ cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4; } & { cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp; } & { cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp; } &
 
 export ID_PORT=$(($RANDOM+20010))
 python src/train_net.py\

@@ -17,6 +17,7 @@ python src/train_net.py\
     DATA.DIR.VAL.ANNOTATION_FILE "./labels/gt/internal_test_crop_0.4.csv"\
     DATA.DIR.VAL.VESSEL_DIR "$1/crop_0.4_vessel_edt_comp"\
     DATA.DIR.VAL.CVS_DIR "$1/vein_mask_edt_comp"\
+    DATA.DIR.VAL.LABEL_DIR "$1/crop_0.4_label"\
     DATALOADER.NUM_WORKERS 16\
     TEST.PATCHES_PER_ITER 64
     

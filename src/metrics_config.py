@@ -7,6 +7,17 @@ inf_appends = {
     "one_layer_decoder_only_no_rec_input_edt": "52k",
     "cnn_4l_input_edt": "48k",
     "cnn_4l_input_edt_amp_ogopt": "52k",
+    "cnn_4l_input_edt_fp_speedy": "40k",
+    #"aug_cnn_4l_short_input_edt_fp_fix": "16k",
+    "aug_cnn_4l_short_input_edt": "final",
+    "aug_cnn_4l_short":"8k",
+    "small_feat_aug_cnn_4l_short_input_edt": "10k",
+    "cnn_4l_input_edt_fp_ogopt": "40k",
+    #"zaug_cnn_4l_short" :"8k",
+    "aug_cnn_4l_short_input_edt_fp_fix": "final",
+    "zaug_cnn_4l_short_input_edt": "final",
+    "yaug_cnn_4l_short_input_edt": "final",
+    "aug_cnn_4l_short_input_edt_fp_strict_fix": "final",
 }
 
 thresholds = {
@@ -18,4 +29,15 @@ thresholds = {
     "one_layer_decoder_only_no_rec_input_edt": 0.95163065,
     "cnn_4l_input_edt": 0.8951697,
     "cnn_4l_input_edt_amp_ogopt": 0.8,
+    "cnn_4l_input_edt_fp_speedy": 0.9,
+    "aug_cnn_4l_short_input_edt_fp_fix": 0.93,
+    "aug_cnn_4l_short_input_edt": 0.93,
+    "aug_cnn_4l_short": 0.9,
+    "small_feat_aug_cnn_4l_short_input_edt": 0.93,
+    "cnn_4l_input_edt_fp_ogopt": 0.9,
+    "zaug_cnn_4l_short": 0.9,
+    "zaug_cnn_4l_short_input_edt": 0.93,
+    "yaug_cnn_4l_short_input_edt": 0.93,
+    "aug_cnn_4l_short_input_edt_fp_strict_fix": 0.93,
+
 }

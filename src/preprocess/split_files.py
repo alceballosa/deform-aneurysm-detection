@@ -24,3 +24,5 @@ if __name__ == "__main__":
     input_folder = sys.argv[1]
     output_folder = sys.argv[2]
     split_files(input_folder, output_folder)
+
+

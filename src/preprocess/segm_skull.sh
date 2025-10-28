@@ -1,6 +1,6 @@
 
-path_inputs="/data/aneurysm/external/crop_0.4"
-output_dir="/data/aneurysm/external/crop_0.4_totalseg"
+path_inputs="/projects/vig/Datasets/aneurysm/cta_datasets/external/crop_0.4"
+output_dir="/projects/vig/Datasets/aneurysm/cta_datasets/external/crop_0.4_totalseg"
 
 mkdir -p $output_dir
 

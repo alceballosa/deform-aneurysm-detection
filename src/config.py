@@ -169,6 +169,7 @@ def add_config(cfg):
     cfg.DATA.WINDOW = [0.0, 800.0]
 
     cfg.DATA.DIR = CN()
+    cfg.DATA.DIR.ROOT = ""
     cfg.DATA.DIR.TRAIN = CN()
     cfg.DATA.DIR.TRAIN.SCAN_DIR = ""
     cfg.DATA.DIR.TRAIN.LABEL_DIR = "" 
@@ -189,6 +190,8 @@ def add_config(cfg):
     cfg.DATA.CROPPING_AUG.BLANK_SIDE = 0
     cfg.DATA.CROPPING_AUG.TP_RATIO = 0.5
     cfg.DATA.CROPPING_AUG.SPLINE_PROB = 0.0
+    cfg.DATA.CROPPING_AUG.PADDED_REORIENT = False
+    cfg.DATA.CROPPING_AUG.TRANSFORM_RAD = True
 
     cfg.CUSTOM = CN()
     cfg.CUSTOM.DATASET_FUNCTION = "CTADatasetFunction"

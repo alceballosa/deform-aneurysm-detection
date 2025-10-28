@@ -9,7 +9,7 @@ conda activate cta
 # for testing on unnanotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/aneurysm/hospital140"
+export path_base="/projects/vig/Datasets/aneurysm/cta_datasets/hospital140"
 
 export path_og="${path_base}/og"
 export path_label_og="${path_base}/og_label"

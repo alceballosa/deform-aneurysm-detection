@@ -7,10 +7,13 @@ import SimpleITK as sitk
 import torch
 from skimage import morphology
 
+
 def remove_by_roi(preds, dataset_name):
     if dataset_name == "cmha":
-        folder_brain = Path("/data/aneurysm/cmha/crop_0.4_totalseg/")
-        folder_cvs = Path("/data/aneurysm/cmha/cvs_bbox/")
+        folder_brain = Path(
+            "/projects/vig/Datasets/aneurysm/cta_datasets/cmha/crop_0.4_totalseg/"
+        )
+        folder_cvs = Path("/projects/vig/Datasets/aneurysm/cta_datasets/cmha/cvs_bbox/")
         all_seriesuid = preds["seriesuid"].unique()
         selected_preds = []
         for seriesuid in all_seriesuid:
@@ -47,7 +50,7 @@ def remove_by_roi(preds, dataset_name):
                 y_2 = min(bbox.shape[1], box[4])
                 z_2 = min(bbox.shape[0], box[5])
                 # check if the box is in the bbox
-                #if np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) > 0:
+                # if np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) > 0:
                 row["overlap"] = np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) / (
                     (x_2 - x) * (y_2 - y) * (z_2 - z)
                 )
@@ -57,6 +60,7 @@ def remove_by_roi(preds, dataset_name):
         len_after = len(preds)
         print(f"Before: {len_before}, After: {len_after}")
     return preds
+
 
 def xyzwhd2xyzxyz(boxes):
     res = torch.zeros_like(boxes)
@@ -87,9 +91,11 @@ if __name__ == "__main__":
             for iou_thr in iou_thrs:
 
                 print(f"Filtering iou_thr: {iou_thr} at {inf_append}")
-                path_roi = path_preds = exp_dir / f"inference_{inf_append}" / "predict_roi.csv"
+                path_roi = path_preds = (
+                    exp_dir / f"inference_{inf_append}" / "predict_roi.csv"
+                )
                 # check if exists
-                #if path_roi.exists():
+                # if path_roi.exists():
                 #    print(f"Already exists: {path_roi}")
                 #    continue
                 n_workers = 8
@@ -102,6 +108,6 @@ if __name__ == "__main__":
                     continue
                 preds = remove_by_roi(preds, dataset_name)
                 # save under same location with name "predict_roi.csv"
-                
+
                 preds.to_csv(path_roi, index=False)
                 print(f"Saved to {path_roi}")

@@ -44,15 +44,13 @@ DATA:
     SPACING: [0.9, 1.8]
   DIR:
     TRAIN:
-      SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
-      VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_mixed_fps_fix.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/internal_test/crop_0.4"
+      SCAN_DIR: "internal_test/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
-      VESSEL_DIR: "/data/aneurysm/internal_test/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/data/aneurysm/internal_test/cvs_mask_edt_comp"
-
-
+      VESSEL_DIR: "internal_test/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_test/cvs_mask_edt_comp"

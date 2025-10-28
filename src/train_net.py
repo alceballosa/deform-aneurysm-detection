@@ -304,6 +304,13 @@ def setup(args):
     cfg.MODEL.PATH_WEIGHTS = os.path.join(
         "./model_weights", cfg.MODEL.NAME, f"model_{cfg.MODEL.WEIGHTS}.pth"
     )
+    root_data = cfg.DATA.DIR.ROOT
+    for field in cfg.DATA.DIR.TRAIN:
+        if "DIR" in field:
+            cfg.DATA.DIR.TRAIN[field] = root_data + "/" + cfg.DATA.DIR.TRAIN[field]
+    for field in cfg.DATA.DIR.VAL:
+        if "DIR" in field:
+            cfg.DATA.DIR.VAL[field] = root_data + "/" + cfg.DATA.DIR.VAL[field]
     cfg.freeze()
     # Setup logger for "mask_former" module
 

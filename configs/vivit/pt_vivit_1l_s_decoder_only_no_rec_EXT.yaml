@@ -14,7 +14,7 @@ MODEL:
     N_LEVELS: 1
   TRANS_MODEL:
     USE_PRETRAINED_ENCODER: True
-    PRETRAINED_ENCODER_PATH:  "../head-ct-pretraining/output_vm2/checkpoint.pth"
+    PRETRAINED_ENCODER_PATH: "../head-ct-pretraining/output_vm2/checkpoint.pth"
   CONV_MODEL:
     BACKBONE_TYPE: "ViViT_1L"
 SOLVER:
@@ -40,9 +40,9 @@ DATA:
   N_CHANNELS: 1 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
+      SCAN_DIR: "internal_train/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/external/crop_0.4"
+      SCAN_DIR: "external/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/nternal_test_crop_0.4.csv"

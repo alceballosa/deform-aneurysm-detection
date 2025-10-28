@@ -48,9 +48,9 @@ export PYTHONPATH=${WORKSPACE_PATH}
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 mkdir /dev/shm/internal_train 
-cp -r  /scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4 /dev/shm/internal_train/crop_0.4
+cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4 /dev/shm/internal_train/crop_0.4
 
-#cp -r  /scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp 
+#cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp 
 echo "Done copying" 
 
 

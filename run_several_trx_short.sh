@@ -4,12 +4,12 @@ export family="$1"
 
 export model="$2"
 export num_gpu="$3"
-export root_folder="/scratch/ceballosarroyo.a/aneurysm/cta_datasets"
-
+#export root_folder="/projects/vig/Datasets/aneurysm/cta_datasets/"
+export root_folder=""
 export dataset="hospital140"
-export dataset_folder="${root_folder}/${dataset}"
+export dataset_folder="${dataset}"
 
-./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
@@ -34,7 +34,7 @@ export dataset_folder="${root_folder}/${dataset}"
 ./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 
 export dataset="internal_test"
 export dataset_folder="${root_folder}/${dataset}"
@@ -51,7 +51,7 @@ export dataset_folder="${root_folder}/${dataset}"
 ./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 
 
 
@@ -70,6 +70,6 @@ export dataset_folder="${root_folder}/${dataset}"
 ./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 
 

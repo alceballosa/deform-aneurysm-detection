@@ -14,11 +14,12 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.multiprocessing as mp
-from log_utils import setup_logger
 from sklearn.metrics._ranking import _binary_clf_curve
 from tabulate import tabulate
 from torch.multiprocessing import Process, set_start_method
 from tqdm import tqdm
+
+from log_utils import setup_logger
 
 DISEASE = "aneurysm"
 np.set_printoptions(linewidth=310)
@@ -921,13 +922,13 @@ if __name__ == "__main__":
 
     root = Path("./")
 
-    root_data = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")    
+    root_data = Path("/projects/vig/Datasets/aneurysm/cta_datasets")
 
     label_files = {
-        "internal_train":"/data/aneurysm/internal_train/annotations.csv",
+        "internal_train": "/projects/vig/Datasets/aneurysm/cta_datasets/internal_train/annotations.csv",
         "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
         "external": root_data / "external/annotations.csv",
-        "hospital": "/data/aneurysm/hospital/annotations.csv",
+        "hospital": "/projects/vig/Datasets/aneurysm/cta_datasets/hospital/annotations.csv",
         "hospital140": root_data / "hospital140/annotations.csv",
         "cmha": root_data / "cmha/annotations.csv",
     }
@@ -935,7 +936,15 @@ if __name__ == "__main__":
     max_fppi = 8.0
     min_fppi = 0.0
     fp_scale = "linear"
-    fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0,]
+    fppi_thrs = [
+        0.125,
+        0.25,
+        0.5,
+        1.0,
+        2.0,
+        4.0,
+        8.0,
+    ]
     n_bootstraps = 10000
     iou_thrs = [0.2, 0.3]
 

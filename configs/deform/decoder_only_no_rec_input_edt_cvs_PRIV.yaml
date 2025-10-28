@@ -29,13 +29,13 @@ DATA:
   N_CHANNELS: 3 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/data/aneurysm/internal_train/crop_0.4"
-      VESSEL_DIR: "/data/aneurysm/internal_train/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/data/aneurysm/internal_train/cvs_mask_edt_compressed"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_train/cvs_mask_edt_compressed"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4.csv"
 
     VAL:
-      SCAN_DIR: "/data/aneurysm/hospital140/crop_0.4"
-      ANNOTATION_FILE: "/data/aneurysm/hospital/annotation.csv"
-      VESSEL_DIR: "/data/aneurysm/hospital140/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/data/aneurysm/hospital140/cvs_mask_edt_comp"
+      SCAN_DIR: "hospital140/crop_0.4"
+      ANNOTATION_FILE: "hospital/annotation.csv"
+      VESSEL_DIR: "hospital140/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "hospital140/cvs_mask_edt_comp"

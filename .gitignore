@@ -1,4 +1,5 @@
 outputs/
+priv_code/
 *__pycache__*
 .vscode*
 output/

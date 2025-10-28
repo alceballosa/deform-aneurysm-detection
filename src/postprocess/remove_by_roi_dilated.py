@@ -5,17 +5,15 @@ import numpy as np
 import pandas as pd
 import SimpleITK as sitk
 import torch
-from skimage import morphology
 from scipy import ndimage as ndi
+from skimage import morphology
 
-mask_cache = {
-
-}
+mask_cache = {}
 
 
 def remove_by_roi(preds, dataset_name):
-    path_root = Path("/scratch/ceballosarroyo.a/aneurysm/cta_datasets")
-    if dataset_name in ["internal_test","external","cmha","hospital140"]:
+    path_root = Path("/projects/vig/Datasets/aneurysm/cta_datasets")
+    if dataset_name in ["internal_test", "external", "cmha", "hospital140"]:
         folder_brain = path_root / f"{dataset_name}/crop_0.4_totalseg/"
         folder_cvs = path_root / f"{dataset_name}/cvs_bbox/"
         all_seriesuid = preds["seriesuid"].unique()
@@ -38,7 +36,9 @@ def remove_by_roi(preds, dataset_name):
 
                 except:
                     print(f"Error with {seriesuid}")
-                    seriesuid_new = seriesuid.replace("MGB_00", "MGB_").replace("MGB_0", "MGB_")
+                    seriesuid_new = seriesuid.replace("MGB_00", "MGB_").replace(
+                        "MGB_0", "MGB_"
+                    )
                     path_bbox = folder_cvs / f"{seriesuid_new}"
                     bbox = sitk.ReadImage(str(path_bbox))
                     bbox = sitk.GetArrayFromImage(bbox)
@@ -53,7 +53,7 @@ def remove_by_roi(preds, dataset_name):
                 assert bbox.shape == brain.shape
                 brain_plus_bbox = np.logical_or(bbox, brain)
                 mask_cache[seriesuid] = brain_plus_bbox
-                
+
             # iterate over each bbox
             for i, row in preds_seriesuid.iterrows():
                 box = np.array(
@@ -73,7 +73,7 @@ def remove_by_roi(preds, dataset_name):
                 y_2 = min(brain_plus_bbox.shape[1], box[4])
                 z_2 = min(brain_plus_bbox.shape[0], box[5])
                 # check if the box is in the bbox
-                #if np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) > 0:
+                # if np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) > 0:
                 row["overlap"] = np.sum(brain_plus_bbox[z:z_2, y:y_2, x:x_2]) / (
                     (x_2 - x) * (y_2 - y) * (z_2 - z)
                 )
@@ -84,6 +84,7 @@ def remove_by_roi(preds, dataset_name):
         print(f"Before: {len_before}, After: {len_after}")
     return preds
 
+
 def xyzwhd2xyzxyz(boxes):
     res = torch.zeros_like(boxes)
     res[:, :3] = boxes[:, :3] - boxes[:, 3:] / 2
@@ -93,7 +94,6 @@ def xyzwhd2xyzxyz(boxes):
 
 if __name__ == "__main__":
     # Define the input and output directories
-    iou_thrs = [0.2, 0.3]
 
     # get exp from command line arg
     exp_base = Path(sys.argv[1])
@@ -109,25 +109,22 @@ if __name__ == "__main__":
 
         for inf_append in inf_appends:
             path_inf = "inference_" + inf_append
+            path_roi = path_preds = (
+                exp_dir / f"inference_{inf_append}" / "predict_roi_dilated.csv"
+            )
+            # check if exists
+            if path_roi.exists():
+                print(f"Already exists: {path_roi}")
+                continue
+            n_workers = 8
+            path_preds = exp_dir / f"inference_{inf_append}" / "predict.csv"
+            try:
+                preds = pd.read_csv(path_preds)
+            except:
+                print(f"File not found: {path_preds}")
+                continue
+            preds = remove_by_roi(preds, dataset_name)
+            # save under same location with name "predict_roi.csv"
 
-            for iou_thr in iou_thrs:
-
-                print(f"Filtering iou_thr: {iou_thr} at {inf_append}")
-                path_roi = path_preds = exp_dir / f"inference_{inf_append}" / "predict_roi_dilated.csv"
-                # check if exists
-                if path_roi.exists():
-                    print(f"Already exists: {path_roi}")
-                    continue
-                n_workers = 8
-                out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
-                path_preds = exp_dir / f"inference_{inf_append}" / "predict.csv"
-                try:
-                    preds = pd.read_csv(path_preds)
-                except:
-                    print(f"File not found: {path_preds}")
-                    continue
-                preds = remove_by_roi(preds, dataset_name)
-                # save under same location with name "predict_roi.csv"
-                
-                preds.to_csv(path_roi, index=False)
-                print(f"Saved to {path_roi}")
+            preds.to_csv(path_roi, index=False)
+            print(f"Saved to {path_roi}")

@@ -36,7 +36,7 @@ for folder in ${path_crop}_split_2/*; do
     if [ -d "$folder" ]; then
         # Run vessel segmentation
         mkdir ${folder}_temp
-        sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+        sudo docker run --gpus all -it --rm -v ${folder}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${folder}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
         # Keep only relevant files 
         
         sudo rm  ${folder}_temp/Predictions/CA_*
@@ -46,7 +46,7 @@ for folder in ${path_crop}_split_2/*; do
     fi
     # Run vessel segmentation
     # mkdir ${folder}_temp
-    # sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+    # sudo docker run --gpus all -it --rm -v ${folder}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${folder}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
     # # Keep only relevant files 
     
     # sudo rm  ${folder}_temp/Predictions/CA_*
@@ -56,7 +56,7 @@ for folder in ${path_crop}_split_2/*; do
 done
 
 # Run vessel segmentation
-# sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/Data/aneurysmDetection/output_path/  -v ${path_crop}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+# sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${path_crop}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
 
 # # # Keep only relevant files 
 # mkdir ${path_vessel_seg}

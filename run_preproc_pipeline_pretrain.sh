@@ -1,6 +1,6 @@
 #!/bin/bash
 eval "$(conda shell.bash hook)"
-conda activate cta 
+conda activate cta2
 
 # define the folder containing the data
 # the scans should be in a folder called "og"
@@ -36,7 +36,7 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 #     if [ -d "$folder" ]; then
 #         # Run vessel segmentation
 #         mkdir ${folder}_temp
-#         sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 0 --continue_prediction
+#         sudo docker run --gpus all -it --rm -v ${folder}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${folder}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 0 --continue_prediction
 #         # Keep only relevant files 
         
 #         sudo rm  ${folder}_temp/Predictions/CA_*
@@ -46,7 +46,7 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 #     fi
 #     # Run vessel segmentation
 #     # mkdir ${folder}_temp
-#     # sudo docker run --gpus all -it --rm -v ${folder}_temp/:/Data/aneurysmDetection/output_path/  -v ${folder}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+#     # sudo docker run --gpus all -it --rm -v ${folder}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${folder}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
 #     # # Keep only relevant files 
     
 #     # sudo rm  ${folder}_temp/Predictions/CA_*

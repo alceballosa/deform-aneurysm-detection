@@ -71,6 +71,7 @@ class CTADatasetMapper:
             tp_ratio=cfg.DATA.CROPPING_AUG.TP_RATIO,
             sample_num=cfg.SOLVER.SAMPLES_PER_SCAN,
             blank_side=cfg.DATA.CROPPING_AUG.BLANK_SIDE,
+            padded_reorient=cfg.DATA.CROPPING_AUG.PADDED_REORIENT,
         )
 
     def build_split_comb(self):
@@ -90,7 +91,11 @@ class CTADatasetMapper:
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
                 transform.RandomTranspose(
-                    p=0.5, trans_xy=True, trans_zx=False, trans_zy=False
+                    p=0.5,
+                    trans_xy=True,
+                    trans_zx=False,
+                    trans_zy=False,
+                    transform_rad=self.cfg.DATA.CROPPING_AUG.TRANSFORM_RAD,
                 ),
                 transform.Pad(output_size=crop_size),
                 transform.RandomCrop(output_size=crop_size, pos_ratio=0.9),
@@ -106,7 +111,11 @@ class CTADatasetMapper:
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
                 transform.RandomMaskTranspose(
-                    p=0.5, trans_xy=True, trans_zx=False, trans_zy=False
+                    p=0.5,
+                    trans_xy=True,
+                    trans_zx=False,
+                    trans_zy=False,
+                    transform_rad=self.cfg.DATA.CROPPING_AUG.TRANSFORM_RAD,
                 ),
                 transform.MaskPad(output_size=crop_size),
                 transform.RandomMaskCrop(output_size=crop_size, pos_ratio=0.9),
@@ -114,8 +123,6 @@ class CTADatasetMapper:
             ]
             train_transform = torchvision.transforms.Compose(transform_list_train)
             return train_transform
-
-    
 
     def __call__(self, dataset_dict):
         # start = time.perf_counter()
@@ -126,15 +133,14 @@ class CTADatasetMapper:
             samples = self.crop_fn(data)
             random_samples = []
             for i, sample in enumerate(samples):
-                if self.augmentations:                  
+                if self.augmentations:
                     sample = self.augmentations(sample)
                     # if i > 8:
                     #     raise ValueError("stop")
-                    
+
                     # with open(f"./scans_test/sample_{sample['scan_id']}_{i}.pkl", "wb") as f:
                     #     import pickle
                     #     pickle.dump(sample, f)
-
 
                     # img_to_save = sitk.GetImageFromArray(sample["image"][0])
                     # label_to_save = sitk.GetImageFromArray(sample["label"][0])
@@ -170,7 +176,7 @@ class CTADatasetMapper:
             #     dataset_dict["nzhw"] = nzhw
             dataset_dict["image"] = torch.tensor(data["image"], device="cpu")
             dataset_dict["image_spacing"] = data["image_spacing"]
-            
+
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
                 dataset_dict["mask"] = torch.tensor(data["mask"], device="cpu")
 
@@ -196,7 +202,7 @@ class CTADatasetMapper:
         image = maybe_read_from_ram(dataset_dict["file_name"])
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
-        
+
         outputs["image"] = image
 
         if "label_file_name" in dataset_dict:

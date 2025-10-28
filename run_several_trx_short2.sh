@@ -4,7 +4,7 @@ export family="$1"
 
 export model="$2"
 export num_gpu="$3"
-export root_folder="/scratch/ceballosarroyo.a/aneurysm/cta_datasets"
+export root_folder="/projects/vig/Datasets/aneurysm/cta_datasets"
 
 export dataset="hospital140"
 export dataset_folder="${root_folder}/${dataset}"

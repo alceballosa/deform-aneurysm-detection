@@ -8,7 +8,7 @@ conda activate cta
 # for training or evaluating on annotated data, please refer to the other pipeline file
 
 # define the path to your data here 
-export path_base="/data/aneurysm/external"
+export path_base="/projects/vig/Datasets/aneurysm/cta_datasets/external"
 
 export path_og="${path_base}/og"
 export path_resampled=${path_og}_0.4 
@@ -25,7 +25,7 @@ python src/preprocess/resample_scans.py ${path_og}
 python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
 
 # Run vessel segmentation
-sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/Data/aneurysmDetection/output_path/  -v ${path_crop}/:/Data/aneurysmDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /Data/aneurysmDetection/input_cta/ /Data/aneurysmDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
+sudo docker run --gpus all -it --rm -v ${path_vessel_seg}_temp/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path/  -v ${path_crop}/:/projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ --shm-size=24g --ulimit memlock=-1 vessel_seg:latest python /Work/scripts/extractVessels.py -d /projects/vig/Datasets/aneurysm/cta_datasetsDetection/input_cta/ /projects/vig/Datasets/aneurysm/cta_datasetsDetection/output_path -m 'Prediction' -t 16 -s 0.5 -g 1
 
 # # Keep only relevant files 
 mkdir ${path_vessel_seg}

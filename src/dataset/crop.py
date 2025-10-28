@@ -5,7 +5,7 @@ import random
 
 import numpy as np
 import SimpleITK as sitk
-
+import logging
 
 class InstanceCrop(object):
     """Randomly crop the input image (shape [C, D, H, W]"""
@@ -22,6 +22,7 @@ class InstanceCrop(object):
         tp_ratio=0.7,
         sample_num=2,
         blank_side=0,
+        padded_reorient=False,
         sample_cls=[0],
     ):
         """This is crop function with spatial augmentation for training Lesion Detection.
@@ -65,6 +66,7 @@ class InstanceCrop(object):
 
         self.sample_cls = sample_cls
         self.base_spacing = spacing  # [0.7, 0.3125, 0.3125]#z,y,x
+        self.padded_reorient = padded_reorient
         assert isinstance(self.crop_size, (list, tuple))
 
     def __call__(self, sample):
@@ -166,17 +168,22 @@ class InstanceCrop(object):
         for i in index:
             matrix = matrix_crops[i]
             space = space_crops[i]
-            
+
             image_itk_crop = reorient(
-                image_itk, matrix, crop_size, spacing=list(space), interp1=sitk.sitkLinear
+                image_itk,
+                matrix,
+                crop_size,
+                spacing=list(space),
+                interp1=sitk.sitkLinear,
+                padded_reorient=self.padded_reorient,
             )
             image_crop = sitk.GetArrayFromImage(image_itk_crop)
-            
+
             CT_crops.append(np.expand_dims(image_crop, axis=0))
             image_spacing_crops.append(space)
 
         samples = []
-        for i in range(len(CT_crops)):
+        for i, _ in enumerate(CT_crops):
             ctr = all_loc_crops[i]
             rad = all_rad_crops[i]
             cls = all_cls_crops[i]  # lesion: 0
@@ -243,6 +250,7 @@ class InstanceCrop(object):
             crop_size,
             spacing=list(space),
             interp1=sitk.sitkNearestNeighbor,
+            padded_reorient=self.padded_reorient,
         )
 
         # transform annotation
@@ -343,7 +351,9 @@ def convert_to_one_hot(label, class_num):
     return label_prob
 
 
-def reorient(itk_img, mark_matrix, crop_size, spacing=[1.0, 1.0, 1.0], interp1=sitk.sitkLinear):
+def reorient(
+    itk_img, mark_matrix, crop_size, spacing=[1.0, 1.0, 1.0], interp1=sitk.sitkLinear, padded_reorient=False
+):
     """
     itk_img: image to reorient
     mark_matric: physical mark point
@@ -378,14 +388,18 @@ def reorient(itk_img, mark_matrix, crop_size, spacing=[1.0, 1.0, 1.0], interp1=s
         np.linalg.norm(y_mark - origin) / spacing[1],
         np.linalg.norm(z_mark - origin) / spacing[2],
     )
-
-    # size_reorient = (
-    #     int(np.ceil(x + 0.5)),
-    #     int(np.ceil(y + 0.5)),
-    #     int(np.ceil(z + 0.5)),
-    # )
-    # TODO: verify if this messes up performance
-    size_reorient = (int(crop_size[0]), int(crop_size[1]), int(crop_size[2]))
+    logger = logging.getLogger(__name__)
+    if padded_reorient:
+        #logger.info("doing padded reorient!!")
+        size_reorient = (
+            int(np.ceil(x + 0.5)),
+            int(np.ceil(y + 0.5)),
+            int(np.ceil(z + 0.5)),
+        )
+    else:
+        #logger.info("doing unpadded size reorient!!")
+        # TODO: verify if this messes up performance
+        size_reorient = (int(crop_size[0]), int(crop_size[1]), int(crop_size[2]))
 
     filter_resample.SetOutputOrigin(origin_reorient)
     filter_resample.SetOutputDirection(direction_reorient)

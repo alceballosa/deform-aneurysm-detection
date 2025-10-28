@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
+import pdb
 import random
 
 import numpy as np
-import pdb
 import SimpleITK as sitk
 
 from .crop import InstanceCrop, reorient
@@ -16,15 +16,13 @@ class InstanceCrop2(InstanceCrop):
     """
 
     def __call__(self, sample):
-        
+
         image = sample["image"].astype("float32")
         scan_id = sample["scan_id"]
         all_loc = sample["all_loc"]
         all_rad = sample["all_rad"]
         all_cls = sample["all_cls"]
         image_spacing = sample["image_spacing"]
-
-        
 
         instance_loc = all_loc[
             np.sum([all_cls == cls for cls in self.sample_cls], axis=0, dtype="bool")
@@ -46,11 +44,10 @@ class InstanceCrop2(InstanceCrop):
         if has_cvs_mask:
             cvs_mask = sample["cvs_mask"]
             cvs_mask_itk = sitk.GetImageFromArray(cvs_mask)
-        
+
         re_spacing = np.array(self.spacing) / np.array(self.base_spacing)
         crop_size = np.array(self.crop_size) * re_spacing
         overlap = self.overlap * re_spacing
-
 
         if self.sample_num > 1:
             if len(instance_loc) > 0:
@@ -59,7 +56,9 @@ class InstanceCrop2(InstanceCrop):
                 num_pos_samples = 0  # no positive samples
         else:
             # sample 0 or 1 randomly
-            num_pos_samples = np.random.choice([0, 1], p=[1 - self.tp_ratio, self.tp_ratio])
+            num_pos_samples = np.random.choice(
+                [0, 1], p=[1 - self.tp_ratio, self.tp_ratio]
+            )
         num_rand_samples = self.sample_num - num_pos_samples
 
         # get center at regular grids
@@ -135,7 +134,12 @@ class InstanceCrop2(InstanceCrop):
             matrix = matrix_crops[i]
             space = space_crops[i]
             image_itk_crop = reorient(
-                image_itk, matrix, crop_size, spacing=list(space), interp1=sitk.sitkLinear
+                image_itk,
+                matrix,
+                crop_size,
+                spacing=list(space),
+                interp1=sitk.sitkLinear,
+                padded_reorient=self.padded_reorient,
             )
             image_crop = sitk.GetArrayFromImage(image_itk_crop)
             label_itk_crop = reorient(
@@ -144,12 +148,13 @@ class InstanceCrop2(InstanceCrop):
                 crop_size,
                 spacing=list(space),
                 interp1=sitk.sitkNearestNeighbor,
+                padded_reorient=self.padded_reorient,
             )
             label_crop = sitk.GetArrayFromImage(label_itk_crop).astype("uint8")
             label_crops.append(np.expand_dims(label_crop, axis=0))
             CT_crops.append(np.expand_dims(image_crop, axis=0))
             image_spacing_crops.append(space)
-            
+
             if has_vessel_seg:
                 vessel_itk_crop = reorient(
                     vessel_itk,
@@ -157,6 +162,7 @@ class InstanceCrop2(InstanceCrop):
                     crop_size,
                     spacing=list(space),
                     interp1=sitk.sitkLinear,
+                    padded_reorient=self.padded_reorient,
                 )
                 vessel_crop = sitk.GetArrayFromImage(vessel_itk_crop)
                 vessel_crops.append(np.expand_dims(vessel_crop, axis=0))
@@ -167,6 +173,7 @@ class InstanceCrop2(InstanceCrop):
                     crop_size,
                     spacing=list(space),
                     interp1=sitk.sitkLinear,
+                    padded_reorient=self.padded_reorient,
                 )
                 cvs_crop = sitk.GetArrayFromImage(cvs_itk_crop)
                 cvs_crops.append(np.expand_dims(cvs_crop, axis=0))

@@ -43,13 +43,13 @@ DATA:
   N_CHANNELS: 3 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   DIR:
     TRAIN:
-      SCAN_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4"
-      VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp"
+      SCAN_DIR: "internal_train/crop_0.4"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_mixed_fps_fix.csv"
 
     VAL:
       SCAN_DIR: "/projects/vig/Datasets/cta_datasets/internal_test/crop_0.4"
       ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
-      VESSEL_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/crop_0.4_vessel_edt_comp"
-      CVS_DIR: "/scratch/ceballosarroyo.a/aneurysm/cta_datasets/internal_test/vein_mask_edt_comp"
+      VESSEL_DIR: "internal_test/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_test/vein_mask_edt_comp"

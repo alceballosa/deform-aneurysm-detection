@@ -123,11 +123,12 @@ class RandomTranspose(AbstractTransform):
     random rotate the image (shape [C, D, H, W] or [C, H, W])
     """
 
-    def __init__(self, trans_xy=True, trans_zx=False, trans_zy=False, p=0.5):
+    def __init__(self, trans_xy=True, trans_zx=False, trans_zy=False, p=0.5, transform_rad=True):
         self.trans_xy = trans_xy
         self.trans_zx = trans_zx
         self.trans_zy = trans_zy
         self.p = p
+        self.transform_rad = transform_rad
 
     def __call__(self, sample):
         transpose_list = []
@@ -174,6 +175,7 @@ class RandomMaskTranspose(RandomTranspose):
     """
 
     def __call__(self, sample):
+        transform_rad = self.transform_rad 
         transpose_list = []
 
         if self.trans_zy and random.random() < self.p:
@@ -214,10 +216,11 @@ class RandomMaskTranspose(RandomTranspose):
 
                 sample["ctr"] = ctr_t
 
-            if "rad" in sample and len(sample["rad"]) > 0:
+            if "rad" in sample and len(sample["rad"]) > 0 and transform_rad is True:
                 # rad contains the height, width, depth of the bbox
                 rad = sample["rad"].copy()
                 for transpose in transpose_list:
+                    # TODO: verify if this implementation of the aug is correct
                     temp_rad = rad.copy()
                     rad[:, 0] = temp_rad[:, transpose[1] - 1]
                     rad[:, 1] = temp_rad[:, transpose[2] - 1]
