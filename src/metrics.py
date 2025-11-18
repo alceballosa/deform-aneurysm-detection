@@ -24,6 +24,8 @@ label_files = {
     # "external": root / "labels/gt/external_crop_0.4.csv",
     # "val_no_crop": "/work/vig/Datasets/aneurysm/test0.4.csv",
     "hospital": root / "labels/gt/hospital.csv",
+    #"cta_rsna_ane": root / "labels/gt/cta_rsna_ane_annotations_updated_ok_filtered.csv",
+    "cta_rsna_ane": root / "labels/gt/source_files_rsna/annotations_final.csv",  
     # "hospital140": "/scratch/ceballospital140/annotations_aneurysm_extra.csv",
     "hospital140": root_data / "hospital140/annotations_aneurysm.csv",
     # "hospital": root / "labels/gt/hospital_crop_0.4_subsample.csv",

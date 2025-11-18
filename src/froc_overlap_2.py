@@ -554,7 +554,7 @@ class FROCEvaluator:
         # compute area
         area1 = (box_list1[:, 3:] - box_list1[:, :3]).prod(dim=1)
         area2 = (box_list2[:, 3:] - box_list2[:, :3]).prod(dim=1)
-        if self._mode not in ["hospital", "hospital140"]:
+        if self._mode not in ["hospital", "hospital140", "cta_rsna_ane"]:
             return intersection / (area1[:, None] + area2[None, :] - intersection)
         else:
             # print("Using iom")

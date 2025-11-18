@@ -39,14 +39,14 @@ export path_cvs_masks="${path_base}/cvs_mask"
 export path_cvs_bbox="${path_base}/cvs_bbox"
 
 
-# Resample scans to 0.4mm spacing and crop them
+# # Resample scans to 0.4mm spacing and crop them
 #python src/preprocess/resample_scans.py ${path_og} ${path_label_og}
-# python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
-# python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
+#python src/preprocess/crop_scans.py ${path_resampled} ${path_crop}
+#python src/preprocess/crop_scans.py ${path_label_resampled} ${path_label_crop}
 
-# mkdir ${path_crop}_split
+#mkdir ${path_crop}_split
 # echo ${path_crop}
-# python src/preprocess/split_files.py ${path_crop} ${path_crop}_split
+#python src/preprocess/split_files.py ${path_crop} ${path_crop}_split
 # mkdir ${path_vessel_seg}
 
 
@@ -69,9 +69,14 @@ export path_cvs_bbox="${path_base}/cvs_bbox"
 #         rm -rf ${folder}_temp
 #     fi
 # done
-# Compute distance maps
-python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 32 1
-# Obtain bbox csv from segmentation files 
+#Compute distance maps
+# python src/preprocess/compute_distance_maps.py ${path_vessel_seg} ${path_edt} 8 1
+#Obtain bbox csv from segmentation files 
+
+
+#Get cvs masks
+#python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
+
 
 # get annotations
-#python src/preprocess/get_bbox_csv.py ${path_label_crop}  ${path_annotations}
+python src/preprocess/get_bbox_csv.py ${path_label_crop}  ${path_annotations}

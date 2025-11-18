@@ -36,7 +36,7 @@ if __name__ == "__main__":
     path_target = Path(sys.argv[2])
     path_target.mkdir(exist_ok=True, parents=True)
     files = sorted(list(path_files.glob("*")))
-    num_workers = 16 if len(files) > 16 else len(files)
+    num_workers = 4 if len(files) > 4 else len(files)
     executor = Parallel(
         n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=1
     )

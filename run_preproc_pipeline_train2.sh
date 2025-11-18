@@ -57,7 +57,7 @@ export path_vein_masks="${path_base}/vein_mask_edt_comp"
 # python src/preprocess/get_bbox_csv_with_vein_artery.py ${path_label_crop} ${path_vessel_seg} ${path_edt} ${path_annotations}
 
 # Get cvs masks
-# python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
+python src/cvs_mask/compute_cvs.py ${path_crop} ${path_vessel_seg} ${path_cvs_outputs} ${path_cvs_masks} ${path_cvs_bbox} 
 
 # python src/preprocess/compute_distance_maps.py ${path_cvs_masks} ${path_cvs_masks}_edt_comp 90 1
 

@@ -102,6 +102,7 @@ def get_cvs_mask(
             )
             break
         except Exception as e:
+            print(vessel_seg_path)
             print(e, "Failed to compute, re-trying")
     return cvs_bbox_img
 
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
     image_list = os.listdir(scans_folder)
     list_aneurysms = []
-    for i in tqdm.tqdm(image_list):
+    for num, i in tqdm.tqdm(enumerate(image_list)):
         regist_img_path = os.path.join(scans_folder, i)
         vessel_seg_path = os.path.join(vessel_folder, i)
         output_path_mask = os.path.join(output_folder_mask, i)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
         # check if file exists 
         print(os.path.isfile(output_path_mask), os.path.isfile(output_path_bbox))
         if os.path.isfile(output_path_mask) and os.path.isfile(output_path_bbox):
-            print(f"{i} was already done.")
+            print(f"{num} {i} was already done.")
             continue
         os.makedirs(output_folder_temp, exist_ok=True)
         cvs_img = get_cvs_mask(

@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "aug_cnn_4l_short_input_edt_fp_strict_fix2"
+  NAME: "aug_cnn_4l_short_input_edt_fp_strict_fix_nov"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"

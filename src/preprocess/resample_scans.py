@@ -122,7 +122,7 @@ if __name__ == "__main__":
         mask_files = [None] * len(im_files)
     else:
         mask_files = sorted(list(mask_dir.glob("*")))
-    num_workers = 8 if len(im_files) > 8 else len(im_files)
+    num_workers = 4 if len(im_files) > 4 else len(im_files)
     executor = Parallel(
         n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=2
     )

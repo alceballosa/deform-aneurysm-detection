@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "aug_cnn_4l_short_input_edt_fp_strict_fix2"
+  NAME: "opaug_cnn_4l_short_input_edt_fp_strict_fix_august"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -33,11 +33,10 @@ TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 16
+  NUM_WORKERS: 32
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
-
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   CROPPING_AUG:
     ROTATION: [90.0, 90.0, 90.0]
@@ -47,8 +46,8 @@ DATA:
   DIR:
     TRAIN:
       SCAN_DIR: "internal_train/crop_0.4"
-      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       LABEL_DIR: "internal_train/crop_0.4_label"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       CVS_DIR: "internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/internal_train_crop_0.4_confirmed_fps_fix.csv"
 

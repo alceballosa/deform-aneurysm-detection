@@ -70,6 +70,7 @@ if __name__ == "__main__":
     for i in tqdm.tqdm(image_list):
         mask = sitk.ReadImage(os.path.join(path_label, i))
         mask_arr = sitk.GetArrayFromImage(mask)
+        mask_arr = mask_arr + np.abs(np.min(mask_arr))
         labeled_array, num_features = label(
             mask_arr, structure=ndimage.generate_binary_structure(3, 3)
         )
