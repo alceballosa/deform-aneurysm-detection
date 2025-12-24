@@ -41,6 +41,8 @@ DATA:
   CROPPING_AUG:
     ROTATION: [90.0, 90.0, 90.0]
     SPACING: [0.9, 1.8]
+    PADDED_REORIENT: True
+    TRANSFORM_RAD: False
   DIR:
     TRAIN:
       SCAN_DIR: "internal_train/crop_0.4"

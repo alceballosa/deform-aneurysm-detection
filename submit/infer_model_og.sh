@@ -2,16 +2,16 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=ceballosarroyo.a@northeastern.edu
 #SBATCH --nodes=1
-#SBATCH --partition=multigpu
-#SBATCH --time=24:00:00
+#SBATCH --partition=jiang
+#SBATCH --time=74:00:00
 #SBATCH --mem=512
-#SBATCH --gres=gpu:h200:2
+#SBATCH --gres=gpu:a5000:4
 #SBATCH --cpus-per-task=32
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0
 
-export NUM_GPUS=2
+export NUM_GPUS=4
 export CONFIG_NAME=${SLURM_JOB_NAME}
 
 echo $SLURM_GRES;

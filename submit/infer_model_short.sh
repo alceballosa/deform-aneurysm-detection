@@ -3,9 +3,9 @@
 #SBATCH --mail-user=ceballosarroyo.a@northeastern.edu
 #SBATCH --nodes=1
 #SBATCH --partition=jiang
-#SBATCH --time=48:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mem=512
-#SBATCH --gres=gpu:a6000:4
+#SBATCH --gres=gpu:a5000:4
 #SBATCH --cpus-per-task=32
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out

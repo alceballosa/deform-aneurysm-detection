@@ -86,7 +86,6 @@ class CTADatasetMapper:
         crop_size = self.cfg.DATA.PATCH_SIZE
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
             transform_list_train = [
-                transform.SplineTransform(self.cfg.DATA.CROPPING_AUG.SPLINE_PROB),
                 transform.RandomFlip(
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
@@ -106,7 +105,6 @@ class CTADatasetMapper:
             return train_transform
         else:
             transform_list_train = [
-                transform.SplineTransform(self.cfg.DATA.CROPPING_AUG.SPLINE_PROB),
                 transform.RandomMaskFlip(
                     flip_depth=True, flip_height=True, flip_width=True, p=0.5
                 ),
@@ -202,15 +200,29 @@ class CTADatasetMapper:
         image = maybe_read_from_ram(dataset_dict["file_name"])
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
+        if self.cfg.DATA.NORM_TYPE == "zscore":
+            mean_value = image.mean()
+            std_value = image.std()
+            image = (image - mean_value) / std_value
+        elif self.cfg.DATA.NORM_TYPE == "zscore_clamp":
+                        #     x.clamp_(
+            #         min=self.cfg.DATA.WINDOW[0], max=self.cfg.DATA.WINDOW[1]
+            #     )
+            #     mean_value = x.mean()
+            #     std_value = x.std()
+            #     x = (x - mean_value) / std_value
+            image = np.clip(image, self.cfg.DATA.WINDOW[0], self.cfg.DATA.WINDOW[1])
+            mean_value = image.mean()
+            std_value = image.std()
+            image = (image - mean_value) / std_value
+        
 
-        outputs["image"] = image
-
-        if "label_file_name" in dataset_dict:
-            label = sitk.GetArrayFromImage(
-                sitk.ReadImage(dataset_dict["label_file_name"])
-            ).astype("uint8")
-            outputs["label"] = label
-
+        #if "label_file_name" in dataset_dict:
+        #    label = sitk.GetArrayFromImage(
+        #        sitk.ReadImage(dataset_dict["label_file_name"])
+        #    ).astype("uint8")
+        #    outputs["label"] = label
+        outputs["image"] = image    
         # NOTE: normalize on gpu is faster
 
         outputs["image_spacing"] = image_spacing

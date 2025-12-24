@@ -31,7 +31,7 @@ mkdir /dev/shm/internal_train
 
 if [ ! -d "/dev/shm/internal_train/crop_0.4" ]; then
     echo "Copying data"
-    # cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4
+#    cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4
     #echo "Copying data for vessels"
     #cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp
     #cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp 

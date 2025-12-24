@@ -92,11 +92,11 @@ def apply_fp_removal(preds, dataset_name):
 
             # Cache masks
 
-            #mask_cache["artery"][seriesuid] = artery_mask
-            #mask_cache["vein"][seriesuid] = vein_mask
+            mask_cache["artery"][seriesuid] = artery_mask
+            mask_cache["vein"][seriesuid] = vein_mask
             # mask_cache["cvs_bbox"][seriesuid] = cvs_bbox
             # mask_cache["cvs_mask"][seriesuid] = cvs_mask
-            #mask_cache["brain"][seriesuid] = enhanced_brain_mask
+            mask_cache["brain"][seriesuid] = enhanced_brain_mask
 
         # check if exists
 

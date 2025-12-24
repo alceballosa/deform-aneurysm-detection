@@ -617,10 +617,25 @@ class PARQ_Deformable_R(nn.Module):
 
     def normalize_input_values(self, x: torch.Tensor):
         if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L"]:
-            min_value, max_value = self.cfg.DATA.WINDOW
-            x.clamp_(min=min_value, max=max_value)
-            x -= (min_value + max_value) / 2
-            x /= (max_value - min_value) / 2
+            if self.cfg.DATA.NORM_TYPE == "base":
+                min_value, max_value = self.cfg.DATA.WINDOW
+                x.clamp_(min=min_value, max=max_value)
+                x -= (min_value + max_value) / 2
+                x /= (max_value - min_value) / 2
+            # elif self.cfg.DATA.NORM_TYPE == "zscore":
+            #     mean_value = x.mean()
+            #     std_value = x.std()
+            #     x = (x - mean_value) / std_value
+                 
+            # elif self.cfg.DATA.NORM_TYPE == "zscore_clamped":
+            #     x.clamp_(
+            #         min=self.cfg.DATA.WINDOW[0], max=self.cfg.DATA.WINDOW[1]
+            #     )
+            #     mean_value = x.mean()
+            #     std_value = x.std()
+            #     x = (x - mean_value) / std_value
+                
+                
         elif self.backbone_type in ["SAM3D", "SAM2D"]:
             if self.backbone_type == "SAM2D":
                 # replicate across channels axis

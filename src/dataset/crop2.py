@@ -31,7 +31,7 @@ class InstanceCrop2(InstanceCrop):
         image_itk = sitk.GetImageFromArray(image)
         shadow = np.zeros(image.shape)
         shadow_itk = sitk.GetImageFromArray(shadow)
-        label_itk = sitk.GetImageFromArray(sample["label"])
+        # label_itk = sitk.GetImageFromArray(sample["label"])
         shape = image.shape
 
         has_vessel_seg = "mask" in sample.keys()
@@ -105,6 +105,7 @@ class InstanceCrop2(InstanceCrop):
         matrix_crops = []
         space_crops = []
         for C in all_centers:
+
             (
                 matrix,
                 space,
@@ -142,16 +143,16 @@ class InstanceCrop2(InstanceCrop):
                 padded_reorient=self.padded_reorient,
             )
             image_crop = sitk.GetArrayFromImage(image_itk_crop)
-            label_itk_crop = reorient(
-                label_itk,
-                matrix,
-                crop_size,
-                spacing=list(space),
-                interp1=sitk.sitkNearestNeighbor,
-                padded_reorient=self.padded_reorient,
-            )
-            label_crop = sitk.GetArrayFromImage(label_itk_crop).astype("uint8")
-            label_crops.append(np.expand_dims(label_crop, axis=0))
+            #label_itk_crop = reorient(
+            #    label_itk,
+            #    matrix,
+            #    crop_size,
+            #    spacing=list(space),
+            #    interp1=sitk.sitkNearestNeighbor,
+            #    padded_reorient=self.padded_reorient,
+            #)
+            #label_crop = sitk.GetArrayFromImage(label_itk_crop).astype("uint8")
+            #label_crops.append(np.expand_dims(label_crop, axis=0))
             CT_crops.append(np.expand_dims(image_crop, axis=0))
             image_spacing_crops.append(space)
 
@@ -161,7 +162,7 @@ class InstanceCrop2(InstanceCrop):
                     matrix,
                     crop_size,
                     spacing=list(space),
-                    interp1=sitk.sitkLinear,
+                    interp1=sitk.sitkNearestNeighbor,
                     padded_reorient=self.padded_reorient,
                 )
                 vessel_crop = sitk.GetArrayFromImage(vessel_itk_crop)
@@ -172,7 +173,7 @@ class InstanceCrop2(InstanceCrop):
                     matrix,
                     crop_size,
                     spacing=list(space),
-                    interp1=sitk.sitkLinear,
+                    interp1=sitk.sitkNearestNeighbor,
                     padded_reorient=self.padded_reorient,
                 )
                 cvs_crop = sitk.GetArrayFromImage(cvs_itk_crop)
@@ -196,7 +197,7 @@ class InstanceCrop2(InstanceCrop):
             sample["ctr"] = ctr
             sample["rad"] = rad
             sample["cls"] = cla
-            sample["label"] = label_crops[i]
+            #sample["label"] = label_crops[i]
 
             if has_vessel_seg:
                 sample["mask"] = vessel_crops[i]

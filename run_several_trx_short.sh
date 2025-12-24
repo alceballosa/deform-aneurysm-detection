@@ -10,7 +10,8 @@ export dataset="hospital140"
 export dataset_folder="${dataset}"
 
 #./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0019999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
@@ -18,40 +19,6 @@ export dataset_folder="${dataset}"
 ./run_inference.sh $dataset_folder $family $model "0012999" 0.8 $num_gpu
 
 
-
-
-export dataset="cmha"
-export dataset_folder="${root_folder}/${dataset}"
-#mkdir /dev/shm/${dataset}
-#cp -r $dataset_folder/crop_0.4 /dev/shm/${dataset}
-# cp -r $dataset_folder/crop_0.4_vessel_edt_comp /dev/shm/${dataset}
-#cp -r $dataset_folder/vein_mask_edt_comp /dev/shm/${dataset}
-#export dataset_folder="/dev/shm/${dataset}"
-
-./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
-
-export dataset="internal_test"
-export dataset_folder="${root_folder}/${dataset}"
-#mkdir /dev/shm/${dataset}
-#cp -r $dataset_folder/crop_0.4 /dev/shm/${dataset}
-#cp -r $dataset_folder/crop_0.4_vessel_edt_comp /dev/shm/${dataset}
-#cp -r $dataset_folder/vein_mask_edt_comp /dev/shm/${dataset}
-#export dataset_folder="/dev/shm/${dataset}"
-
-
-./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
-#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 
 
 
@@ -65,11 +32,50 @@ export dataset_folder="${root_folder}/${dataset}"
 
 
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0019999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
+
+
+export dataset="internal_test"
+export dataset_folder="${root_folder}/${dataset}"
+#mkdir /dev/shm/${dataset}
+#cp -r $dataset_folder/crop_0.4 /dev/shm/${dataset}
+#cp -r $dataset_folder/crop_0.4_vessel_edt_comp /dev/shm/${dataset}
+#cp -r $dataset_folder/vein_mask_edt_comp /dev/shm/${dataset}
+#export dataset_folder="/dev/shm/${dataset}"
+
+
+./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0019999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
 #./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
 
 
+aug_cnn_4l_short_input_edt_fp_strict_aneu_done_merged_fix
+
+
+export dataset="cmha"
+export dataset_folder="${root_folder}/${dataset}"
+#mkdir /dev/shm/${dataset}
+#cp -r $dataset_folder/crop_0.4 /dev/shm/${dataset}
+# cp -r $dataset_folder/crop_0.4_vessel_edt_comp /dev/shm/${dataset}
+#cp -r $dataset_folder/vein_mask_edt_comp /dev/shm/${dataset}
+#export dataset_folder="/dev/shm/${dataset}"
+
+./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0019999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0015999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0013999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0011999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0009999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0007999" 0.8 $num_gpu
+#./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu

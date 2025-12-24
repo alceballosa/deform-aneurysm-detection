@@ -5,13 +5,13 @@
 #SBATCH --partition=jiang
 #SBATCH --time=150:00:00
 #SBATCH --mem=512
-#SBATCH --gres=gpu:a6000:4
-#SBATCH --cpus-per-task=48
+#SBATCH --gres=gpu:a6000:2
+#SBATCH --cpus-per-task=24
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0
 
-export NUM_GPUS=4
+export NUM_GPUS=2
 export CONFIG_NAME=${SLURM_JOB_NAME}
 
 
@@ -48,7 +48,7 @@ export PYTHONPATH=${WORKSPACE_PATH}
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
 mkdir /dev/shm/internal_train 
-cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4 /dev/shm/internal_train/crop_0.4
+#cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4 /dev/shm/internal_train/crop_0.4
 
 #cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp 
 echo "Done copying" 

@@ -1,0 +1,41 @@
+
+
+
+
+sbatch submit/infer_model_vein_sharing.sh cnn_4l_input_edt_fp_vein_cvs_fix2 
+
+cnn_4l_input_edt_fp_vein_cvs_strict_fix_ogopt -> a5000, logs/exec.677451.train_model_jiang.sh.out
+
+cnn_4l_input_edt_fp_vein_cvs_ogopt -> h200, submitted to h200
+cnn_4l_input_edt_fp_strict_fix_ogopt -> jiang, , inference on h200 
+cnn_4l_input_edt_fp_ogopt -> jiang, done, ifnerence on h200
+
+cnn_4l_input_edt_vein_cvs_ogopt -> h200, done -> inference on a6000
+
+cnn_4l_input_edt_fp_vein_cvs_fix 
+cnn_4l_short_input_edt_vein
+cnn_4l_input_edt_fp_vein_cvs_fix2
+cnn_4l_input_edt_fp_vein_cvs_ogopt
+
+
+
+INFER
+
+opaug_cnn_4l_short_input_edt_fp_strict_fix_nov
+aug_cnn_4l_short_input_edt_fp_strict_fix_nov
+aug_cnnfa_4l_short_input_edt_fp_strict_fix_nov
+
+
+RUNNING 
+
+aug_cnn_4l_short_input_edt_fp_fix_merged_window
+
+
+WAITING
+
+aug_cnn_4l_short_input_edt_fp_fix_nov
+aug_cnn_4l_short_input_edt_fp_fix_merged
+aug_cnn_4l_short_input_edt_fp_strict_fix_nov_window
+decoder_only_no_rec_input_edt_nov
+aug_cnn_4l_short_input_edt_fp_done_nov
+aug_cnn_4l_short_input_edt_fp_strict_done_nov

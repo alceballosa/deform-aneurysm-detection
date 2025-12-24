@@ -167,6 +167,7 @@ def add_config(cfg):
     cfg.DATA.OVERLAP = (48, 48, 48)
     cfg.DATA.SPACING = (0.4, 0.4, 0.4)
     cfg.DATA.WINDOW = [0.0, 800.0]
+    cfg.DATA.NORM_TYPE = "base"
 
     cfg.DATA.DIR = CN()
     cfg.DATA.DIR.ROOT = ""
@@ -192,6 +193,7 @@ def add_config(cfg):
     cfg.DATA.CROPPING_AUG.SPLINE_PROB = 0.0
     cfg.DATA.CROPPING_AUG.PADDED_REORIENT = False
     cfg.DATA.CROPPING_AUG.TRANSFORM_RAD = True
+    
 
     cfg.CUSTOM = CN()
     cfg.CUSTOM.DATASET_FUNCTION = "CTADatasetFunction"
