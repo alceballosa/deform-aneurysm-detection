@@ -1,6 +1,4 @@
-#!/bin/bash
-eval "$(conda shell.bash hook)"
-conda activate cta2
+s
 
 # define the folder containing the data
 # for training/evaluation, the scans should be in a folder called "og"

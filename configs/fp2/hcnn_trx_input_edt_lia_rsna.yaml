@@ -1,0 +1,60 @@
+_BASE_: ../deform/deform_base_crop_vessel.yaml
+SEED: 2000
+
+MODEL:
+  NAME: "hcnn_trx_input_edt_lia_rsna"
+  META_ARCHITECTURE: "PARQ_Deformable_R"
+  USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
+  USE_CVS_INFO: "no"
+  DEFORMABLE:
+    DECODER_ONLY: True
+    WITH_RECURRENCE: False
+    SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+    USE_DEFORM_ATTN: True
+    N_LEVELS: 4
+SOLVER:
+  SCANS_PER_BATCH: 16
+  SAMPLES_PER_SCAN: 16
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
+  OPTIMIZER: "ADAMW"
+  AMP:
+    ENABLED: True
+  SCHED_CYCLE: 32000
+  BASE_LR: 0.0001
+  MIN_LR: 0.00001
+  MAX_ITER: 32000
+  FLAT_ITER: 32000
+  CHECKPOINT_PERIOD: 2000
+TEST:
+  PATCHES_PER_ITER: 16 #  24 = ~12GB
+  NMS_TOPK: 40
+DATALOADER:
+  NUM_WORKERS: 16
+DATA:
+  PATCH_SIZE: [64, 64, 64]
+  OVERLAP: [32, 32, 32]
+
+  N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
+  CROPPING_AUG:
+    ROTATION: [90.0, 90.0, 90.0]
+    SPACING: [0.9, 1.8]
+    PADDED_REORIENT: True
+    TRANSFORM_RAD: False
+    
+  DIR:
+    TRAIN:
+      SCAN_DIR: "merged_train/crop_0.4"
+      VESSEL_DIR: "merged_train/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "merged_train/vein_mask_edt_comp"
+      ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia_rsna.csv"
+
+
+    VAL:
+      SCAN_DIR: "internal_test/crop_0.4"
+      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
+      VESSEL_DIR: "internal_test/crop_0.4_vessel_edt_comp"
+      CVS_DIR: "internal_test/cvs_mask_edt_comp"
