@@ -3,3 +3,4 @@ torch==2.7.0
 torchvision
 torchaudio
 
+# pip install git+https://github.com/facebookresearch/detectron2.git@main --no-build-isolation
