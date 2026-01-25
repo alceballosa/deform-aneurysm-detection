@@ -15,11 +15,13 @@ import torch.nn.functional as F
 from detectron2.config import configurable
 from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
+from tqdm import tqdm
+
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D
 from src.models.deformable import cnn_backbone, cnn_backbone_1l, cnn_backbone_2l
-from src.models.deformable.def_trx_rec import build_deformable_transformer
 from src.models.deformable.box_processor import BoxProcessor
+from src.models.deformable.def_trx_rec import build_deformable_transformer
 from src.models.deformable.generic_mlp import GenericMLP
 from src.models.deformable.nms import nms
 from src.models.deformable.parq_matcher_rec import HungarianMatcherModified
@@ -31,7 +33,6 @@ from src.utils.losses import (
     no_targets_cross_entropy_loss,
     no_targets_focal_loss,
 )
-from tqdm import tqdm
 
 total_samples = 0
 total_pos = 0
@@ -196,7 +197,7 @@ class PARQ_Deformable_R(nn.Module):
             return self._forward_eval(input_batch)
 
     def _forward_train(self, input_batch):
-        #if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
+        # if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
         #    get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
         targets = self.preprocess_train_labels(input_batch)
@@ -264,7 +265,7 @@ class PARQ_Deformable_R(nn.Module):
         object_ids = outputs[:, 0] != -1
         outputs = outputs[object_ids]
         if len(outputs) > 0:
-            keep = nms_3D(outputs[:, 1:], overlap=0.05,  top_k= self.cfg.TEST.NMS_TOPK)
+            keep = nms_3D(outputs[:, 1:], overlap=0.05, top_k=self.cfg.TEST.NMS_TOPK)
             # keep = nms_3D(outputs[:, 1:], overlap=0.5, top_k=120)#self.cfg.TEST.NMS_TOPK)
             outputs = outputs[keep]
 
@@ -329,20 +330,27 @@ class PARQ_Deformable_R(nn.Module):
                 centers during each iteration
 
         """
-
+        vessel_segs = None
+        if self.cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL and vessel_dists is not None:
+            vessel_segs = (vessel_dists > 0).float()
         if self.use_vessel_info == "start":
             x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
             vessel_dists = None  # no need to keep using this
             if self.use_cvs_info == "start":
                 x = torch.cat((x, cvs_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
+
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
-        multiscale_feats, multiscale_pos_embs = self.backbone(x, vessel_dists)
+
+        multiscale_feats, multiscale_pos_embs, multiscale_masks = self.backbone(
+            x, vessel_dists, vessel_segs, self.transformer.level_embed
+        )
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(
                 multiscale_feats,
                 multiscale_pos_embs,
                 self.query_pos_embed_plus_query.weight,
+                multiscale_masks
             )
         )
         return box_prediction_list, viz_outputs
@@ -383,8 +391,7 @@ class PARQ_Deformable_R(nn.Module):
                 # category loss for the case with no target objects
                 valid_bs_cls += 1
                 if len(matched_indices[i]) == 0:
-                    
-                    
+
                     if self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.DO_CLF_FOCAL:
                         cat_loss = (
                             no_targets_focal_loss(
@@ -394,7 +401,7 @@ class PARQ_Deformable_R(nn.Module):
                             )
                             * self.loss_weights["cls_w"]
                         )
-                    else:                        
+                    else:
                         cat_loss = (
                             no_targets_cross_entropy_loss(
                                 out_dict["class_logits"][i], self.class_weight
@@ -443,36 +450,34 @@ class PARQ_Deformable_R(nn.Module):
                             dtype=torch.int64,
                             device=out_dict["class_logits"].device,
                         )
-                        
+
                         classes_target[matched_indices[i][0]] = matched_classes_target
-                        
+
                         # TODO: review punish mask how it works and looks
                         if punish_mask is not None:
                             cross_entropy = torch.nn.CrossEntropyLoss(
                                 self.class_weight.to(matched_classes_target.device),
                                 reduction="none",
                             )
-                            #print(punish_mask[i])
-                            #print(out_dict["class_logits"][i].shape, classes_target.shape)
+                            # print(punish_mask[i])
+                            # print(out_dict["class_logits"][i].shape, classes_target.shape)
 
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
-                            #cat_loss_w = cat_loss.mean()
+                            # cat_loss_w = cat_loss.mean()
                             cat_loss = (cat_loss * punish_mask[i]).sum() / punish_mask[
                                 i
                             ].sum()
 
-                            
                         else:
                             cross_entropy = torch.nn.CrossEntropyLoss(
                                 self.class_weight.to(matched_classes_target.device)
                             )
-                            
+
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
-                        
 
                     cat_loss *= self.loss_weights["cls_w"]
                     loss_total += cat_loss
@@ -522,9 +527,9 @@ class PARQ_Deformable_R(nn.Module):
         corners = get_3d_corners(center_predict_flat, size_predict_flat)
         corners = corners.reshape(bs, n_queries, 8, 3)
         # TODO: filter out of bounds
-        #valid = torch.ones_like(center_predict[..., 0]).bool()
-        #pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
-        #pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
+        # valid = torch.ones_like(center_predict[..., 0]).bool()
+        # pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
+        # pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
         dets = torch.ones((bs, n_queries, 8)) * -1
         for j in range(bs):
             for i in range(n_queries):
@@ -626,7 +631,7 @@ class PARQ_Deformable_R(nn.Module):
             #     mean_value = x.mean()
             #     std_value = x.std()
             #     x = (x - mean_value) / std_value
-                 
+
             # elif self.cfg.DATA.NORM_TYPE == "zscore_clamped":
             #     x.clamp_(
             #         min=self.cfg.DATA.WINDOW[0], max=self.cfg.DATA.WINDOW[1]
@@ -634,8 +639,7 @@ class PARQ_Deformable_R(nn.Module):
             #     mean_value = x.mean()
             #     std_value = x.std()
             #     x = (x - mean_value) / std_value
-                
-                
+
         elif self.backbone_type in ["SAM3D", "SAM2D"]:
             if self.backbone_type == "SAM2D":
                 # replicate across channels axis

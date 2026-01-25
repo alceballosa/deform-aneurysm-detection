@@ -10,10 +10,14 @@ export dataset="hospital140"
 export dataset_folder="${dataset}"
 
 #./run_inference.sh $dataset_folder $family $model "0003999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "00031999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "00033999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "00027999" 0.8 $num_gpu
-./run_inference.sh $dataset_folder $family $model "00029999" 0.8 $num_gpu
+
+./run_inference.sh $dataset_folder $family $model "0045999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0041999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0035999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0031999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0033999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0027999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0029999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0025999" 0.8 $num_gpu
 #./run_inference.sh $dataset_folder $family $model "0019999" 0.8 $num_gpu
@@ -31,6 +35,9 @@ export dataset_folder="${root_folder}/${dataset}"
 #export dataset_folder="/dev/shm/${dataset}"
 
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0045999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0041999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0035999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0025999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0023999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0027999" 0.8 $num_gpu
@@ -48,6 +55,9 @@ export dataset_folder="${root_folder}/${dataset}"
 
 
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0045999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0041999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0035999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0025999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0023999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0027999" 0.8 $num_gpu
@@ -67,6 +77,9 @@ export dataset_folder="${root_folder}/${dataset}"
 
 
 ./run_inference.sh $dataset_folder $family $model "final" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0045999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0041999" 0.8 $num_gpu
+./run_inference.sh $dataset_folder $family $model "0035999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0025999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0023999" 0.8 $num_gpu
 ./run_inference.sh $dataset_folder $family $model "0027999" 0.8 $num_gpu

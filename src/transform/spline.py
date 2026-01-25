@@ -8,8 +8,8 @@ import numpy as np
 import scipy
 import torch
 from skimage import measure, morphology
-from torch_tps import ThinPlateSpline as ThinPlateSplineGPU
-from tps import ThinPlateSpline
+# from torch_tps import ThinPlateSpline as ThinPlateSplineGPU
+# from tps import ThinPlateSpline
 
 from .abstract_transform import AbstractTransform
 

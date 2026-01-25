@@ -1,16 +1,18 @@
 """
-CNN Backbone class that implements a 3D CNN Encoder. This encoder only implements 
+CNN Backbone class that implements a 3D CNN Encoder. This encoder only implements
 the __init__ method defining the architecture and the encode_multiscale_feats method
-that derives multiscale features from the backbone. The position embedding and forward 
+that derives multiscale features from the backbone. The position embedding and forward
 methods are implemented in the Base_Backbone class.
 """
 
+import pdb
 from typing import List
 
 import torch
+from torch import nn
+
 from src.models.deformable.base_backbone import Base_Backbone
 from src.models.layers.conv_layers import ConvBlock, DownsamplingConvBlock, LayerBasic
-from torch import nn
 
 
 def build_backbone(cfg):
@@ -141,7 +143,24 @@ class CNN_Backbone(Base_Backbone):
             nn.init.xavier_uniform_(proj[0].weight, gain=1)
             nn.init.constant_(proj[0].bias, 0)
 
-    def encode_multiscale_feats(self, x) -> List[torch.Tensor]:
+    def get_multiscale_mask(self, segs):
+        """
+        Generates a multiscale mask to only process regions with vessels.
+        To ensure we don't miss areas where vessels are not properly  segmented,
+        we do not mask the lowest resolution feature map (optional)
+        """
+
+        masks = []
+        for i, seg in enumerate(segs):
+            mask = seg.clone()
+            if i == len(segs) - 1 and self.cfg.MODEL.DEFORMABLE.STRICT_MASKING is False:
+                # no masking at the lowest resolution
+                # if strict masking is False
+                mask[:] = 1
+            masks.append(mask)
+        return masks
+
+    def encode_multiscale_feats(self, x, vessel_segs=None) -> List[torch.Tensor]:
         """
         Gets multiscale featuress from 3D UNET Encoder.
         """
@@ -159,4 +178,30 @@ class CNN_Backbone(Base_Backbone):
         x = self.block3_dw(x3)
 
         x4 = self.block4(x)
-        return [x1, x2, x3, x4]
+
+        feats = [x1, x2, x3, x4]
+
+        multiscale_masks = None
+        if vessel_segs is not None:
+            segs = []
+            for feat in feats:
+                ups = torch.nn.Upsample(
+                    size=(feat.shape[-3], feat.shape[-2], feat.shape[-1]),
+                    # mode="nearest",
+                    mode="trilinear",
+                    # align_corners=True,
+                )
+
+                seg = ups(vessel_segs)
+                seg = (seg >= 0.5).float()
+                for b in range(seg.shape[0]):
+                    if seg[b].sum() == 0:
+                        # randomly chose one boxel to be 1, from dimensions 2,3,4
+                        d = torch.randint(0, seg.shape[2], (1,))
+                        h = torch.randint(0, seg.shape[3], (1,))
+                        w = torch.randint(0, seg.shape[4], (1,))
+                        seg[b, 0, d, h, w] = 1.0
+                segs.append(seg)
+            multiscale_masks = self.get_multiscale_mask(segs)
+
+        return feats, multiscale_masks

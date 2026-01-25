@@ -1,12 +1,10 @@
 from typing import Union
 
 import torch
-from src.models.deformable.ops.modules import MSDeformAttn, MSDeformAttnFix
-from src.utils.general import get_activation_fn, get_clones, inverse_sigmoid
 from torch import nn
 
-
-
+from src.models.deformable.ops.modules import MSDeformAttn, MSDeformAttnFix
+from src.utils.general import get_activation_fn, get_clones, inverse_sigmoid
 
 
 class DeformableTransformerDecoderLayer(nn.Module):
@@ -22,16 +20,30 @@ class DeformableTransformerDecoderLayer(nn.Module):
         offset_init="strict",
         use_fixed_attn=False,
         use_deform_attn=True,
+        use_efficient_mask=False,
+        use_flash_attn=False,
     ):
         super().__init__()
 
         # cross attention
 
         self.use_deform_attn = use_deform_attn
+        self.use_efficient_mask = use_efficient_mask
+        self.use_flash_attn = use_flash_attn
         if not use_deform_attn:
-            # assert n_levels == 1, "non-deformable attention only supports 1 level"
-            print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
-            self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
+            if not use_flash_attn:
+                # assert n_levels == 1, "non-deformable attention only supports 1 level"
+                print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
+                self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
+            else:
+                from flash_attn.modules.mha import MHA
+                self.cross_attn = MHA(
+                    embed_dim=d_model,
+                    num_heads=n_heads,
+                    dropout=dropout,
+                    cross_attn=True,
+                    use_flash_attn=True,
+            )
         else:
             deform_attn_cls = MSDeformAttnFix if use_fixed_attn else MSDeformAttn
             self.cross_attn = deform_attn_cls(
@@ -64,6 +76,40 @@ class DeformableTransformerDecoderLayer(nn.Module):
         x = self.norm3(x)
         return x
 
+    def mask_and_pad_keys(self, keys, vessel_masks):
+        # keys: (N, S, E)
+        # vessel_masks: (N, S)  boolean mask where True indicates valid (vessel) positions
+        masked_keys = []
+        for b in range(keys.shape[0]):
+            b_key = keys[b]  # (S, E)
+            b_mask = vessel_masks[b]  # (S,)
+            b_masked = b_key[b_mask.bool(), :]  # select only vessel positions
+            masked_keys.append(b_masked)
+
+        max_length = 0
+        for mk in masked_keys:
+            if mk.shape[0] > max_length:
+                max_length = mk.shape[0]
+
+        padded_keys = torch.zeros(
+            (keys.shape[0], max_length, keys.shape[2]), device=keys.device
+        )
+        for b in range(keys.shape[0]):
+            mk = masked_keys[b]
+            padded_keys[b, : mk.shape[0], :] = mk
+
+        attn_mask = torch.zeros(
+            (keys.shape[0], max_length), device=keys.device, dtype=torch.bool
+        )
+        for b in range(keys.shape[0]):
+            mk = masked_keys[b]
+            attn_mask[b, mk.shape[0]:] = True  # mask out the padded positions
+
+        return (
+            padded_keys,
+            attn_mask,
+        )  # list of length N, each element is (num_vessel_positions, E)
+
     def forward(
         self,
         ref,
@@ -73,6 +119,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         global_pos_embed,
         global_feats_spatial_shapes,
         level_start_index,
+        vessel_masks=False,
     ):
         # self attention
         q = k = self.with_pos_embed(ref, ref_pos_embed)
@@ -83,15 +130,40 @@ class DeformableTransformerDecoderLayer(nn.Module):
         ref = self.norm2(ref)
 
         # cross attention
-        if not self.use_deform_attn:
-            q = self.with_pos_embed(ref, ref_pos_embed)
-            k = self.with_pos_embed(global_feats, global_pos_embed)
 
-            ref2 = self.cross_attn(
-                q.transpose(0,1),k.transpose(0,1),k.transpose(0,1)
-            )[0].transpose(0,1)
-            sampling_locations = None
-            attn_weights = None
+        if not self.use_deform_attn:
+            if not self.use_flash_attn:
+                attn_mask = None
+                q = self.with_pos_embed(ref, ref_pos_embed)
+                k = self.with_pos_embed(global_feats, global_pos_embed)
+                if vessel_masks is not None:
+                    if not self.use_efficient_mask:
+                        k, attn_mask = self.mask_and_pad_keys(k, vessel_masks)
+                    else:
+                        # assume the attn mask is provided already
+                        attn_mask = vessel_masks 
+                
+                # print(q.shape, k.shape)
+
+                ref2 = self.cross_attn(
+                    query=q.transpose(0, 1),
+                    key=k.transpose(0, 1),
+                    value=k.transpose(0, 1),
+                    key_padding_mask=attn_mask,
+                )
+
+                attn_weights = ref2[1]
+                ref2 = ref2[0].transpose(0, 1)
+                sampling_locations = None
+                attn_weights = None
+            else:
+
+                q = self.with_pos_embed(ref, ref_pos_embed)
+                k = self.with_pos_embed(global_feats, global_pos_embed)
+                ref2 = self.cross_attn(q, k)
+                sampling_locations = None 
+                attn_weights = None
+            
         else:
             ref2, sampling_locations, attn_weights = self.cross_attn(
                 self.with_pos_embed(ref, ref_pos_embed),
@@ -168,6 +240,7 @@ class DeformableTransformerDecoder(nn.Module):
         global_pos_embed,
         src_spatial_shapes,
         src_level_start_index,
+        vessel_masks=None,
     ):
         output = ref
 
@@ -194,6 +267,7 @@ class DeformableTransformerDecoder(nn.Module):
                 global_pos_embed,
                 src_spatial_shapes,
                 src_level_start_index,
+                vessel_masks,
             )
 
             if self.use_deform_attn:

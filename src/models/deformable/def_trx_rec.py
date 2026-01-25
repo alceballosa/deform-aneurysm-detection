@@ -70,6 +70,8 @@ def build_deformable_transformer(cfg):
         center_head=center_head,
         class_head=class_head,
         size_head=size_head,
+        use_efficient_mask=cfg.MODEL.DEFORMABLE.EFFICIENT_MASK,
+        use_flash_attn=cfg.MODEL.DEFORMABLE.USE_FLASH_ATTN,
     )
 
 
@@ -149,6 +151,8 @@ class Transformer(nn.Module):
         shared_heads=True,
         use_fixed_attn=False,
         use_deform_attn=True,
+        use_efficient_mask=False,
+        use_flash_attn=False,
         # TODO
         # TODO: make this work, URGENT
     ):
@@ -167,7 +171,8 @@ class Transformer(nn.Module):
         self.level_embed = nn.Parameter(torch.Tensor(n_levels, dec_dim))
         self.use_global_pe = use_global_pe
         self.reference_points = nn.Linear(dec_dim, 3)
-
+        self.use_efficient_mask = use_efficient_mask
+        self.use_flash_attn = use_flash_attn
         if not decoder_only:
             encoder_layer = DeformableTransformerEncoderLayer(
                 enc_dim,
@@ -191,6 +196,8 @@ class Transformer(nn.Module):
             offset_init,
             use_fixed_attn,
             use_deform_attn,
+            use_efficient_mask,
+            use_flash_attn,
         )
         self.decoder = DeformableTransformerDecoder(
             decoder_layer,
@@ -222,6 +229,7 @@ class Transformer(nn.Module):
         multiscale_feats,
         multiscale_pos_embs,
         ref_pos_embed_plus_feat,
+        multiscale_masks=None,
     ):
         """
         Transformer module for multiscale deformable attention in PARQ.
@@ -254,37 +262,52 @@ class Transformer(nn.Module):
         extracted_feats_flatten = []
         lvl_pos_embed_flatten = []
         spatial_shapes = []
-        
-        for lvl, (feat, pos_embed) in enumerate(
-            zip(multiscale_feats, multiscale_pos_embs)
-        ):  
-            
-            _, _, d, h, w = feat.shape
-            spatial_shape = d, h, w
-            spatial_shapes.append(spatial_shape)
-            # flatten feat from B C D H W into B DHW C
-            extracted_feats_flatten.append(feat.flatten(2).permute(0, 2, 1))
-            if len(pos_embed.shape) == 3:
-                lvl_pos_embed = pos_embed + self.level_embed[lvl].unsqueeze(
-                    1
-                ).unsqueeze(0)
-            else:  # when pos embed shape is len 2
-                lvl_pos_embed = (
-                    pos_embed + self.level_embed[lvl].unsqueeze(1)
-                ).unsqueeze(0)
+        level_start_index = None
+
+        masks_flatten = []
+        if not self.use_efficient_mask:
+            for lvl, (feat, pos_embed) in enumerate(
+                zip(multiscale_feats, multiscale_pos_embs)
+            ):  
                 
-            lvl_pos_embed_flatten.append(lvl_pos_embed.permute(0, 2, 1))
+                _, _, d, h, w = feat.shape
+                spatial_shape = d, h, w
+                spatial_shapes.append(spatial_shape)
+                # flatten feat from B C D H W into B DHW C
+                extracted_feats_flatten.append(feat.flatten(2).permute(0, 2, 1))
+                if len(pos_embed.shape) == 3:
+                    lvl_pos_embed = pos_embed + self.level_embed[lvl].unsqueeze(
+                        1
+                    ).unsqueeze(0)
+                else:  # when pos embed shape is len 2
+                    lvl_pos_embed = (
+                        pos_embed + self.level_embed[lvl].unsqueeze(1)
+                    ).unsqueeze(0)
+                    
+                lvl_pos_embed_flatten.append(lvl_pos_embed.permute(0, 2, 1))
+                if multiscale_masks is not None:
+                    mask = multiscale_masks[lvl]
+                    masks_flatten.append(mask.flatten(1))
 
-        extracted_feats_flatten = torch.cat(extracted_feats_flatten, dim=1)
 
-        lvl_pos_embed_flatten = torch.cat(lvl_pos_embed_flatten, dim=1)
+            extracted_feats_flatten = torch.cat(extracted_feats_flatten, dim=1)
 
-        spatial_shapes = torch.as_tensor(
-            spatial_shapes, dtype=torch.long, device=extracted_feats_flatten.device
-        )
-        level_start_index = torch.cat(
-            (spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1])
-        )
+            lvl_pos_embed_flatten = torch.cat(lvl_pos_embed_flatten, dim=1)
+
+            spatial_shapes = torch.as_tensor(
+                spatial_shapes, dtype=torch.long, device=extracted_feats_flatten.device
+            )
+            level_start_index = torch.cat(
+                (spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1])
+            )
+
+            vessel_mask = None
+            if multiscale_masks is not None:
+                vessel_mask = torch.cat(masks_flatten, dim=1)
+        else:
+            extracted_feats_flatten = multiscale_feats 
+            lvl_pos_embed_flatten = multiscale_pos_embs
+            vessel_mask = multiscale_masks
 
         if self.decoder_only:
             global_feats = extracted_feats_flatten
@@ -311,5 +334,6 @@ class Transformer(nn.Module):
             lvl_pos_embed_flatten if self.use_global_pe else None,
             spatial_shapes,
             level_start_index,
+            vessel_mask 
         )
         return box_predictions, init_reference_out, viz_outputs, None
