@@ -1,4 +1,3 @@
-import json
 import logging
 import math
 import os
@@ -12,26 +11,53 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import SimpleITK as sitk
 import torch
 import torch.multiprocessing as mp
 from sklearn.metrics._ranking import _binary_clf_curve
 from tabulate import tabulate
-from torch.multiprocessing import Process, set_start_method
+from torch.multiprocessing import Process
 from tqdm import tqdm
 
 from log_utils import setup_logger
 from metrics import label_files
 
+"""
+FROC (Free-Response Receiver Operating Characteristic) Evaluation Module
+
+This module implements FROC curve computation and evaluation for medical image 
+analysis, specifically for aneurysm detection. It provides tools to:
+- Compute FROC curves from predictions and ground truth labels
+- Calculate sensitivity at various false positive per image (FPpI) thresholds
+- Perform bootstrap analysis for confidence interval estimation
+- Generate evaluation reports and visualizations
+
+The evaluation supports CSV data, handles 3D bounding boxes,
+and includes parallel processing for bootstrap confidence intervals.
+"""
+
+# Constants
 DISEASE = "aneurysm"
 np.set_printoptions(linewidth=310)
 
 
 class FROCEvaluator:
+    """
+    Evaluator for computing FROC (Free-Response Receiver Operating Characteristic) curves.
+
+    This class handles the full evaluation pipeline for object detection in medical images:
+    - Parses ground truth labels and predictions
+    - Matches predictions to ground truth using IoU thresholds
+    - Computes FROC curves showing sensitivity vs false positives per image
+    - Performs bootstrap analysis for confidence intervals
+    - Generates evaluation reports and visualization figures
+
+    The evaluator supports both overlap-based (IoU) and intersection-over-minimum (IoM)
+    matching strategies depending on the evaluation mode.
+    """
+
     def __init__(
         self,
         label_file,
-        # pred_file,
         preds,
         *,
         logger=None,
@@ -57,9 +83,32 @@ class FROCEvaluator:
         use_world_xyz=True,
         mode="val",
     ):
+        """
+        Initialize the FROC evaluator.
+
+        Args:
+            label_file: Path to CSV file containing ground truth labels
+            preds: DataFrame or path containing model predictions
+            logger: Logger instance for output messages (default: creates new logger)
+            iou_thr: IoU threshold for matching predictions to ground truth (default: 0.4)
+            out_dir: Output directory for results, figures, and cache files (default: None)
+            max_fppi: Maximum false positives per image for plotting (default: None)
+            n_workers: Number of parallel workers for bootstrap computation (default: 8)
+            n_bootstraps: Number of bootstrap samples for confidence intervals (default: 10000)
+            ci: Confidence interval level, e.g. 0.95 for 95% CI (default: 0.95)
+            n_fppi: Number of points in the FROC curve (default: 10000)
+            fppi_thrs: List of FPpI thresholds at which to report sensitivity (default: [0.125, 0.25, 0.5, 1.0])
+            seed: Random seed for reproducible bootstrap sampling (default: 0)
+            out_bs: Batch size for saving bootstrap results to disk (default: 500)
+            save_curves: Whether to save raw curve data to disk (default: False)
+            min_fppi: Minimum false positives per image for plotting (default: 1e-4)
+            fp_scale: Scale for FPpI axis, either 'linear' or 'log' (default: 'linear')
+            exp_name: Name of experiment for tracking (default: None)
+            use_world_xyz: Whether to use world coordinates (default: True)
+            mode: Evaluation mode affecting IoU/IoM calculation (default: 'val')
+        """
         assert fp_scale in ["linear", "log"]
         self._iou_thr = iou_thr
-        # TODO: remove
         out_dir = Path(out_dir)
         self._out_dir = out_dir
         self._mode = mode
@@ -82,9 +131,7 @@ class FROCEvaluator:
         self._save_curves = save_curves
         self._logger = logging.getLogger(__name__) if logger is None else logger
         self._exp_name = exp_name
-        # self._gts, self._categories, self._images = self.parse_gt_json(label_file)
         self._gts, self._categories, self._images = self.parse_gt_csv(label_file)
-        # self._dts = self.parse_dt_json(preds, self._categories)
         self._dts = self.parse_dt_csv(preds, self._categories)
         self.preds = preds
         self.label_file = pd.read_csv(label_file)
@@ -105,6 +152,17 @@ class FROCEvaluator:
         )
 
     def evaluate(self):
+        """
+        Perform the evaluation by matching predictions to ground truth.
+
+        This method:
+        1. Computes pairwise IoU between all predictions and ground truth boxes
+        2. Matches predictions to ground truth based on IoU threshold
+        3. Generates detection statistics (matched/unmatched predictions and GT)
+        4. Saves detection results to CSV file
+
+        Results are stored in self._match_results for later FROC computation.
+        """
         # compute iou
 
         ious = {}  # category -> img_id -> iou matrix
@@ -159,6 +217,15 @@ class FROCEvaluator:
         # self._compute_froc(save_fig=True)
 
     def get_bootstrap_data(self):
+        """
+        Prepare data for bootstrap confidence interval computation.
+
+        Returns:
+            tuple: (match_list, n_pos, categories) where:
+                - match_list: List of match results for each image
+                - n_pos: List of dicts mapping category to number of positive instances per image
+                - categories: List of category names
+        """
         match_results = self._match_results
         match_list, n_pos = [], []
         categories = list(self._categories.values())
@@ -171,6 +238,18 @@ class FROCEvaluator:
         return match_list, n_pos, categories
 
     def run_compute_froc(self, save_fig=False):
+        """
+        Compute FROC curves and report sensitivity at specified FPpI thresholds.
+
+        This method computes the FROC curve for each category by:
+        1. Collecting all matched predictions and ground truth across images
+        2. Computing the FROC curve (recall vs FPpI)
+        3. Interpolating sensitivity at specified FPpI thresholds
+        4. Generating result tables and optionally saving figures
+
+        Args:
+            save_fig: If True, save FROC curve plots to the output directory (default: False)
+        """
         fppi_thrs = self._fppi_thrs
         cats = []
         results = []
@@ -534,15 +613,21 @@ class FROCEvaluator:
 
     def _pairwise_iou(self, box_list1, box_list2):
         """
-        compute pairwise 3d iou
+        Compute pairwise 3D IoU or IoM between two sets of bounding boxes.
 
-        args:
-            box_list1: shape (N,4)
-            box_list2: shape (M,4)
-        return:
-            iou shape (N,M)
+        Depending on the evaluation mode, this computes either:
+        - IoU (Intersection over Union) for standard evaluation
+        - IoM (Intersection over Minimum) for certain hospital datasets
 
-        assume box is non empty
+        Args:
+            box_list1: Tensor of shape (N, 6) with boxes in corner format (x1, y1, z1, x2, y2, z2)
+            box_list2: Tensor of shape (M, 6) with boxes in corner format
+
+        Returns:
+            Tensor of shape (N, M) containing pairwise IoU or IoM values
+
+        Note:
+            Assumes all boxes are non-empty (have positive volume).
         """
         # compute intersection
         width_height = torch.min(
@@ -557,78 +642,21 @@ class FROCEvaluator:
         if self._mode not in ["hospital", "hospital140", "cta_rsna_ane"]:
             return intersection / (area1[:, None] + area2[None, :] - intersection)
         else:
-            # print("Using iom")
-            # print(intersection.shape, area1.shape, area2.shape)
-            # return intersection / (area1[:, None] + area2[None, :] - intersection)
             return intersection / (np.minimum(area1[:, None], area2[None, :]))
-
-    # def _pairwise_iou(self, box_list1, box_list2):
-    #     """
-    #     compute pairwise 3d iou
-
-    #     args:
-    #         box_list1: shape (N,4)
-    #         box_list2: shape (M,4)
-    #     return:
-    #         iou shape (N,M)
-
-    #     assume box is non empty
-    #     """
-    #     # compute intersection
-    #     width_height = torch.min(
-    #         box_list1[:, None, 3:], box_list2[None, :, 3:]
-    #     ) - torch.max(box_list1[:, None, :3], box_list2[None, :, :3])
-    #     width_height.clamp_(min=0.0)
-    #     intersection = width_height.prod(dim=2)  # (N,M)
-
-    #     # compute area
-    #     area1 = (box_list1[:, 3:] - box_list1[:, :3]).prod(dim=1)
-    #     area2 = (box_list2[:, 3:] - box_list2[:, :3]).prod(dim=1)
-
-    #     return intersection / torch.minimum(area1[:, None], area2[None, :])
-
-    def parse_gt_json(self, path):
-        """
-        json file follows coco ground truth format
-        return
-            -- dict(disease-> image_id -> {"box": tensor,}),
-            -- dict(catid -> category)
-            -- list of img_id
-        """
-        results = {}
-        with open(path, "r") as f:
-            data = json.load(f)
-
-        id2disease = {x["id"]: x["name"] for x in data["categories"]}
-        all_imgs = [x["id"] for x in data["images"]]
-
-        self._logger.info(f"got {len(all_imgs)} gt images")
-        data = data["annotations"]
-
-        # print("parsing ground truth ...")
-        for instance in tqdm(data):
-            disease = results.get(id2disease[instance["category_id"]], {})
-            image_box = disease.get(instance["image_id"], {"box": []})
-            image_box["box"].append(instance["bbox"])
-
-            disease[instance["image_id"]] = image_box
-            results[id2disease[instance["category_id"]]] = disease
-
-        # convert to tensor and sort box
-        for disease in results.values():
-            for image in disease.values():
-                box = torch.tensor(image["box"])
-                image["box"] = xyzwhd2xyzxyz(box)
-
-        return results, id2disease, all_imgs
 
     def parse_gt_csv(self, path):
         """
-        json file follows coco ground truth format
-        return
-            -- dict(disease-> image_id -> {"box": tensor,}),
-            -- dict(catid -> category)
-            -- list of img_id
+        Parse ground truth labels from CSV file.
+
+        Args:
+            path: Path to CSV file containing ground truth annotations with columns:
+                  seriesuid, coordX, coordY, coordZ, w, h, d
+
+        Returns:
+            tuple: (gts_dict, categories_dict, image_list) where:
+                - gts_dict: dict mapping disease -> seriesuid -> {"box": tensor}
+                - categories_dict: dict mapping category id to category name
+                - image_list: list of all image/series IDs
         """
         results = {}
         data = pd.read_csv(path)
@@ -660,48 +688,20 @@ class FROCEvaluator:
 
         return {DISEASE: results}, id2disease, all_imgs
 
-    def parse_dt_json(self, preds, id2disease):
-        """
-        return dict(disease-> image_id -> {"box": tensor, "score": tensor})
-        """
-        results = {}
-        # with open(path, 'r') as f:
-        #     data = json.load(f)
-        data = preds
-
-        print("parsing predictions ...")
-        for instance in tqdm(data):
-            disease = results.get(id2disease[instance["category_id"]], {})
-            image_box = disease.get(instance["image_id"], {"box": [], "score": []})
-            image_box["box"].append(instance["bbox"])
-            image_box["score"].append(instance["score"])
-
-            disease[instance["image_id"]] = image_box
-            results[id2disease[instance["category_id"]]] = disease
-
-        # convert to tensor and sort box
-        for disease in results.values():
-            for image in disease.values():
-                score, sorted_id = torch.sort(
-                    torch.tensor(image["score"]), descending=True
-                )
-                image["score"] = score
-
-                box = torch.tensor(image["box"])[sorted_id]
-                image["box"] = xyzwhd2xyzxyz(box)
-
-        return results
-
     def parse_dt_csv(self, preds, id2disease):
         """
-        args: preds: prediction_df
-        return dict(disease-> image_id -> {"box": tensor, "score": tensor})
+        Parse predictions from CSV DataFrame.
+
+        Args:
+            preds: DataFrame containing predictions with columns:
+                   seriesuid, coordX, coordY, coordZ, w, h, d, probability
+            id2disease: Dictionary mapping category IDs to disease names (unused but kept for API consistency)
+
+        Returns:
+            dict: Mapping disease -> seriesuid -> {"box": tensor, "score": tensor}
+                  where boxes are sorted by descending prediction score
         """
         results = {}
-
-        def fix_bad_origin(pred, spacing, origin):
-            pred_part = pred * spacing + origin * np.array([1, -1, 1])
-            return pred_part * np.array([1, -1, 1])
 
         # print("parsing predictions ...")
         for seriesuid, rows in preds.groupby("seriesuid"):
@@ -722,6 +722,19 @@ class FROCEvaluator:
 
 
 def xyzwhd2xyzxyz(boxes):
+    """
+    Convert bounding boxes from center format to corner format.
+
+    Transforms boxes from (center_x, center_y, center_z, width, height, depth)
+    to (x1, y1, z1, x2, y2, z2) where (x1, y1, z1) is the minimum corner
+    and (x2, y2, z2) is the maximum corner.
+
+    Args:
+        boxes: Tensor of shape (N, 6) with boxes in center format
+
+    Returns:
+        Tensor of shape (N, 6) with boxes in corner format
+    """
     res = torch.zeros_like(boxes)
     res[:, :3] = boxes[:, :3] - boxes[:, 3:] / 2
     res[:, 3:] = boxes[:, :3] + boxes[:, 3:] / 2
@@ -730,20 +743,27 @@ def xyzwhd2xyzxyz(boxes):
 
 def compute_froc(preds, gts, n_pos, n_imgs, *, outputs=None):
     """
-    compute froc and return froc curve
+    Compute FROC curve from predictions and ground truth labels.
 
-    args
-        -- preds: np.array of scores
-        -- gts: np.array of gt (0. or 1.)
+    The FROC (Free-Response Receiver Operating Characteristic) curve plots
+    sensitivity (recall) against the average number of false positives per image.
 
-    return (array of recalls, array of FP per img)
+    Args:
+        preds: Array of prediction scores/confidences
+        gts: Array of ground truth labels (0 for false positive, 1 for true positive)
+        n_pos: Total number of positive instances across all images
+        n_imgs: Total number of images
+        outputs: Optional path to save intermediate results as .pth file (default: None)
+
+    Returns:
+        tuple: (recalls, FPpI, thresholds) where:
+            - recalls: Array of recall values (sensitivity)
+            - FPpI: Array of false positives per image
+            - thresholds: Array of score thresholds corresponding to each point
     """
-    # n_gt_pos = gts.sum()
-    # sorted_ids = np.argsort(preds, kind="mergesort")[::-1]
-    # preds = preds[sorted_ids]
+
     fps, tps, thrs = _binary_clf_curve(gts, preds)
-    # print(fps, "\n", tps)
-    # listas
+
     if outputs:
         assert outputs[-4:] == ".pth"
         torch.save(
@@ -752,25 +772,33 @@ def compute_froc(preds, gts, n_pos, n_imgs, *, outputs=None):
         )
 
     recalls = tps / n_pos
-    FPpI = fps / n_imgs
-    return recalls.astype(np.float32), FPpI.astype(np.float32), thrs.astype(np.float32)
+    fppi = fps / n_imgs
+    return recalls.astype(np.float32), fppi.astype(np.float32), thrs.astype(np.float32)
 
 
-def get_mean_ci(
-    values,
-    ci=0.95,
-):
+def get_mean_ci(values, ci=0.95):
     """
-    compute mean, confident interval of a variable or multiple variables
-    values: np.array of shape (N,d1,d2,...)
-        where N is number of samples
-    return mean, lb, ub (each of shape (d1,d2,d3,...)
-    NOTE: sort inplace the given values
+    Compute mean and confidence intervals from bootstrap samples.
+
+    This function calculates the mean and confidence interval bounds from
+    a set of bootstrap samples. The confidence interval is computed using
+    the percentile method.
+
+    Args:
+        values: Array of shape (N, d1, d2, ...) where N is the number of
+                bootstrap samples and remaining dimensions are the data shape
+        ci: Confidence interval level between 0 and 1 (default: 0.95 for 95% CI)
+
+    Returns:
+        tuple: (mean, lower_bound, upper_bound) where each has shape (d1, d2, ...)
+
+    Note:
+        This function sorts the input array in-place along the first axis.
     """
 
-    N = len(values)
+    n = len(values)
     tail = (1.0 - ci) / 2.0
-    bound_id = math.floor(tail * N)
+    bound_id = math.floor(tail * n)
 
     values.sort(axis=0)
     mean = values.mean(axis=0)
@@ -781,13 +809,32 @@ def get_mean_ci(
 
 
 class BootstrapWorker(Process):
+    """
+    Parallel worker process for computing bootstrap confidence intervals.
+
+    This worker generates bootstrap samples by resampling images with replacement
+    and computing FROC curves for each sample. Multiple workers run in parallel
+    to speed up the bootstrap computation. Results are saved to disk in batches
+    to manage memory usage.
+
+    Attributes:
+        process_id: Unique identifier for this worker process
+        global_count: Shared counter tracking total bootstraps completed
+        barrier: Synchronization barrier for coordinating workers
+        out_dir: Directory for saving bootstrap results
+        n_bootstraps: Total number of bootstrap samples to generate
+        match_list: List of prediction-ground truth matches per image
+        n_pos: List of positive instance counts per image and category
+        categories: List of category names
+        random_state: NumPy random state for reproducible sampling
+        out_bs: Batch size for saving results to disk
+    """
+
     def __init__(
         self,
         pid,
         global_count,
         barrier,
-        # results_queue,
-        # logging_queue,
         out_dir,
         n_bootstraps,
         seed,
@@ -796,6 +843,21 @@ class BootstrapWorker(Process):
         categories,
         out_bs,
     ):
+        """
+        Initialize the bootstrap worker.
+
+        Args:
+            pid: Process ID for this worker
+            global_count: Multiprocessing Value for tracking global progress
+            barrier: Multiprocessing Barrier for synchronization
+            out_dir: Output directory for caching bootstrap results
+            n_bootstraps: Total number of bootstrap samples to compute
+            seed: Random seed for reproducible bootstrap sampling
+            match_list: List of match results for each image
+            n_pos: List of positive counts per image and category
+            categories: List of category names to evaluate
+            out_bs: Batch size for writing results to disk
+        """
         super(BootstrapWorker, self).__init__()
         self.process_id = pid
         self.global_count = global_count
@@ -872,8 +934,8 @@ class BootstrapWorker(Process):
         match_list = self.match_list
         n_pos = self.n_pos
         categories = self.categories
-        N = len(n_pos)
-        rand_ids = self.random_state.randint(N, size=N)
+        n = len(n_pos)
+        rand_ids = self.random_state.randint(n, size=n)
         #############
         # TODO: resample while there is no positive case for a category
         # even though it is very unlikely
@@ -889,146 +951,110 @@ class BootstrapWorker(Process):
             preds = [match_list[i][cat]["scores"] for i in rand_ids]
             preds = np.concatenate(preds)
 
-            recalls, fppi, _ = compute_froc(preds, gts, pos, N)
+            recalls, fppi, _ = compute_froc(preds, gts, pos, n)
             results[cat] = (recalls, fppi, pos)
 
         return results
 
 
-def get_threshold(value, row):
+def main():
+    """
+    Main entry point for running FROC evaluation from command line.
 
-    tr = 425
-    if value > tr:  # and row_num in valids:
-        threshold = value - tr
-        # print(value, row)
-    else:
-        threshold = 0
-    return threshold
+    This function processes multiple experiments and computes FROC curves for
+    aneurysm detection predictions. It supports different evaluation modes for
+    filtering predictions based on overlap with anatomical structures.
 
+    Command line usage:
+        python froc_overlap_2.py <exp_base_path> [mode]
 
-def remove_by_size(df_preds, size_dict):
-    df_preds = df_preds.copy()
+    Args:
+        sys.argv[1]: Path to base experiment directory containing inference results
+        sys.argv[2]: (Optional) Evaluation mode for filtering predictions:
+            - None or "0": Filter by brain overlap > 0.5
+            - "base": No filtering
+            - "1": Filter by enhanced brain overlap > 0.5
+            - "2": Filter out predictions overlapping with veins
+            - "3": Keep predictions with more artery than vein overlap
+            - "4": Filter out vein overlap AND require enhanced brain > 0.5
+            - "5": More artery than vein AND enhanced brain > 0.5
 
-    # determine for each row the threshold at which to remove pred
-    df_preds["threshold"] = df_preds["seriesuid"].apply(
-        lambda row: get_threshold(size_dict[row][2], row)
-    )
-    df_preds["threshold"] = df_preds["threshold"].astype(int)
-    # if row is smaller than threshold, remove it
-    df_preds = df_preds[df_preds["coordZ"] > df_preds["threshold"]]
-
-    return df_preds
-
-
-if __name__ == "__main__":
-
-    root = Path("./")
-
-    root_data = Path("/projects/vig/Datasets/aneurysm/cta_datasets")
-    # label_files = {
-    #     "internal_train": root / "labels/train0.4_crop.csv",
-    #     "internal_test": root / "labels/gt/internal_test_crop_0.4.csv",
-    #     "external": root_data / "external/annotations.csv",
-    #     "hospital": "/projects/vig/Datasets/aneurysm/cta_datasets/hospital/annotations.csv",
-    #     "hospital140": root_data / "hospital140/annotations_aneurysm_extra.csv",
-    #     "cmha": root_data / "cmha/annotations.csv",
-    # }
-
+    The function will:
+    - Iterate through all experiments in the base directory
+    - Process all inference directories
+    - Compute FROC curves at multiple IoU thresholds (0.1, 0.2, 0.3)
+    - Save results, figures, and CSV files to output directories
+    """
+    # Configuration parameters
     max_fppi = 8.0
     min_fppi = 0.0
     fp_scale = "linear"
-    fppi_thrs = [
-        0.125,
-        0.25,
-        0.5,
-        1.0,
-        2.0,
-        4.0,
-        8.0,
-    ]
+    fppi_thrs = [0.125, 0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
     n_bootstraps = 10000
     iou_thrs = [0.1, 0.2, 0.3]
+    n_workers = 8
 
-    # get exp from command line arg
+    # Parse command line arguments
+    if len(sys.argv) < 2:
+        print("Usage: python froc_overlap_2.py <exp_base_path> [mode]")
+        sys.exit(1)
+
     exp_base = Path(sys.argv[1])
     mode = None if len(sys.argv) < 3 else sys.argv[2]
     dataset_name = exp_base.name
-    exps = [x for x in exp_base.glob("*")]
-
+    exps = list(exp_base.glob("*"))
+    label_file = label_files[dataset_name]
+    # Process each experiment directory
     for exp_dir in exps:
-
-        # get all dirs starting with "inference_"
+        # Find all inference directories
         inf_appends = sorted(
             [x.name.replace("inference_", "") for x in exp_dir.glob("inference_*")]
         )
 
         for inf_append in inf_appends:
-            path_inf = "inference_" + inf_append
-
             for iou_thr in iou_thrs:
-
                 print(f"Running iou_thr: {iou_thr} at {inf_append}")
-                n_workers = 8
 
-                if mode == "0" or mode is None:
-                    out_dir = exp_dir / f"iou{iou_thr:.1f}_froc_{inf_append}"
+                # Determine output directory and predictions path based on mode
 
-                    path_preds = (
-                        exp_dir / f"inference_{inf_append}" / "predict_roi_jisoo.csv"
-                    )
-                elif mode == "base":
-                    out_dir = (
-                        exp_dir / f"mode_{mode}" / f"iou{iou_thr:.1f}_froc_{inf_append}"
-                    )
-
-                    path_preds = exp_dir / f"inference_{inf_append}" / "predict_roi_jisoo.csv"
-                elif mode in ["1", "2", "3", "4", "5"]:
+                if mode in ["base", "1", "2", "3", "4", "5"]:
                     out_dir = (
                         exp_dir / f"mode_{mode}" / f"iou{iou_thr:.1f}_froc_{inf_append}"
                     )
                     path_preds = (
                         exp_dir / f"inference_{inf_append}" / "predict_roi_jisoo.csv"
                     )
+                else:
+                    raise ValueError(f"Invalid mode: {mode}")
+
+                # Load and filter predictions
                 try:
                     preds = pd.read_csv(path_preds)
-                    if mode == "0" or mode is None:
-                        # remove preds that have overlap with brain <= 0.5
-                        preds = preds[preds["overlap"] > 0.5]
-                    elif mode == "base":
-                        # no filtering
+
+                    if mode == "base":
                         preds = preds.copy()
                     elif mode == "1":
-                        # remove preds that have overlap with enhanced brain <= 0.5
                         preds = preds[preds["overlap_enhanced_brain"] > 0.5]
                     elif mode == "2":
-                        # remove preds that have any overlap with vein
                         preds = preds[preds["overlap_vein"] == 0]
                     elif mode == "3":
-                        # remove preds that have more overlap with vein than artery
-                        preds = preds[
-                            (preds["overlap_vein"] <= preds["overlap_artery"])
-                        ]
+                        preds = preds[preds["overlap_vein"] <= preds["overlap_artery"]]
+                    elif mode == "4":
+                        preds = preds[preds["overlap_vein"] == 0]
+                        preds = preds[preds["overlap_enhanced_brain"] > 0.5]
                     elif mode == "5":
-                        # remove preds that have more overlap with vein than artery
-                        # then keep those with overlap with enhanced brain > 0.5
                         preds = preds[
                             (preds["overlap_vein"] <= preds["overlap_artery"])
                             & (preds["overlap_enhanced_brain"] > 0.5)
                         ]
-                    elif mode == "4":
-                        # remove preds that have any overlap with vein
-                        # then keep those with overlap with enhanced brain > 0.5
-                        preds = preds[preds["overlap_vein"] == 0]
-                        preds = preds[preds["overlap_enhanced_brain"] > 0.5]
-
-                    else:
-                        raise ValueError("Invalid mode")
 
                 except FileNotFoundError:
                     continue
-                label_file = label_files[dataset_name]
+
+                # Setup logger
                 logger = setup_logger(output=out_dir, name=__name__ + str(iou_thr))
 
+                # Create evaluator and run evaluation
                 evaluator = FROCEvaluator(
                     label_file=label_file,
                     preds=preds,
@@ -1047,4 +1073,8 @@ if __name__ == "__main__":
                 )
                 evaluator.evaluate()
                 evaluator.run_compute_froc(save_fig=True)
-                print("\n")
+                print()
+
+
+if __name__ == "__main__":
+    main()

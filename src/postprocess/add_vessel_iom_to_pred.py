@@ -19,7 +19,7 @@ import pandas as pd
 import SimpleITK as sitk
 import torch
 import torch.multiprocessing as mp
-from froc import FROCEvaluator
+from froc_overlap_2 import FROCEvaluator
 from log_utils import setup_logger
 from sklearn.metrics._ranking import _binary_clf_curve
 from tabulate import tabulate

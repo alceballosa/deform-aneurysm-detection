@@ -39,7 +39,7 @@ def remove_by_size(df_preds, size_dict):
     return df_preds
 
 
-from froc import FROCEvaluator
+from froc_overlap_2 import FROCEvaluator
 
 
 def filterfun(text):
