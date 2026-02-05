@@ -5,6 +5,7 @@ vessel_seg2/
 *__pycache__*
 .vscode*
 output/
+.pytest_cache
 logs/
 results/
 *.pth

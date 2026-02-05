@@ -11,39 +11,35 @@
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0
 
-export NUM_GPUS=2
+# Auto-detect number of GPUs from SLURM allocation
+export NUM_GPUS=${SLURM_GPUS_ON_NODE:-1}
 export CONFIG_NAME=${SLURM_JOB_NAME}
 
 echo $SLURM_JOB_NAME;
 echo $1;
 echo $2;
 
-#module load cuda/11.3
+
 module unload cuda/12.1.1 && module load cuda/12.8.0
 source /shared/centos7/anaconda3/2022.05/etc/profile.d/conda.sh
 conda activate cta3
-
-WORKSPACE_PATH="/projects/vig/alberto/medical/exploration/deform"
+export WORKSPACE_PATH="/projects/vig/alberto/medical/exploration/deform"
 
 cd $WORKSPACE_PATH
 
 export PYTHONPATH=${WORKSPACE_PATH}
 export PYTHONPATH=$(pwd):$PYTHONPATH
 
-
-
 mkdir /dev/shm/internal_train 
 
 /usr/sbin/sshd -D -p 2219 -f /dev/null -h ${HOME}/.ssh/alberto_neu &
 
 echo "Copying data in background...";
-#{ cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4; } & { cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp; } & { cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp; } &
 
 if [ ! -d /dev/shm/internal_train/crop_0.4 ]; then
     echo "Copying data to /dev/shm/internal_train";
     cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4  /dev/shm/internal_train/crop_0.4
     cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp
-    #cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/vein_mask_edt_comp /dev/shm/internal_train/vein_mask_edt_comp
 else
     echo "Data already copied to /dev/shm/internal_train";
 fi

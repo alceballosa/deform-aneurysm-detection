@@ -1,0 +1,6 @@
+[
+  {
+    "root": "/projects/vig/Datasets/aneurysm/cta_datasets",
+    "datasets": ["internal_test", "cmha", "external", "hospital140"]
+  }
+]

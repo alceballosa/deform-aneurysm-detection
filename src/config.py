@@ -231,6 +231,7 @@ def add_config(cfg):
 
     cfg.TEST.PATCHES_PER_ITER = 8
     cfg.TEST.NMS_TOPK = 20
+    cfg.TEST.EVALUATION_CHECKPOINTS = ["final"]
 
     cfg.POSTPROCESS = CN()
     cfg.POSTPROCESS.ANNOTATION_DIR = ""
