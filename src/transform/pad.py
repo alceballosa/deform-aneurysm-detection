@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
-import json
 import math
 
 from .abstract_transform import AbstractTransform
@@ -46,81 +45,32 @@ class Pad(AbstractTransform):
             if (max(margin) > 0)
             else image
         )
-
-        sample["image"] = image_t
-
-        if "label" in sample:
-            label = sample["label"]
-            label_t = (
-                np.pad(label, pad, "constant", constant_values=0)
-                if (max(margin) > 0)
-                else label
-            )
-            sample["label"] = label_t
-
-        if "ctr" in sample:
-            sample["ctr"] = sample["ctr"].copy() + margin_lower
-
-        return sample
-
-
-class MaskPad(Pad):
-    """
-    Pad the image (shape [C, D, H, W] or [C, H, W]) to an new spatial shape,
-    the real output size will be max(image_size, output_size)
-    """
-
-    def __call__(self, sample):
-        image = sample["image"]
-        input_shape = image.shape
-        input_dim = len(input_shape) - 1
-        assert len(self.output_size) == input_dim
-        if self.ceil_mode:
-            multiple = [
-                int(math.ceil(float(input_shape[1 + i]) / self.output_size[i]))
-                for i in range(input_dim)
-            ]
-            output_size = [multiple[i] * self.output_size[i] for i in range(input_dim)]
-        else:
-            output_size = self.output_size
-        margin = [max(0, output_size[i] - input_shape[1 + i]) for i in range(input_dim)]
-        margin_lower = [int(margin[i] / 2) for i in range(input_dim)]
-        margin_upper = [margin[i] - margin_lower[i] for i in range(input_dim)]
-        pad = [(margin_lower[i], margin_upper[i]) for i in range(input_dim)]
-        pad = tuple([(0, 0)] + pad)
-
-        image_t = (
-            np.pad(image, pad, "constant", constant_values=0)
-            if (max(margin) > 0)
-            else image
-        )
-        # print(image_t.shape, input_shape)
         sample["image"] = image_t
 
         if "vessel_edt" in sample:
             mask = sample["vessel_edt"]
-            mask_t = (
+            sample["vessel_edt"] = (
                 np.pad(mask, pad, "constant", constant_values=0)
                 if (max(margin) > 0)
                 else mask
             )
-            sample["vessel_edt"] = mask_t
+
         if "label" in sample:
             label = sample["label"]
-            label_t = (
+            sample["label"] = (
                 np.pad(label, pad, "constant", constant_values=0)
                 if (max(margin) > 0)
                 else label
             )
-            sample["label"] = label_t
+
         if "cvs_mask" in sample:
             cvs_mask = sample["cvs_mask"]
-            cvs_mask_t = (
+            sample["cvs_mask"] = (
                 np.pad(cvs_mask, pad, "constant", constant_values=0)
                 if (max(margin) > 0)
                 else cvs_mask
             )
-            sample["cvs_mask"] = cvs_mask_t
+
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() + margin_lower
 

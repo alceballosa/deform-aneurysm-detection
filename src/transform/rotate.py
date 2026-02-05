@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
-import json
 import random
 
 from .abstract_transform import AbstractTransform
@@ -47,7 +46,7 @@ class RandomRotate(AbstractTransform):
         self.reshape = reshape
         self.p = p
 
-    def __apply_transformation(self, image, transform_param_list, order=1, cval=0):
+    def _apply_transformation(self, image, transform_param_list, order=1, cval=0):
         """
         apply rotation transformation to an ND image
         Args:
@@ -59,10 +58,9 @@ class RandomRotate(AbstractTransform):
             image = ndimage.rotate(
                 image, angle, axes, reshape=self.reshape, order=order, cval=cval
             )
-
         return image
 
-    def __apply_transformation_coord(
+    def _apply_transformation_coord(
         self, image, coord, transform_param_list, order=1, cval=0
     ):
         """
@@ -87,8 +85,6 @@ class RandomRotate(AbstractTransform):
 
     def __call__(self, sample):
         image = sample["image"]
-        input_shape = image.shape
-        input_dim = len(input_shape) - 1
 
         transform_param_list = []
 
@@ -107,20 +103,38 @@ class RandomRotate(AbstractTransform):
 
         if len(transform_param_list) > 0:
             if "ctr" in sample:
-                image_t, coord = self.__apply_transformation_coord(
+                image_t, coord = self._apply_transformation_coord(
                     image, sample["ctr"].copy(), transform_param_list, 1
                 )
                 sample["ctr"] = coord
             else:
-                image_t = self.__apply_transformation(image, transform_param_list, 1)
+                image_t = self._apply_transformation(image, transform_param_list, 1)
             sample["image"] = image_t
+
+            if "label" in sample:
+                label_t = self._apply_transformation(
+                    sample["label"], transform_param_list, 0
+                )
+                sample["label"] = label_t
+
+            if "vessel_edt" in sample:
+                mask_t = self._apply_transformation(
+                    sample["vessel_edt"], transform_param_list, 0
+                )
+                sample["vessel_edt"] = mask_t
+
+            if "cvs_mask" in sample:
+                cvs_mask_t = self._apply_transformation(
+                    sample["cvs_mask"], transform_param_list, 0
+                )
+                sample["cvs_mask"] = cvs_mask_t
 
         return sample
 
 
 class RandomTranspose(AbstractTransform):
     """
-    random rotate the image (shape [C, D, H, W] or [C, H, W])
+    random transpose the image (shape [C, D, H, W] or [C, H, W])
     """
 
     def __init__(self, trans_xy=True, trans_zx=False, trans_zy=False, p=0.5, transform_rad=True):
@@ -141,141 +155,45 @@ class RandomTranspose(AbstractTransform):
             transpose_list.append((0, 3, 2, 1))
 
         if len(transpose_list) > 0:
-            ctr_t = sample["ctr"].copy()
             image_t = sample["image"]
             for transpose in transpose_list:
-                temp = ctr_t.copy()
-                ctr_t[:, 0] = temp[:, transpose[1] - 1]
-                ctr_t[:, 1] = temp[:, transpose[2] - 1]
-                ctr_t[:, 2] = temp[:, transpose[3] - 1]
                 image_t = np.transpose(image_t, transpose)
+            sample["image"] = image_t
+
             if "label" in sample:
                 label_t = sample["label"]
                 for transpose in transpose_list:
                     label_t = np.transpose(label_t, transpose)
                 sample["label"] = label_t
-            if "rad" in sample and len(sample["rad"]) > 0:
-                # rad contains the height, width, depth of the bbox
-                rad = sample["rad"].copy()
-                for transpose in transpose_list:
-                    temp_rad = rad.copy()
-                    rad[:, 0] = temp_rad[:, transpose[1] - 1]
-                    rad[:, 1] = temp_rad[:, transpose[2] - 1]
-                    rad[:, 2] = temp_rad[:, transpose[3] - 1]
-                sample["rad"] = rad
-            sample["image"] = image_t
-            sample["ctr"] = ctr_t
 
-        return sample
-
-
-class RandomMaskTranspose(RandomTranspose):
-    """
-    random rotate the image (shape [C, D, H, W] or [C, H, W])
-    """
-
-    def __call__(self, sample):
-        transform_rad = self.transform_rad 
-        transpose_list = []
-
-        if self.trans_zy and random.random() < self.p:
-            transpose_list.append((0, 2, 1, 3))
-        if self.trans_xy and random.random() < self.p:
-            transpose_list.append((0, 1, 3, 2))
-        if self.trans_zx and random.random() < self.p:
-            transpose_list.append((0, 3, 2, 1))
-
-        if len(transpose_list) > 0:
-            image_t = sample["image"]
-            for transpose in transpose_list:
-                image_t = np.transpose(image_t, transpose)
-            sample["image"] = image_t
-            if "label" in sample:
-                label_t = sample["label"]
-                for transpose in transpose_list:
-                    label_t = np.transpose(label_t, transpose)
-                sample["label"] = label_t
             if "vessel_edt" in sample:
                 mask_t = sample["vessel_edt"]
                 for transpose in transpose_list:
                     mask_t = np.transpose(mask_t, transpose)
                 sample["vessel_edt"] = mask_t
+
             if "cvs_mask" in sample:
                 cvs_mask_t = sample["cvs_mask"]
                 for transpose in transpose_list:
                     cvs_mask_t = np.transpose(cvs_mask_t, transpose)
                 sample["cvs_mask"] = cvs_mask_t
+
             if "ctr" in sample:
                 ctr_t = sample["ctr"].copy()
-
                 for transpose in transpose_list:
                     temp_ctr = ctr_t.copy()
                     ctr_t[:, 0] = temp_ctr[:, transpose[1] - 1]
                     ctr_t[:, 1] = temp_ctr[:, transpose[2] - 1]
                     ctr_t[:, 2] = temp_ctr[:, transpose[3] - 1]
-
                 sample["ctr"] = ctr_t
 
-            if "rad" in sample and len(sample["rad"]) > 0 and transform_rad is True:
-                # rad contains the height, width, depth of the bbox
+            if "rad" in sample and len(sample["rad"]) > 0 and self.transform_rad:
                 rad = sample["rad"].copy()
                 for transpose in transpose_list:
-                    # TODO: verify if this implementation of the aug is correct
                     temp_rad = rad.copy()
                     rad[:, 0] = temp_rad[:, transpose[1] - 1]
                     rad[:, 1] = temp_rad[:, transpose[2] - 1]
                     rad[:, 2] = temp_rad[:, transpose[3] - 1]
-
                 sample["rad"] = rad
-
-
-            # assert mask_t.sum() == sample["volume"]
-        return sample
-
-
-class RandomMaskRotate(RandomRotate):
-    """
-    random rotate the image (shape [C, D, H, W] or [C, H, W])
-    """
-
-    def __call__(self, sample):
-        image = sample["image"]
-
-        transform_param_list = []
-
-        if (self.angle_range_d is not None) and random.random() < self.p:
-            angle_d = np.random.uniform(self.angle_range_d[0], self.angle_range_d[1])
-            transform_param_list.append([angle_d, (-2, -1)])
-        if (self.angle_range_h is not None) and random.random() < self.p:
-            angle_h = np.random.uniform(self.angle_range_h[0], self.angle_range_h[1])
-            transform_param_list.append([angle_h, (-3, -1)])
-        if (self.angle_range_w is not None) and random.random() < self.p:
-            angle_w = np.random.uniform(self.angle_range_w[0], self.angle_range_w[1])
-            transform_param_list.append([angle_w, (-3, -2)])
-
-        if len(transform_param_list) > 0:
-            if "ctr" in sample:
-                image_t, coord = self.__apply_transformation_coord(
-                    image, sample["ctr"].copy(), transform_param_list, 1
-                )
-                sample["ctr"] = coord
-            else:
-                image_t = self.__apply_transformation(image, transform_param_list, 1)
-            sample["image"] = image_t
-
-            if "label" in sample:
-                label = sample["label"]
-                label_t = self.__apply_transformation(label, transform_param_list, 0)
-                sample["label"] = label_t
-            
-            if "cvs_mask" in sample:
-                cvs_mask = sample["cvs_mask"]
-                cvs_mask_t = self.__apply_transformation(cvs_mask, transform_param_list, 0)
-                sample["cvs_mask"] = cvs_mask_t
-
-            if "vessel_edt" in sample:
-                mask = sample["vessel_edt"]
-                mask_t = self.__apply_transformation(mask, transform_param_list, 0)
-                sample["vessel_edt"] = mask_t
 
         return sample

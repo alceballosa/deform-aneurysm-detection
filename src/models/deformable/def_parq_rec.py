@@ -19,10 +19,8 @@ from tqdm import tqdm
 
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D
-from src.models.deformable import cnn_backbone, cnn_backbone_1l, cnn_backbone_2l
-from src.models.deformable.box_processor import BoxProcessor
+from src.models.deformable import cnn_backbone
 from src.models.deformable.def_trx_rec import build_deformable_transformer
-from src.models.deformable.generic_mlp import GenericMLP
 from src.models.deformable.nms import nms
 from src.models.deformable.parq_matcher_rec import HungarianMatcherModified
 from src.models.deformable.parq_utils import get_3d_corners
@@ -40,8 +38,6 @@ total_pos = 0
 
 build_backbone = {
     "CNN": cnn_backbone.build_backbone,
-    "CNN_1L": cnn_backbone_1l.build_backbone,
-    "CNN_2L": cnn_backbone_2l.build_backbone,
 }
 
 

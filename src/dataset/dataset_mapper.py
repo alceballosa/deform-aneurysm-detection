@@ -152,53 +152,29 @@ class CTADatasetMapper:
         """
         Build the data augmentation pipeline for training.
 
-        Creates different transform pipelines depending on whether vessel
-        information is used. Transforms include random flipping, transposing,
-        padding, and cropping.
+        Transforms include random flipping, transposing, padding, and cropping.
+        Vessel and CVS masks are automatically handled if present in the sample.
 
         Returns:
             torchvision.transforms.Compose: Composed transform pipeline
         """
         crop_size = self.cfg.DATA.PATCH_SIZE
-        if self.cfg.MODEL.USE_VESSEL_INFO == "no":
-            transform_list_train = [
-                transform.RandomFlip(
-                    flip_depth=True,
-                    flip_height=True,
-                    flip_width=True,
-                    p=FLIP_PROBABILITY,
-                ),
-                transform.RandomTranspose(
-                    trans_xy=True,
-                    trans_zx=False,
-                    trans_zy=False,
-                    p=TRANSPOSE_PROBABILITY,
-                    transform_rad=self.cfg.DATA.CROPPING_AUG.TRANSFORM_RAD,
-                ),
-                transform.Pad(output_size=crop_size),
-                transform.RandomCrop(
-                    output_size=crop_size, pos_ratio=POSITIVE_CROP_RATIO
-                ),
-                transform.CoordToAnnot(),
-            ]
-            return torchvision.transforms.Compose(transform_list_train)
-
         transform_list_train = [
-            transform.RandomMaskFlip(
+            transform.RandomFlip(
                 flip_depth=True,
                 flip_height=True,
                 flip_width=True,
                 p=FLIP_PROBABILITY,
             ),
-            transform.RandomMaskTranspose(
-                p=TRANSPOSE_PROBABILITY,
+            transform.RandomTranspose(
                 trans_xy=True,
                 trans_zx=False,
                 trans_zy=False,
+                p=TRANSPOSE_PROBABILITY,
                 transform_rad=self.cfg.DATA.CROPPING_AUG.TRANSFORM_RAD,
             ),
-            transform.MaskPad(output_size=crop_size),
-            transform.RandomMaskCrop(
+            transform.Pad(output_size=crop_size),
+            transform.RandomCrop(
                 output_size=crop_size, pos_ratio=POSITIVE_CROP_RATIO
             ),
             transform.CoordToAnnot(),

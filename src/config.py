@@ -64,6 +64,7 @@ def add_config(cfg):
 
     cfg.MODEL.DEFORMABLE = CN()
     cfg.MODEL.DEFORMABLE.N_LEVELS = 4
+    cfg.MODEL.DEFORMABLE.LEVEL_SELECTION = "bottom"  # "bottom" (coarse) or "top" (fine)
     cfg.MODEL.DEFORMABLE.N_HEADS = 4
     cfg.MODEL.DEFORMABLE.N_ENC_LAYERS = 2
     cfg.MODEL.DEFORMABLE.N_DEC_LAYERS = 2

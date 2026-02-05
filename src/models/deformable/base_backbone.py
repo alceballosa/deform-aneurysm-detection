@@ -31,7 +31,6 @@ class Base_Backbone(nn.Module):
         self.src_patch_size = cfg.DATA.PATCH_SIZE
         self.output_hidden_dim: int
         self.input_proj_list: nn.ModuleList
-        self.input_proj_list_v2: nn.ModuleList
         self.vessel_dist_proj_list: nn.ModuleList
 
     @property
@@ -50,22 +49,20 @@ class Base_Backbone(nn.Module):
         raise NotImplementedError
 
     def get_positional_embeddings(
-        self, multiscale_feats, vessel_dists=None, device="cpu"
+        self, multiscale_feats, vessel_dists=None, device="cpu", input_spatial_shape=None
     ):
         """
         Gets positional embeddings for every feature level.
+
+        Args:
+            input_spatial_shape: tuple of (D, H, W) from original input, used for FIX_PE_SCALE
         """
-        factors = {
-            0: 1,
-            1: 2,
-            2: 4,
-            3: 8,
-        }
         multiscale_pos_embs = []
         for lvl, feat in enumerate(multiscale_feats):
             pos_volume = create_global_pos_volume(*feat.shape[-3:]).to(device)
-            if self.cfg.MODEL.DEFORMABLE.FIX_PE_SCALE:
-                factor = factors[lvl]
+            if self.cfg.MODEL.DEFORMABLE.FIX_PE_SCALE and input_spatial_shape is not None:
+                # Compute factor from spatial size ratio (input_size / feat_size)
+                factor = input_spatial_shape[-1] // feat.shape[-1]
                 pos_volume = pos_volume * factor
             ups = torch.nn.Upsample(
                 size=(feat.shape[-3], feat.shape[-2], feat.shape[-1]),
@@ -122,6 +119,7 @@ class Base_Backbone(nn.Module):
             multiscale_feats,
             vessel_dists,
             device=self.device,
+            input_spatial_shape=x.shape,
         )
 
         # print(multiscale_pos_embs[-1].shape, multiscale_feats[-1].shape, multiscale_masks[-1].shape)
@@ -147,7 +145,7 @@ class Base_Backbone(nn.Module):
             )
 
             for i, feat in enumerate(multiscale_feats):
-                multiscale_feats[i] = self.input_proj_list_v2[i](feat)
+                multiscale_feats[i] = self.input_proj_list[i](feat)
 
             multiscale_feats = [
                 feat.squeeze(-1).squeeze(-1).transpose(1, 2)

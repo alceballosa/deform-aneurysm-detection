@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "ast_cnn_trx_input_edt_lia_fps"
+  NAME: "lnt_cnn_trx_input_edt_lia_fps_tpr"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -15,6 +15,8 @@ MODEL:
     N_LEVELS: 4
     MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
+    FIX_PE_SCALE: True 
+    
 SOLVER:
   SCANS_PER_BATCH: 16
   SAMPLES_PER_SCAN: 16
@@ -46,6 +48,7 @@ DATA:
     SPACING: [0.9, 1.8]
     PADDED_REORIENT: True
     TRANSFORM_RAD: False
+    TP_RATIO: 0.66
   DIR:
     TRAIN:
       SCAN_DIR: "internal_train/crop_0.4"

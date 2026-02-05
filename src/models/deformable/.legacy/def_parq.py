@@ -28,8 +28,7 @@ from src.utils.losses import (
     no_targets_cross_entropy_loss,
     no_targets_focal_loss,
 )
-from tqdm import tqdm
-
+from tqdm import tqd
 total_samples = 0
 total_pos = 0
 

@@ -72,11 +72,21 @@ class CNN_Backbone(Base_Backbone):
         super(CNN_Backbone, self).__init__(cfg)
 
         assert n_levels >= 1 and n_levels <= 4
-        # TODO: make levels matter
 
         self.cfg = cfg
         self.output_hidden_dim = output_hidden_dim
         self.n_levels = n_levels
+
+        # Determine which levels to use based on level_selection config
+        level_selection = cfg.MODEL.DEFORMABLE.LEVEL_SELECTION
+        if level_selection == "bottom":
+            # Coarsest levels: n_levels=1 → [3], n_levels=2 → [2,3], etc.
+            self.level_indices = list(range(4 - n_levels, 4))
+        elif level_selection == "top":
+            # Finest levels: n_levels=1 → [0], n_levels=2 → [0,1], etc.
+            self.level_indices = list(range(n_levels))
+        else:
+            raise ValueError(f"Unknown level_selection: {level_selection}")
 
         # # pretrained UNET
         # self.frozen_parameters_list = []
@@ -137,39 +147,28 @@ class CNN_Backbone(Base_Backbone):
             se=se,
         )
 
-        self.layer_hidden_dims = [
-            n_filters[0],
-            n_filters[1],
-            n_filters[2],
-            n_filters[3],
-        ]
+        all_hidden_dims = [n_filters[0], n_filters[1], n_filters[2], n_filters[3]]
+        self.layer_hidden_dims = [all_hidden_dims[i] for i in self.level_indices]
+
+        # Choose normalization based on EFFICIENT_MASK_V2 config
+        # V2 uses LayerNorm (per-token norm, immune to padding corruption)
+        # Default uses GroupNorm
+        use_layernorm = cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2
         input_proj_list = []
         for i, _ in enumerate(self.layer_hidden_dims):
             in_channels = self.layer_hidden_dims[i]
+            if use_layernorm:
+                norm = ChannelLastLayerNorm(self.output_hidden_dim)
+            else:
+                norm = nn.GroupNorm(32, self.output_hidden_dim)
             input_proj_list.append(
                 nn.Sequential(
                     nn.Conv3d(in_channels, self.output_hidden_dim, kernel_size=1),
-                    nn.GroupNorm(32, self.output_hidden_dim),
+                    norm,
                 )
             )
         self.input_proj_list = nn.ModuleList(input_proj_list)
-        # NOTE: additional init 239
         for proj in self.input_proj_list:
-            nn.init.xavier_uniform_(proj[0].weight, gain=1)
-            nn.init.constant_(proj[0].bias, 0)
-
-        # V2 projection: Conv3d + LayerNorm (per-token norm, immune to padding)
-        input_proj_list_v2 = []
-        for i, _ in enumerate(self.layer_hidden_dims):
-            in_channels = self.layer_hidden_dims[i]
-            input_proj_list_v2.append(
-                nn.Sequential(
-                    nn.Conv3d(in_channels, self.output_hidden_dim, kernel_size=1),
-                    ChannelLastLayerNorm(self.output_hidden_dim),
-                )
-            )
-        self.input_proj_list_v2 = nn.ModuleList(input_proj_list_v2)
-        for proj in self.input_proj_list_v2:
             nn.init.xavier_uniform_(proj[0].weight, gain=1)
             nn.init.constant_(proj[0].bias, 0)
 
@@ -209,7 +208,8 @@ class CNN_Backbone(Base_Backbone):
 
         x4 = self.block4(x)
 
-        feats = [x1, x2, x3, x4]
+        all_feats = [x1, x2, x3, x4]
+        feats = [all_feats[i] for i in self.level_indices]
 
         multiscale_masks = None
         if vessel_segs is not None:

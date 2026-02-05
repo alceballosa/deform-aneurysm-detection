@@ -1,15 +1,6 @@
 import math
 
-import numpy as np
 import torch
-
-
-def inverse_sigmoid(x, eps=1e-3):
-    x = x.clamp(min=0, max=1)
-    x1 = x.clamp(min=eps)
-    x2 = (1 - x).clamp(min=eps)
-    return torch.log(x1 / x2)
-
 
 
 def get_3d_sinusoidal_pos_emb(pos, num_pos_feats=128, temperature=10000):
