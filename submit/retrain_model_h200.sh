@@ -19,10 +19,13 @@ echo $1;
 echo $2;
 
 #module load cuda/11.3
+module unload cuda/12.1.1 && module load cuda/12.8.0
 source /shared/centos7/anaconda3/2022.05/etc/profile.d/conda.sh
-conda activate cta2
+conda activate cta3
 
-WORKSPACE_PATH="/projects/vig/alberto/medical/deform-aneurysm-detection"
+WORKSPACE_PATH="/projects/vig/alberto/medical/exploration/deform"
+
+cd $WORKSPACE_PATH
 
 export PYTHONPATH=${WORKSPACE_PATH}
 export PYTHONPATH=$(pwd):$PYTHONPATH

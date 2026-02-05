@@ -200,6 +200,7 @@ class PARQ_Deformable_R(nn.Module):
         # if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
         #    get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
+        
         targets = self.preprocess_train_labels(input_batch)
         box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
         loss_dict = self.compute_losses(box_prediction_list, targets)
@@ -341,10 +342,11 @@ class PARQ_Deformable_R(nn.Module):
 
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
-
+        
         multiscale_feats, multiscale_pos_embs, multiscale_masks = self.backbone(
             x, vessel_dists, vessel_segs, self.transformer.level_embed
         )
+
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(
                 multiscale_feats,

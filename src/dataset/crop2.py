@@ -60,7 +60,7 @@ class DetectionCropper:
         sample_num=2,
         blank_side=0,
         padded_reorient=False,
-        sample_cls=[0],
+        sample_cls=[0, 1],
     ):
         """
         Initialize the cropping function with augmentation parameters.
@@ -144,7 +144,9 @@ class DetectionCropper:
         all_loc = sample["all_loc"]
         all_rad = sample["all_rad"]
         all_cls = sample["all_cls"]
+
         image_spacing = sample["image_spacing"]
+
 
         instance_loc = all_loc[
             np.sum([all_cls == cls for cls in self.sample_cls], axis=0, dtype="bool")
@@ -215,6 +217,7 @@ class DetectionCropper:
             for y in y_range:
                 for x in x_range:
                     crop_centers.append(np.array([z, y, x]))
+        # todo: ensure the random centers are not outside the brain
         rand_indices = np.random.choice(
             len(crop_centers), size=num_rand_samples, replace=False
         )
@@ -231,6 +234,7 @@ class DetectionCropper:
         pos_indices = np.random.choice(
             len(instance_crop), size=num_pos_samples, replace=True
         )
+
         pos_centers = instance_crop[pos_indices]
 
         all_centers = np.concatenate([pos_centers, rand_centers], axis=0)
@@ -258,7 +262,6 @@ class DetectionCropper:
             all_cls_crops.append(all_cls_crop)
             matrix_crops.append(matrix)
             space_crops.append(space)
-
         # Initialize crop storage for each array type
         array_crops = {key: [] for key in arrays_to_process.keys()}
         image_spacing_crops = []
@@ -282,6 +285,8 @@ class DetectionCropper:
                 array_crops[key].append(np.expand_dims(array_crop, axis=0))
 
             image_spacing_crops.append(space)
+
+
 
         # Build output samples
         samples = []
@@ -312,8 +317,10 @@ class DetectionCropper:
             # Add special vessel volume metric if mask is present
             if "mask" in array_crops:
                 patch_sample["volume"] = array_crops["mask"][i].sum()
-
             samples.append(patch_sample)
+            #print("Avail", all_cls, "  |  Chosen:", patch_sample["cls"])
+            
+        #print("---------------")
 
         return samples
 

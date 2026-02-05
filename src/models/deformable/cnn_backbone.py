@@ -15,6 +15,21 @@ from src.models.deformable.base_backbone import Base_Backbone
 from src.models.layers.conv_layers import ConvBlock, DownsamplingConvBlock, LayerBasic
 
 
+class ChannelLastLayerNorm(nn.Module):
+    """LayerNorm applied per spatial position across channels.
+    Expects input [B, C, ...], permutes C to last dim, normalizes, permutes back."""
+
+    def __init__(self, num_channels):
+        super().__init__()
+        self.norm = nn.LayerNorm(num_channels)
+
+    def forward(self, x):
+        x = x.movedim(1, -1)
+        x = self.norm(x)
+        x = x.movedim(-1, 1)
+        return x
+
+
 def build_backbone(cfg):
     """
     Builds the UNET Encoder for the PARQ model.
@@ -140,6 +155,21 @@ class CNN_Backbone(Base_Backbone):
         self.input_proj_list = nn.ModuleList(input_proj_list)
         # NOTE: additional init 239
         for proj in self.input_proj_list:
+            nn.init.xavier_uniform_(proj[0].weight, gain=1)
+            nn.init.constant_(proj[0].bias, 0)
+
+        # V2 projection: Conv3d + LayerNorm (per-token norm, immune to padding)
+        input_proj_list_v2 = []
+        for i, _ in enumerate(self.layer_hidden_dims):
+            in_channels = self.layer_hidden_dims[i]
+            input_proj_list_v2.append(
+                nn.Sequential(
+                    nn.Conv3d(in_channels, self.output_hidden_dim, kernel_size=1),
+                    ChannelLastLayerNorm(self.output_hidden_dim),
+                )
+            )
+        self.input_proj_list_v2 = nn.ModuleList(input_proj_list_v2)
+        for proj in self.input_proj_list_v2:
             nn.init.xavier_uniform_(proj[0].weight, gain=1)
             nn.init.constant_(proj[0].bias, 0)
 

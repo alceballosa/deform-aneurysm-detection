@@ -70,7 +70,7 @@ def build_deformable_transformer(cfg):
         center_head=center_head,
         class_head=class_head,
         size_head=size_head,
-        use_efficient_mask=cfg.MODEL.DEFORMABLE.EFFICIENT_MASK,
+        use_efficient_mask=cfg.MODEL.DEFORMABLE.EFFICIENT_MASK or cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 or cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V3,
         use_flash_attn=cfg.MODEL.DEFORMABLE.USE_FLASH_ATTN,
     )
 

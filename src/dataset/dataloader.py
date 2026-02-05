@@ -18,65 +18,6 @@ from tabulate import tabulate
 from termcolor import colored
 
 
-def print_instances_class_histogram(dataset_dicts, class_names):
-    """
-    Args:
-        dataset_dicts (list[dict]): list of dataset dicts.
-        class_names (list[str]): list of class names (zero-indexed).
-    """
-    num_classes = len(class_names)
-    hist_bins = np.arange(num_classes + 1)
-    histogram = np.zeros((num_classes,), dtype=np.float)
-    for entry in dataset_dicts:
-        classes = entry["classes"]
-
-        assert (
-            classes.shape[0] == num_classes
-        ), f"Got an invalid classes length {classes}, expect {num_classes}"
-        assert classes.min() in [
-            0.0,
-            1.0,
-        ], f"Got an invalid classes values ={classes}, expect 0 1"
-        assert classes.max() in [
-            0.0,
-            1.0,
-        ], f"Got an invalid classes values ={classes}, expect 0 1"
-
-        histogram += classes
-
-    N_COLS = min(6, len(class_names) * 2)
-
-    def short_name(x):
-        # make long class names shorter. useful for lvis
-        if len(x) > 13:
-            return x[:11] + ".."
-        return x
-
-    data = list(
-        itertools.chain(
-            *[[short_name(class_names[i]), int(v)] for i, v in enumerate(histogram)]
-        )
-    )
-    total_num_instances = sum(data[1::2])
-    data.extend([None] * (N_COLS - (len(data) % N_COLS)))
-    if num_classes > 1:
-        data.extend(["total", total_num_instances])
-    data = itertools.zip_longest(*[data[i::N_COLS] for i in range(N_COLS)])
-    table = tabulate(
-        data,
-        headers=["category", "#instances"] * (N_COLS // 2),
-        tablefmt="pipe",
-        numalign="left",
-        stralign="center",
-    )
-    log_first_n(
-        logging.INFO,
-        "Distribution of instances among all {} classes:\n".format(num_classes)
-        + colored(table, "cyan"),
-        key="message",
-    )
-
-
 def get_dataset_dicts(dataset_names):
     """
     Load and join classification dataset dicts
@@ -96,17 +37,6 @@ def get_dataset_dicts(dataset_names):
         assert len(dicts), "Dataset '{}' is empty!".format(dataset_name)
 
     dataset_dicts = list(itertools.chain.from_iterable(dataset_dicts))
-
-    # has_labels = "classes" in dataset_dicts[0]
-
-    # if has_labels:
-    #     try:
-    #         class_names = MetadataCatalog.get(dataset_names[0]).thing_classes
-    #         check_metadata_consistency("thing_classes", dataset_names)
-    #         # TODO: implement later
-    #         # print_instances_class_histogram(dataset_dicts, class_names)
-    #     except AttributeError:  # class names are not available for this dataset
-    #         pass
 
     assert len(dataset_dicts), "No valid data found in {}.".format(
         ",".join(dataset_names)
@@ -185,7 +115,7 @@ def build_train_loader(
     if sampler is None:
         sampler = TrainingSampler(len(dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
-    
+
     return build_batch_data_loader(
         dataset,
         sampler,
