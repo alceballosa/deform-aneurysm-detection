@@ -70,7 +70,7 @@ def build_deformable_transformer(cfg):
         center_head=center_head,
         class_head=class_head,
         size_head=size_head,
-        use_efficient_mask=cfg.MODEL.DEFORMABLE.EFFICIENT_MASK or cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 or cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V3,
+        use_efficient_mask=cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL,
         use_flash_attn=cfg.MODEL.DEFORMABLE.USE_FLASH_ATTN,
     )
 
@@ -229,7 +229,7 @@ class Transformer(nn.Module):
         multiscale_feats,
         multiscale_pos_embs,
         ref_pos_embed_plus_feat,
-        multiscale_masks=None,
+        key_padding_mask=None,
     ):
         """
         Transformer module for multiscale deformable attention in PARQ.
@@ -285,8 +285,8 @@ class Transformer(nn.Module):
                     ).unsqueeze(0)
                     
                 lvl_pos_embed_flatten.append(lvl_pos_embed.permute(0, 2, 1))
-                if multiscale_masks is not None:
-                    mask = multiscale_masks[lvl]
+                if key_padding_mask is not None:
+                    mask = key_padding_mask[lvl]
                     masks_flatten.append(mask.flatten(1))
 
 
@@ -301,13 +301,13 @@ class Transformer(nn.Module):
                 (spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1])
             )
 
-            vessel_mask = None
-            if multiscale_masks is not None:
-                vessel_mask = torch.cat(masks_flatten, dim=1)
+            key_padding_mask = None
+            if key_padding_mask is not None:
+                key_padding_mask = torch.cat(masks_flatten, dim=1)
         else:
             extracted_feats_flatten = multiscale_feats 
             lvl_pos_embed_flatten = multiscale_pos_embs
-            vessel_mask = multiscale_masks
+            key_padding_mask = key_padding_mask
 
         if self.decoder_only:
             global_feats = extracted_feats_flatten
@@ -334,6 +334,6 @@ class Transformer(nn.Module):
             lvl_pos_embed_flatten if self.use_global_pe else None,
             spatial_shapes,
             level_start_index,
-            vessel_mask 
+            key_padding_mask 
         )
         return box_predictions, init_reference_out, viz_outputs, None

@@ -121,7 +121,6 @@ class Base_Backbone(nn.Module):
         multiscale_pos_embs = self.get_positional_embeddings(
             multiscale_feats,
             vessel_dists,
-            # device="cpu" if self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK else self.device,
             device=self.device,
         )
 
@@ -163,21 +162,7 @@ class Base_Backbone(nn.Module):
                 masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
             multiscale_pos_embs = masked_pos_embs
 
-        elif vessel_segs is not None and self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V3:
-            # V3: project on full 3D volumes first (preserves GroupNorm stats),
-            # then mask all levels in a single pass.
-            # Gradient checkpointing wraps projection+masking together so the
-            # large projected volumes [B, d_model, D, H, W] are intermediates
-            # (not stored for backward) — only the small masked output is kept.
-            n = len(multiscale_feats)
-            all_args = (*multiscale_feats, *multiscale_pos_embs, *multiscale_masks, level_emb)
-            multiscale_feats, multiscale_pos_embs, multiscale_masks = (
-                torch.utils.checkpoint.checkpoint(
-                    self._project_and_mask_all, n, *all_args, use_reentrant=False
-                )
-            )
-
-        elif vessel_segs is not None and self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK:
+        elif vessel_segs is not None:
 
             multiscale_feats, multiscale_masks, level_indices = self.flatten_features(
                 multiscale_feats,
@@ -215,100 +200,7 @@ class Base_Backbone(nn.Module):
         else:
             for i, feat in enumerate(multiscale_feats):
                 multiscale_feats[i] = self.input_proj_list[i](feat)
-        # print(multiscale_feats.shape,  (~multiscale_masks).sum())
         return (multiscale_feats, multiscale_pos_embs, multiscale_masks)
-
-    # def get_level_indices(self, multiscale_feats):
-    #     level_indices = []
-    #     for lvl, feat in enumerate(multiscale_feats):
-
-    #         b, _, d, h, w = feat.shape
-    #         level = torch.full((b, d * h * w), lvl, dtype=torch.long).to(feat.device)
-    #         level_indices.append(level)
-    #     return level_indices
-
-    def _project_and_mask_all(self, n, *args):
-        """
-        Combined projection + masking, intended to be wrapped in
-        torch.utils.checkpoint so the full projected volumes are
-        intermediates (not stored for backward).
-        """
-        feats = list(args[:n])
-        pos_embs = list(args[n : 2 * n])
-        masks = list(args[2 * n : 3 * n])
-        level_emb = args[3 * n]
-
-        for i in range(n):
-            feats[i] = self.input_proj_list[i](feats[i])
-
-        return self.mask_flatten_all_levels(feats, pos_embs, masks, level_emb)
-
-    def mask_flatten_all_levels(
-        self, multiscale_feats, multiscale_pos_embs, multiscale_masks, level_emb
-    ):
-        """
-        Flatten projected features from all levels, mask to vessel-only tokens,
-        and pad across the batch — all in a single pass.
-
-        Args:
-            multiscale_feats: list of [B, d_model, D_i, H_i, W_i] (already projected)
-            multiscale_pos_embs: list of [C, N_i] or [B, C, N_i] pos embeddings per level
-            multiscale_masks: list of [B, 1, D_i, H_i, W_i] vessel masks per level
-            level_emb: nn.Parameter [n_levels, d_model]
-
-        Returns:
-            (padded_feats, padded_pos_embs, attn_mask):
-                padded_feats: [B, max_tokens, d_model]
-                padded_pos_embs: [B, max_tokens, d_model]
-                attn_mask: [B, max_tokens] (True = padding, for key_padding_mask)
-        """
-        bsz = multiscale_feats[0].shape[0]
-
-        # Per batch element: collect vessel tokens from all levels
-        batch_feats = []
-        batch_pos_embs = []
-        for b in range(bsz):
-            b_feats = []
-            b_pos = []
-            for lvl, feat in enumerate(multiscale_feats):
-                # Flatten spatial dims: [d_model, D, H, W] -> [N, d_model]
-                feat_flat = feat[b].flatten(1).transpose(0, 1)  # [N_i, d_model]
-                mask_flat = multiscale_masks[lvl][b].flatten().bool()  # [N_i]
-
-                # Pos emb: [C, N_i] -> [N_i, C]
-                pos_emb = multiscale_pos_embs[lvl]
-                if pos_emb.dim() == 2:
-                    pos_flat = pos_emb.transpose(0, 1)  # [N_i, C]
-                else:  # [B, C, N_i]
-                    pos_flat = pos_emb[b].transpose(0, 1)  # [N_i, C]
-
-                # Add level embedding before masking
-                lev_emb = level_emb[lvl]  # [d_model]
-                pos_flat = pos_flat + lev_emb.unsqueeze(0)
-
-                # Select vessel-only tokens
-                b_feats.append(feat_flat[mask_flat.to(feat_flat.device)])
-                b_pos.append(pos_flat[mask_flat.to(pos_flat.device)])
-
-            batch_feats.append(torch.cat(b_feats, dim=0))
-            batch_pos_embs.append(torch.cat(b_pos, dim=0))
-
-        # Pad to max length across batch
-        max_len = max(bf.shape[0] for bf in batch_feats)
-        d_model = multiscale_feats[0].shape[1]
-        device = multiscale_feats[0].device
-
-        padded_feats = torch.zeros((bsz, max_len, d_model), device=device)
-        padded_pos = torch.zeros((bsz, max_len, d_model), device=device)
-        attn_mask = torch.zeros((bsz, max_len), device=device, dtype=torch.bool)
-
-        for b in range(bsz):
-            n = batch_feats[b].shape[0]
-            padded_feats[b, :n] = batch_feats[b]
-            padded_pos[b, :n] = batch_pos_embs[b]
-            attn_mask[b, n:] = True  # mask out padding positions
-
-        return padded_feats, padded_pos, attn_mask
 
     def mask_then_pad_levels_with_embs(
         self, bsz, multiscale_pos_embs, levels, multiscale_masks

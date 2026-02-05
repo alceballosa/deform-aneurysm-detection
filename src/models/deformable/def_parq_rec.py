@@ -217,8 +217,8 @@ class PARQ_Deformable_R(nn.Module):
         patches, nzhw, splits_boxes = self.split_com.split(input_batch[0]["image"])
         patches = np.concatenate(patches, axis=0)
         if self.use_vessel_info != "no":
-            patches_vessel, _, _ = self.split_com.split(input_batch[0]["mask"])
-            patches_vessel = np.concatenate(patches_vessel, axis=0)
+            patches_vessel_edt, _, _ = self.split_com.split(input_batch[0]["vessel_edt"])
+            patches_vessel_edt = np.concatenate(patches_vessel_edt, axis=0)
         if self.use_cvs_info != "no":
             patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
             patches_cvs = np.concatenate(patches_cvs, axis=0)
@@ -235,7 +235,7 @@ class PARQ_Deformable_R(nn.Module):
             cvs_data = None
             if self.use_vessel_info != "no":
                 vessel_data = torch.tensor(
-                    patches_vessel[i * bs : end], device=self.device
+                    patches_vessel_edt[i * bs : end], device=self.device
                 )
             if self.use_cvs_info != "no":
                 cvs_data = torch.tensor(patches_cvs[i * bs : end], device=self.device)
@@ -343,7 +343,7 @@ class PARQ_Deformable_R(nn.Module):
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
         
-        multiscale_feats, multiscale_pos_embs, multiscale_masks = self.backbone(
+        multiscale_feats, multiscale_pos_embs, key_padding_mask = self.backbone(
             x, vessel_dists, vessel_segs, self.transformer.level_embed
         )
 
@@ -352,7 +352,7 @@ class PARQ_Deformable_R(nn.Module):
                 multiscale_feats,
                 multiscale_pos_embs,
                 self.query_pos_embed_plus_query.weight,
-                multiscale_masks
+                key_padding_mask
             )
         )
         return box_prediction_list, viz_outputs
@@ -552,11 +552,11 @@ class PARQ_Deformable_R(nn.Module):
         vessel_dists = None
         cvs_dists = None
         if self.use_vessel_info in ["pos_emb", "start"]:
-            vessel_dists = [s["mask"] for s in all_samples]
+            vessel_dists = [s["vessel_edt"] for s in all_samples]
             vessel_dists = torch.tensor(np.stack(vessel_dists, axis=0))
             vessel_dists = vessel_dists.to(self.device)
 
-            # vessel_dists = [s["mask"] for s in all_samples]
+            # vessel_dists = [s["vessel_edt"] for s in all_samples]
             # vessel_dists = torch.stack(vessel_dists, dim=0)
             # vessel_dists = vessel_dists.to(self.device)
         if self.use_cvs_info in ["start"]:

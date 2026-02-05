@@ -125,7 +125,7 @@ class DetectionCropper:
                 - "all_rad": Lesion radii (N, 3)
                 - "all_cls": Lesion class labels (N,)
                 - "image_spacing": Voxel spacing (3,)
-                - "mask": Optional vessel segmentation mask
+                - "vessel_edt": Optional vessel segmentation mask
                 - "cvs_mask": Optional CVS mask
 
         Returns:
@@ -135,7 +135,7 @@ class DetectionCropper:
                 - "ctr": Lesion centers in patch coordinates
                 - "rad": Lesion radii in patch coordinates
                 - "cls": Lesion class labels
-                - "mask": Optional vessel mask patch
+                - "vessel_edt": Optional vessel mask patch
                 - "cvs_mask": Optional CVS mask patch
                 - "volume": Optional total vessel volume in patch
         """
@@ -161,9 +161,9 @@ class DetectionCropper:
         }
 
         # Add optional arrays if present
-        if "mask" in sample:
-            arrays_to_process["mask"] = {
-                "data": sample["mask"],
+        if "vessel_edt" in sample:
+            arrays_to_process["vessel_edt"] = {
+                "data": sample["vessel_edt"],
                 "interp": sitk.sitkNearestNeighbor,
             }
         if "cvs_mask" in sample:
@@ -315,8 +315,8 @@ class DetectionCropper:
                 patch_sample[key] = array_crops[key][i]
 
             # Add special vessel volume metric if mask is present
-            if "mask" in array_crops:
-                patch_sample["volume"] = array_crops["mask"][i].sum()
+            if "vessel_edt" in array_crops:
+                patch_sample["volume"] = array_crops["vessel_edt"][i].sum()
             samples.append(patch_sample)
             #print("Avail", all_cls, "  |  Chosen:", patch_sample["cls"])
             

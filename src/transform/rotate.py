@@ -195,11 +195,11 @@ class RandomMaskTranspose(RandomTranspose):
                 for transpose in transpose_list:
                     label_t = np.transpose(label_t, transpose)
                 sample["label"] = label_t
-            if "mask" in sample:
-                mask_t = sample["mask"]
+            if "vessel_edt" in sample:
+                mask_t = sample["vessel_edt"]
                 for transpose in transpose_list:
                     mask_t = np.transpose(mask_t, transpose)
-                sample["mask"] = mask_t
+                sample["vessel_edt"] = mask_t
             if "cvs_mask" in sample:
                 cvs_mask_t = sample["cvs_mask"]
                 for transpose in transpose_list:
@@ -273,9 +273,9 @@ class RandomMaskRotate(RandomRotate):
                 cvs_mask_t = self.__apply_transformation(cvs_mask, transform_param_list, 0)
                 sample["cvs_mask"] = cvs_mask_t
 
-            if "mask" in sample:
-                mask = sample["mask"]
+            if "vessel_edt" in sample:
+                mask = sample["vessel_edt"]
                 mask_t = self.__apply_transformation(mask, transform_param_list, 0)
-                sample["mask"] = mask_t
+                sample["vessel_edt"] = mask_t
 
         return sample

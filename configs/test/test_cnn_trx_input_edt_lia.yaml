@@ -24,7 +24,7 @@ MODEL:
       DO_CLF_FOCAL: False
 SOLVER:
   SCANS_PER_BATCH: 1
-  SAMPLES_PER_SCAN:  2
+  SAMPLES_PER_SCAN:  8
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
@@ -44,7 +44,7 @@ TEST:
 DATALOADER:
   NUM_WORKERS: 1
 DATA:
-  PATCH_SIZE: [256,256,256]
+  PATCH_SIZE: [128,128,128]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info

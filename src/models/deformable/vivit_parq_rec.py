@@ -220,7 +220,7 @@ class PARQ_ViViT(nn.Module):
         patches, nzhw, splits_boxes = self.split_com.split(input_batch[0]["image"])
         patches = np.concatenate(patches, axis=0)
         if self.use_vessel_info != "no":
-            patches_vessel, _, _ = self.split_com.split(input_batch[0]["mask"])
+            patches_vessel, _, _ = self.split_com.split(input_batch[0]["vessel_edt"])
             patches_vessel = np.concatenate(patches_vessel, axis=0)
         if self.use_cvs_info != "no":
             patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
@@ -539,11 +539,11 @@ class PARQ_ViViT(nn.Module):
         vessel_dists = None
         cvs_dists = None
         if self.use_vessel_info in ["pos_emb", "start"]:
-            vessel_dists = [s["mask"] for s in all_samples]
+            vessel_dists = [s["vessel_edt"] for s in all_samples]
             vessel_dists = torch.tensor(np.stack(vessel_dists, axis=0))
             vessel_dists = vessel_dists.to(self.device)
 
-            # vessel_dists = [s["mask"] for s in all_samples]
+            # vessel_dists = [s["vessel_edt"] for s in all_samples]
             # vessel_dists = torch.stack(vessel_dists, dim=0)
             # vessel_dists = vessel_dists.to(self.device)
         if self.use_cvs_info in ["start"]:

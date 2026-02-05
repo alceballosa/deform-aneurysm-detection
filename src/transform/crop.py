@@ -164,10 +164,10 @@ class RandomMaskCrop(RandomCrop):
         image_t = crop_ND_volume_with_bounding_box(image, crop_min, crop_max)
         sample["image"] = image_t
 
-        if "mask" in sample:
-            mask = sample["mask"]
+        if "vessel_edt" in sample:
+            mask = sample["vessel_edt"]
             mask_t = crop_ND_volume_with_bounding_box(mask, crop_min, crop_max)
-            sample["mask"] = mask_t
+            sample["vessel_edt"] = mask_t
 
         if "cvs_mask" in sample:
             cvs_mask = sample["cvs_mask"]

@@ -236,7 +236,7 @@ class CTADatasetMapper:
             dataset_dict["image_spacing"] = data["image_spacing"]
 
             if self.cfg.MODEL.USE_VESSEL_INFO != "no":
-                dataset_dict["mask"] = torch.tensor(data["mask"], device="cpu")
+                dataset_dict["vessel_edt"] = torch.tensor(data["vessel_edt"], device="cpu")
 
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"], device="cpu")
@@ -265,7 +265,7 @@ class CTADatasetMapper:
                 - "all_loc": Lesion locations in voxel coords (train only)
                 - "all_rad": Lesion radii (train only)
                 - "all_cls": Lesion class labels (train only)
-                - "mask": Vessel mask (if configured)
+                - "vessel_edt": Vessel mask (if configured)
                 - "cvs_mask": CVS mask (if configured)
         """
         outputs = {}
@@ -308,7 +308,7 @@ class CTADatasetMapper:
 
         vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
         vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
-        outputs["mask"] = vessel
+        outputs["vessel_edt"] = vessel
 
         if self.cfg.MODEL.USE_CVS_INFO != "no":
             cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])

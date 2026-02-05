@@ -76,40 +76,6 @@ class DeformableTransformerDecoderLayer(nn.Module):
         x = self.norm3(x)
         return x
 
-    def mask_and_pad_keys(self, keys, vessel_masks):
-        # keys: (N, S, E)
-        # vessel_masks: (N, S)  boolean mask where True indicates valid (vessel) positions
-        masked_keys = []
-        for b in range(keys.shape[0]):
-            b_key = keys[b]  # (S, E)
-            b_mask = vessel_masks[b]  # (S,)
-            b_masked = b_key[b_mask.bool(), :]  # select only vessel positions
-            masked_keys.append(b_masked)
-
-        max_length = 0
-        for mk in masked_keys:
-            if mk.shape[0] > max_length:
-                max_length = mk.shape[0]
-
-        padded_keys = torch.zeros(
-            (keys.shape[0], max_length, keys.shape[2]), device=keys.device
-        )
-        for b in range(keys.shape[0]):
-            mk = masked_keys[b]
-            padded_keys[b, : mk.shape[0], :] = mk
-
-        attn_mask = torch.zeros(
-            (keys.shape[0], max_length), device=keys.device, dtype=torch.bool
-        )
-        for b in range(keys.shape[0]):
-            mk = masked_keys[b]
-            attn_mask[b, mk.shape[0]:] = True  # mask out the padded positions
-
-        return (
-            padded_keys,
-            attn_mask,
-        )  # list of length N, each element is (num_vessel_positions, E)
-
     def forward(
         self,
         ref,
@@ -119,7 +85,7 @@ class DeformableTransformerDecoderLayer(nn.Module):
         global_pos_embed,
         global_feats_spatial_shapes,
         level_start_index,
-        vessel_masks=False,
+        key_padding_mask=None,
     ):
         # self attention
         q = k = self.with_pos_embed(ref, ref_pos_embed)
@@ -133,23 +99,14 @@ class DeformableTransformerDecoderLayer(nn.Module):
 
         if not self.use_deform_attn:
             if not self.use_flash_attn:
-                attn_mask = None
                 q = self.with_pos_embed(ref, ref_pos_embed)
                 k = self.with_pos_embed(global_feats, global_pos_embed)
-                if vessel_masks is not None:
-                    if not self.use_efficient_mask:
-                        k, attn_mask = self.mask_and_pad_keys(k, vessel_masks)
-                    else:
-                        # assume the attn mask is provided already
-                        attn_mask = vessel_masks 
-                
-                # print(q.shape, k.shape)
 
                 ref2 = self.cross_attn(
                     query=q.transpose(0, 1),
                     key=k.transpose(0, 1),
                     value=k.transpose(0, 1),
-                    key_padding_mask=attn_mask,
+                    key_padding_mask=key_padding_mask,
                 )
 
                 attn_weights = ref2[1]
@@ -240,7 +197,7 @@ class DeformableTransformerDecoder(nn.Module):
         global_pos_embed,
         src_spatial_shapes,
         src_level_start_index,
-        vessel_masks=None,
+        key_padding_mask=None,
     ):
         output = ref
 
@@ -267,7 +224,7 @@ class DeformableTransformerDecoder(nn.Module):
                 global_pos_embed,
                 src_spatial_shapes,
                 src_level_start_index,
-                vessel_masks,
+                key_padding_mask,
             )
 
             if self.use_deform_attn:

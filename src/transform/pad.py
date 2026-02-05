@@ -97,14 +97,14 @@ class MaskPad(Pad):
         # print(image_t.shape, input_shape)
         sample["image"] = image_t
 
-        if "mask" in sample:
-            mask = sample["mask"]
+        if "vessel_edt" in sample:
+            mask = sample["vessel_edt"]
             mask_t = (
                 np.pad(mask, pad, "constant", constant_values=0)
                 if (max(margin) > 0)
                 else mask
             )
-            sample["mask"] = mask_t
+            sample["vessel_edt"] = mask_t
         if "label" in sample:
             label = sample["label"]
             label_t = (

@@ -95,9 +95,9 @@ class RandomMaskFlip(AbstractTransform):
                 label = sample["label"]
                 sample["label"] = np.flip(label, flip_axis).copy()
 
-            if "mask" in sample:
-                mask = sample["mask"]
-                sample["mask"] = np.flip(mask, flip_axis).copy()
+            if "vessel_edt" in sample:
+                mask = sample["vessel_edt"]
+                sample["vessel_edt"] = np.flip(mask, flip_axis).copy()
 
             if "cvs_mask" in sample:
                 mask = sample["cvs_mask"]
