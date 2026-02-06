@@ -10,6 +10,7 @@
 #SBATCH --output=./logs/exec.%j.%x.out
 #SBATCH --error=./logs/exec.%j.%x.out
 #SBATCH --nice=0
+#SBATCH --dependency=singleton
 
 # Auto-detect number of GPUs from SLURM allocation
 export NUM_GPUS=${SLURM_GPUS_ON_NODE:-1}
