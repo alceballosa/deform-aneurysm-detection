@@ -29,9 +29,33 @@ from torch import nn
 
 
 class HungarianMatcherModified(nn.Module):
-    """This is modified from the HungarianMatcher and Aside from Hungarian matching, we also match the GT box and
-    the predictions whose corresponding reference points are in close proximity to this GT box, since
-    for two adjacent reference points which have the similar queries, they should both detect nearby objects.
+    """Modified Hungarian matcher that combines two matching strategies:
+
+    1. **Hungarian matching**: Standard LSAP (linear sum assignment problem) to find
+       optimal 1-to-1 prediction-to-GT assignment based on classification + L1 center cost.
+
+    2. **Proximity matching**: Additionally matches predictions whose reference points
+       fall within L1 distance < `match_dist_threshold` of a GT center. This provides extra supervision
+       for queries near GT objects (since adjacent reference points with similar features
+       should both learn to detect nearby objects).
+
+    Returns:
+        indices: List[Tuple[np.ndarray, np.ndarray]] — per-sample matched (pred, gt) index pairs.
+            Combines Hungarian + proximity matches, deduplicated by pred index.
+        punish_mask_list: List[torch.Tensor] — per-sample boolean mask over all queries.
+            Used in compute_losses to weight the classification loss:
+            - True  → query contributes to classification loss (punished)
+            - False → query is excluded from classification loss (silenced)
+
+    Punish mask behavior:
+        The mask controls which queries participate in the classification loss.
+        Two separate boolean masks are tracked across all GTs and combined:
+        - nearby_any_gt: accumulates queries within L1 distance < match_dist_threshold of ANY GT
+        - selected_for_supervision: accumulates queries picked for supervision by ANY GT
+        Final mask: punish_mask = ~nearby_any_gt | selected_for_supervision
+        - Far-from-all-GTs queries → True (punished toward background)
+        - Nearby + selected for any GT → True (supervised with correct class target)
+        - Nearby + never selected → False (silenced — ambiguous zone near GT)
     """
 
     def __init__(
@@ -39,36 +63,56 @@ class HungarianMatcherModified(nn.Module):
         cost_class: float = 1,
         cost_bbox: float = 1,
         cost_giou: float = 1,
-        ratio=0.5,
-        max_padding=10,
+        match_dist_threshold=0.5,
+        max_nearby_per_gt=8,
     ):
         """Creates the matcher
+
         Params:
-            cost_class: This is the relative weight of the classification error in the matching cost
-            cost_bbox: This is the relative weight of the L1 error of the bounding box coordinates in the matching cost
-            cost_giou: This is the relative weight of the giou loss of the bounding box in the matching cost
+            cost_class: Relative weight of classification error in Hungarian matching cost.
+            cost_bbox: Relative weight of L1 center distance in Hungarian matching cost.
+            cost_giou: Unused (vestigial from DETR's GIoU matching cost).
+            match_dist_threshold: L1 distance threshold for proximity matching. Predictions with
+                L1 distance to a GT center < match_dist_threshold are considered "nearby".
+            max_nearby_per_gt: Maximum number of proximity-matched predictions per GT box.
+                If more predictions are nearby, a random subset of this size is selected.
         """
         super().__init__()
         self.cost_class = cost_class
         self.cost_bbox = cost_bbox
         self.cost_giou = cost_giou
-        self.ratio = ratio
-        self.max_padding = max_padding
+        self.match_dist_threshold = match_dist_threshold
+        self.max_nearby_per_gt = max_nearby_per_gt
         assert (
             cost_class != 0 or cost_bbox != 0 or cost_giou != 0
         ), "all costs cant be 0"
 
     def forward(self, preds, targets):
+        """Match predictions to ground truth using Hungarian + proximity matching.
+
+        Args:
+            preds: Dict with keys:
+                - "class_logits": (bs, num_queries, num_classes)
+                - "pre_refinement_center": (bs, num_queries, 3) — reference point locations
+            targets: List[Dict] of length bs, each with keys:
+                - "labels": (num_objects,) — class indices
+                - "center": (num_objects, 3) — GT center coordinates
+                - "corners": (num_objects, ...) — GT box corners (unused in proximity check)
+
+        Returns:
+            indices: List of [pred_indices, gt_indices] arrays per sample
+            penalize_mask_list: List of boolean tensors per sample (see class docstring)
+        """
         with torch.no_grad():
             bs, num_queries = preds["class_logits"].shape[:2]
 
             out_prob = preds["class_logits"].softmax(
                 -1
-            )  # [batch_size * num_queries, num_classes]
+            )  # [batch_size, num_queries, num_classes]
 
             indices = []
-            punish_mask_list = []
-            assert bs == len(targets) #this is actually volume length
+            penalize_mask_list = []
+            assert bs == len(targets)  # this is actually volume length
             for batch_idx in range(bs):
                 pred_center = preds["pre_refinement_center"][batch_idx]
                 pred_cls_prob = out_prob[batch_idx]
@@ -79,7 +123,7 @@ class HungarianMatcherModified(nn.Module):
                 num_objects = len(tgt_cls)
                 if num_objects == 0:  # empty object in key frame
                     indices.append([])
-                    punish_mask_list.append([])
+                    penalize_mask_list.append([])
                     continue
 
                 # ---hungarian matching---
@@ -89,40 +133,61 @@ class HungarianMatcherModified(nn.Module):
                 cost = (
                     self.cost_bbox * cost_center + self.cost_class * cost_class
                 )  # + 100.0 * (~is_in_boxes_and_center)
-                indices_batchi = linear_sum_assignment(cost.cpu())
-                indices_batchi = list(indices_batchi)
+                matched_pairs = linear_sum_assignment(cost.cpu())
+                matched_pairs = list(matched_pairs)
                 # -----------------------
 
-                # ---match the GT box and the predictions whose corresponding reference points
-                # are in close proximity to this GT box---
+                # --- Proximity matching ---
+                # For each GT, find predictions within L1 distance < match_dist_threshold and add
+                # them as extra matched pairs (on top of Hungarian matches).
+                # Also build a punish_mask to control classification loss weighting.
+                #
+                # Two separate masks track independent concerns:
+                #   nearby_any_gt: True if query is within match_dist_threshold of ANY GT
+                #   selected_for_supervision: True if query was picked for supervision by ANY GT
+                # Final mask: silence only queries that are nearby but never selected.
                 pred_indices = []
                 gt_indices = []
+                nearby_any_gt = torch.zeros(num_queries, dtype=torch.bool, device=cost_center.device)
+                selected_for_supervision = torch.zeros(num_queries, dtype=torch.bool, device=cost_center.device)
                 for j, box_j in enumerate(tgt_corners):
-                    inside_sph = cost_center[..., j] < self.ratio
+                    inside_sph = cost_center[..., j] < self.match_dist_threshold
                     pred_ind = torch.nonzero(inside_sph).squeeze(1).data.cpu().numpy()
-                    punish_mask = torch.ones_like(inside_sph).bool()
-                    punish_mask[pred_ind] = False
-                    # filter out based on max padding
-                    if pred_ind.shape[0] > self.max_padding:
+
+                    nearby_any_gt[pred_ind] = True
+
+                    # Cap the number of proximity matches per GT box.
+                    # If more nearby predictions than max_nearby_per_gt, randomly subsample.
+                    if pred_ind.shape[0] > self.max_nearby_per_gt:
                         choose = np.random.choice(
-                            pred_ind.shape[0], self.max_padding, replace=False
+                            pred_ind.shape[0], self.max_nearby_per_gt, replace=False
                         )
                         pred_ind = pred_ind[choose]
-                    punish_mask[pred_ind] = True
+
+                    selected_for_supervision[pred_ind] = True
                     pred_indices.append(pred_ind)
                     gt_indices.append(np.ones_like(pred_ind) * j)
+
+                # Silence only queries that are nearby some GT but never selected.
+                # Far queries: ~nearby(F) | selected(F) = T (punished toward background)
+                # Nearby + selected: ~nearby(T) | selected(T) = T (supervised with GT target)
+                # Nearby + not selected: ~nearby(T) | selected(F) = F (silenced)
+                penalize_mask = ~nearby_any_gt | selected_for_supervision
                 pred_indices = np.concatenate(pred_indices)
                 gt_indices = np.concatenate(gt_indices)
                 # ----------------------
 
-                indices_batchi[0] = np.concatenate([indices_batchi[0], pred_indices])
-                indices_batchi[1] = np.concatenate([indices_batchi[1], gt_indices])
-                # TODO: review here!!
-                # remove the redundant
-                _, inverse_indices = np.unique(indices_batchi[0], return_index=True)
-                indices_batchi[0] = indices_batchi[0][inverse_indices]
-                indices_batchi[1] = indices_batchi[1][inverse_indices]
+                # Merge Hungarian and proximity matches
+                matched_pairs[0] = np.concatenate([matched_pairs[0], pred_indices])
+                matched_pairs[1] = np.concatenate([matched_pairs[1], gt_indices])
 
-                indices.append(indices_batchi)
-                punish_mask_list.append(punish_mask)
-        return indices, punish_mask_list
+                # Deduplicate by pred index: if a prediction was matched by both
+                # Hungarian and proximity, keep the first occurrence (Hungarian takes
+                # priority since it's concatenated first).
+                _, inverse_indices = np.unique(matched_pairs[0], return_index=True)
+                matched_pairs[0] = matched_pairs[0][inverse_indices]
+                matched_pairs[1] = matched_pairs[1][inverse_indices]
+
+                indices.append(matched_pairs)
+                penalize_mask_list.append(penalize_mask)
+        return indices, penalize_mask_list

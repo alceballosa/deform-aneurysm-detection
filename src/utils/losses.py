@@ -30,7 +30,7 @@ def no_targets_cross_entropy_loss(class_logits, class_weight):
     return loss
 
 
-def focal_loss(classes_pred, targets, matched_indices_i, alpha, gamma):
+def focal_loss(classes_pred, targets, matched_indices_i, alpha, gamma, penalize_mask=None):
     matched_classes_target = targets["labels"][matched_indices_i[1]].long()
     classes_target = torch.full(
         (classes_pred.shape[0],),
@@ -53,7 +53,12 @@ def focal_loss(classes_pred, targets, matched_indices_i, alpha, gamma):
     binary_cross_entropy = F.binary_cross_entropy_with_logits(
         classes_pred, classes_target.float(), reduction="none"
     )
-    loss = (focal_weight * binary_cross_entropy).mean()
+    # per-query loss: sum across classes, then apply penalize_mask across queries
+    per_query_loss = (focal_weight * binary_cross_entropy).sum(dim=-1)
+    if penalize_mask is not None:
+        loss = (per_query_loss * penalize_mask).sum() / penalize_mask.sum()
+    else:
+        loss = per_query_loss.mean()
     return loss
 
 

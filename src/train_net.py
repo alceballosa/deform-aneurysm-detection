@@ -62,7 +62,7 @@ from src.dataset import (
     setup_data_catalog,
 )
 from src.evaluator import CTAEvaluator
-from src.hook import PeriodicCudaCacheClearer
+from src.hook import GPUUtilizationTracker, PeriodicCudaCacheClearer
 from src.utils.optim import maybe_add_grad_clip_and_accum, retrieve_scheduler
 
 did_training = False
@@ -98,10 +98,14 @@ def get_inference_iters(cfg):
 class Trainer(DefaultTrainer):
     def __init__(self, cfg):
         super(Trainer, self).__init__(cfg)
+        hooks = [GPUUtilizationTracker(period=20)]
         if cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD:
-            self.register_hooks(
-                [PeriodicCudaCacheClearer(cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD)]
-            )
+            hooks.append(PeriodicCudaCacheClearer(cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD))
+        # Insert before PeriodicWriter (last default hook) so gpu_util
+        # is in storage when the writer prints.
+        writer_hook = self._hooks.pop()
+        self.register_hooks(hooks)
+        self.register_hooks([writer_hook])
 
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):

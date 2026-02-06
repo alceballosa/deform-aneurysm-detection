@@ -112,7 +112,14 @@ class PARQ_ViViT(nn.Module):
         # TODO: do this in a better way
         self.query_pos_embed_plus_query = nn.Embedding(num_queries, d_model * 2)
         self.transformer = build_deformable_transformer(cfg)
-        self.matcher = HungarianMatcherModified(cost_class=2, cost_bbox=0.25)
+        matcher_cfg = cfg.MODEL.PARQ_MODEL.MATCHER
+        self.matcher = HungarianMatcherModified(
+            cost_class=matcher_cfg.COST_CLASS,
+            cost_bbox=matcher_cfg.COST_BBOX,
+            cost_giou=matcher_cfg.COST_GIOU,
+            match_dist_threshold=matcher_cfg.MATCH_DIST_THRESHOLD,
+            max_nearby_per_gt=matcher_cfg.MAX_NEARBY_PER_GT,
+        )
         self.__init_weight()
 
     @property
@@ -421,15 +428,13 @@ class PARQ_ViViT(nn.Module):
 
                     # category loss
                     if self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.DO_CLF_FOCAL:
-                        matched_classes_target = targets[i]["labels"][
-                            matched_indices[i][1]
-                        ].long()
                         cat_loss = focal_loss(
                             out_dict["class_logits"][i],
                             targets[i],
                             matched_indices[i],
                             self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.FOCAL_ALPHA,
                             self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.FOCAL_GAMMA,
+                            penalize_mask=penalize_mask[i],
                         )
                     else:
                         # TODO: modularize into losses.py

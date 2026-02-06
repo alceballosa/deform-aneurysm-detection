@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.multiprocessing as mp
-from sklearn.metrics._ranking import _binary_clf_curve
+from sklearn.metrics._ranking import binary_classifcation_curve
 from tabulate import tabulate
 from torch.multiprocessing import Process
 from tqdm import tqdm
@@ -762,7 +762,7 @@ def compute_froc(preds, gts, n_pos, n_imgs, *, outputs=None):
             - thresholds: Array of score thresholds corresponding to each point
     """
 
-    fps, tps, thrs = _binary_clf_curve(gts, preds)
+    fps, tps, thrs = binary_classifcation_curve(gts, preds)
 
     if outputs:
         assert outputs[-4:] == ".pth"

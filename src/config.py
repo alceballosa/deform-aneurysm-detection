@@ -131,25 +131,12 @@ def add_config(cfg):
     cfg.MODEL.PARQ_MODEL.PARQ_LOSS.FOCAL_GAMMA = 2.0
     cfg.MODEL.PARQ_MODEL.PARQ_LOSS.FOCAL_ALPHA = 0.75
 
-    cfg.MODEL.CONV_MODEL.DET_LOSS = CN()
-    # number of matching anchors for each annotations
-    cfg.MODEL.CONV_MODEL.DET_LOSS.TOPK = 7
-    # number of ignored anchors is the next topk*ignore_ration anchors
-    cfg.MODEL.CONV_MODEL.DET_LOSS.IGNORE_RATIO = 26
-    cfg.MODEL.CONV_MODEL.DET_LOSS.FOCAL_GAMMA = 2.0
-    cfg.MODEL.CONV_MODEL.DET_LOSS.FOCAL_ALPHA = 0.75
-
-    # number of neg anchors to samples
-    cfg.MODEL.CONV_MODEL.DET_LOSS.NUM_NEG = 10000
-    # top hard neg anchor when there is no positive anchor
-    cfg.MODEL.CONV_MODEL.DET_LOSS.NUM_HARD_NEG = 100
-    # neg:pos ratio when there are positive anchors
-    cfg.MODEL.CONV_MODEL.DET_LOSS.NEG_RATIO = 100
-    # NOTE: num_hard_neg and neg ratio should be equal and the loss is scaled up by this number
-    cfg.MODEL.CONV_MODEL.DET_LOSS.CLS_W = 1.0
-    cfg.MODEL.CONV_MODEL.DET_LOSS.SHAPE_W = 5.0
-    cfg.MODEL.CONV_MODEL.DET_LOSS.OFFSET_W = 5.0
-    cfg.MODEL.CONV_MODEL.DET_LOSS.IOU_W = 1.0
+    cfg.MODEL.PARQ_MODEL.MATCHER = CN()
+    cfg.MODEL.PARQ_MODEL.MATCHER.COST_CLASS = 2.0
+    cfg.MODEL.PARQ_MODEL.MATCHER.COST_BBOX = 0.25
+    cfg.MODEL.PARQ_MODEL.MATCHER.COST_GIOU = 1.0
+    cfg.MODEL.PARQ_MODEL.MATCHER.MATCH_DIST_THRESHOLD = 0.5
+    cfg.MODEL.PARQ_MODEL.MATCHER.MAX_NEARBY_PER_GT = 8
 
     cfg.MODEL.CONV_MODEL.DET_POSTPROCESS = CN()
     # topk candidates for each patch
@@ -161,8 +148,6 @@ def add_config(cfg):
     # topk after applying nms
     cfg.MODEL.CONV_MODEL.DET_POSTPROCESS.NMS_TOPK = 20
 
-    cfg.MODEL.SEMI_SPARSE = CN()
-    cfg.MODEL.SEMI_SPARSE.TOPK = 20  # choosing top k from mask prediction
 
     cfg.DATA = CN()
     cfg.DATA.N_CHANNELS = 1

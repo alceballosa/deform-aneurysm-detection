@@ -3,12 +3,10 @@ Python wrapper for running model evaluation across multiple datasets and checkpo
 
 Usage:
     python scripts/inference/run_evaluation.py \
-        --family lnt \
         --model lnt_cnn_trx_input_edt_lia_fps \
         --num-gpus 2
 
     python scripts/inference/run_evaluation.py \
-        --family lnt \
         --model lnt_cnn_trx_input_edt_lia_fps \
         --num-gpus 2 \
         --threshold 0.9 \
@@ -27,6 +25,22 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 RUN_INFERENCE_SCRIPT = SCRIPT_DIR / "run_inference.sh"
 RESULTS_DIR = PROJECT_ROOT / "results"
+CONFIGS_DIR = PROJECT_ROOT / "configs"
+
+
+def find_family(model: str) -> str:
+    """Auto-detect the config subdirectory (family) for a given model name."""
+    matches = []
+    for yaml_path in CONFIGS_DIR.glob(f"*/{model}.yaml"):
+        matches.append(yaml_path.parent.name)
+    if len(matches) == 0:
+        print(f"Error: No config found for model '{model}' in {CONFIGS_DIR}/*/")
+        sys.exit(1)
+    if len(matches) > 1:
+        print(f"Warning: Model '{model}' found in multiple families: {matches}")
+        print("Error: Ambiguous model name. Please specify the family manually with --family.")
+        sys.exit(1)
+    return matches[0]
 
 
 def load_config(family: str, model: str):
@@ -123,7 +137,7 @@ def main():
         description="Run model evaluation across datasets and checkpoints."
     )
     parser.add_argument(
-        "--family", required=True, help="Config subdirectory (e.g., lnt, trx, vst)"
+        "--family", default=None, help="Config subdirectory (e.g., lnt, trx, vst). Auto-detected if not provided."
     )
     parser.add_argument("--model", required=True, help="Config file name without .yaml")
     parser.add_argument("--num-gpus", type=int, required=True, help="Number of GPUs")
@@ -143,9 +157,12 @@ def main():
     )
     args = parser.parse_args()
 
+    # Auto-detect family if not provided
+    family = args.family if args.family else find_family(args.model)
+
     # Load model config
-    print(f"Loading config: configs/{args.family}/{args.model}.yaml")
-    cfg = load_config(args.family, args.model)
+    print(f"Loading config: configs/{family}/{args.model}.yaml")
+    cfg = load_config(family, args.model)
 
     checkpoints = list(cfg.TEST.EVALUATION_CHECKPOINTS)
     num_workers = cfg.DATALOADER.NUM_WORKERS
@@ -193,7 +210,7 @@ def main():
                 print(f"\n  [{current_run}/{total_runs}] Checkpoint: {checkpoint}")
                 returncode = run_inference(
                     dataset_name=dataset_name,
-                    family=args.family,
+                    family=family,
                     model=args.model,
                     checkpoint=checkpoint,
                     threshold=threshold,

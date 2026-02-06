@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "vs_cnn_4l_trx_2l_input_edt_lia_fps"
+  NAME: "da_cnn_4l_trx_2l_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -11,11 +11,9 @@ MODEL:
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
-    USE_DEFORM_ATTN: False
+    USE_DEFORM_ATTN: True
     N_LEVELS: 4
-    MASK_NON_VESSEL: True
-    EFFICIENT_MASK_V2: True
-    FIX_PE_SCALE: True 
+    MASK_NON_VESSEL: False
     N_DEC_LAYERS: 2
 SOLVER:
   SCANS_PER_BATCH: 16
