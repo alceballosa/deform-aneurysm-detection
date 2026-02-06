@@ -71,7 +71,6 @@ def build_deformable_transformer(cfg):
         class_head=class_head,
         size_head=size_head,
         use_efficient_mask=cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL,
-        use_flash_attn=cfg.MODEL.DEFORMABLE.USE_FLASH_ATTN,
     )
 
 
@@ -152,9 +151,6 @@ class Transformer(nn.Module):
         use_fixed_attn=False,
         use_deform_attn=True,
         use_efficient_mask=False,
-        use_flash_attn=False,
-        # TODO
-        # TODO: make this work, URGENT
     ):
         super().__init__()
         assert (
@@ -172,7 +168,6 @@ class Transformer(nn.Module):
         self.use_global_pe = use_global_pe
         self.reference_points = nn.Linear(dec_dim, 3)
         self.use_efficient_mask = use_efficient_mask
-        self.use_flash_attn = use_flash_attn
         if not decoder_only:
             encoder_layer = DeformableTransformerEncoderLayer(
                 enc_dim,
@@ -197,7 +192,6 @@ class Transformer(nn.Module):
             use_fixed_attn,
             use_deform_attn,
             use_efficient_mask,
-            use_flash_attn,
         )
         self.decoder = DeformableTransformerDecoder(
             decoder_layer,

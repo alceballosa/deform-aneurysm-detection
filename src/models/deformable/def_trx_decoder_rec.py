@@ -21,7 +21,6 @@ class DeformableTransformerDecoderLayer(nn.Module):
         use_fixed_attn=False,
         use_deform_attn=True,
         use_efficient_mask=False,
-        use_flash_attn=False,
     ):
         super().__init__()
 
@@ -29,21 +28,9 @@ class DeformableTransformerDecoderLayer(nn.Module):
 
         self.use_deform_attn = use_deform_attn
         self.use_efficient_mask = use_efficient_mask
-        self.use_flash_attn = use_flash_attn
         if not use_deform_attn:
-            if not use_flash_attn:
-                # assert n_levels == 1, "non-deformable attention only supports 1 level"
-                print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
-                self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
-            else:
-                from flash_attn.modules.mha import MHA
-                self.cross_attn = MHA(
-                    embed_dim=d_model,
-                    num_heads=n_heads,
-                    dropout=dropout,
-                    cross_attn=True,
-                    use_flash_attn=True,
-            )
+            print("\n" * 3, "Using regular attention instead of deformable!", "\n" * 3)
+            self.cross_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
         else:
             deform_attn_cls = MSDeformAttnFix if use_fixed_attn else MSDeformAttn
             self.cross_attn = deform_attn_cls(
@@ -98,29 +85,19 @@ class DeformableTransformerDecoderLayer(nn.Module):
         # cross attention
 
         if not self.use_deform_attn:
-            if not self.use_flash_attn:
-                q = self.with_pos_embed(ref, ref_pos_embed)
-                k = self.with_pos_embed(global_feats, global_pos_embed)
+            q = self.with_pos_embed(ref, ref_pos_embed)
+            k = self.with_pos_embed(global_feats, global_pos_embed)
 
-                ref2 = self.cross_attn(
-                    query=q.transpose(0, 1),
-                    key=k.transpose(0, 1),
-                    value=k.transpose(0, 1),
-                    key_padding_mask=key_padding_mask,
-                )
+            ref2 = self.cross_attn(
+                query=q.transpose(0, 1),
+                key=k.transpose(0, 1),
+                value=k.transpose(0, 1),
+                key_padding_mask=key_padding_mask,
+            )
 
-                attn_weights = ref2[1]
-                ref2 = ref2[0].transpose(0, 1)
-                sampling_locations = None
-                attn_weights = None
-            else:
-
-                q = self.with_pos_embed(ref, ref_pos_embed)
-                k = self.with_pos_embed(global_feats, global_pos_embed)
-                ref2 = self.cross_attn(q, k)
-                sampling_locations = None 
-                attn_weights = None
-            
+            ref2 = ref2[0].transpose(0, 1)
+            sampling_locations = None
+            attn_weights = None
         else:
             ref2, sampling_locations, attn_weights = self.cross_attn(
                 self.with_pos_embed(ref, ref_pos_embed),
