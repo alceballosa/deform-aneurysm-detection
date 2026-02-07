@@ -19,7 +19,7 @@ def rungdcmconv(input_folder, output_folder):
             ]
         )
 
-path_src = Path("/projects/vig/Datasets/aneurysm/competition/series/")
+path_src = Path("/projects/vig/Datasets/aneurysm/competition/compressed/series/")
 folders = sorted(list(path_src.glob("*")))
 path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/gdcmconv")
 os.makedirs(path_tgt, exist_ok=True)

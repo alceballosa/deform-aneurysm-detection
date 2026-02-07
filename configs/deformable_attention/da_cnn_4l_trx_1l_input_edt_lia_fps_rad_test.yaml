@@ -47,7 +47,6 @@ DATA:
     ROTATION: [90.0, 90.0, 90.0]
     SPACING: [0.9, 1.8]
     PADDED_REORIENT: True
-
     TRANSFORM_RAD: False
   DIR:
     TRAIN:

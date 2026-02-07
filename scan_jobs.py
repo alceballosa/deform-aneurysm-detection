@@ -16,17 +16,14 @@ def get_username():
 
 def get_latest_checkpoint(model_dir: Path):
     """Return latest checkpoint name, list of all .pth files, and mtime of latest."""
-    last_ckpt_file = model_dir / "last_checkpoint"
     pth_files = sorted([f.name for f in model_dir.glob("*.pth")])
     latest = None
-    if last_ckpt_file.exists():
-        latest = last_ckpt_file.read_text().strip()
-    elif pth_files:
-        latest = pth_files[-1]
-    # Get modification time of the latest checkpoint file
     mtime = 0.0
-    if latest and (model_dir / latest).exists():
-        mtime = (model_dir / latest).stat().st_mtime
+    if pth_files:
+        # Find the most recently modified .pth file
+        newest = max(model_dir.glob("*.pth"), key=lambda f: f.stat().st_mtime)
+        latest = newest.name
+        mtime = newest.stat().st_mtime
     return latest, pth_files, mtime
 
 def get_running_jobs(username: str):
