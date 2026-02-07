@@ -50,7 +50,7 @@ class Pad(AbstractTransform):
         if "vessel_edt" in sample:
             mask = sample["vessel_edt"]
             sample["vessel_edt"] = (
-                np.pad(mask, pad, "constant", constant_values=0)
+                np.pad(mask, pad, "edge")
                 if (max(margin) > 0)
                 else mask
             )
@@ -66,7 +66,7 @@ class Pad(AbstractTransform):
         if "cvs_mask" in sample:
             cvs_mask = sample["cvs_mask"]
             sample["cvs_mask"] = (
-                np.pad(cvs_mask, pad, "constant", constant_values=0)
+                np.pad(cvs_mask, pad, "edge")
                 if (max(margin) > 0)
                 else cvs_mask
             )
