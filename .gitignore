@@ -1,3 +1,4 @@
+tests/*.tsv
 status_report.md
 outputs/
 priv_code/

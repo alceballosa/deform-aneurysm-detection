@@ -128,7 +128,7 @@ class PARQ_ViViT(nn.Module):
             self._split_comb = SplitComb(
                 crop_size=self.cfg.DATA.PATCH_SIZE,
                 overlap=self.cfg.DATA.OVERLAP,
-                pad_value=self.cfg.DATA.WINDOW[0],  # padding min value of window
+                pad_value=-1,  # normalized minimum
             )
         return self._split_comb
 
@@ -246,8 +246,6 @@ class PARQ_ViViT(nn.Module):
                 )
             if self.use_cvs_info != "no":
                 cvs_data = torch.tensor(patches_cvs[i * bs : end], device=self.device)
-            # NOTE may need to normalize other things
-            batch_data = self.normalize_input_values(batch_data)
             prediction_dicts, viz_outputs = self._forward_network(
                 batch_data, vessel_data, cvs_data
             )
@@ -555,9 +553,6 @@ class PARQ_ViViT(nn.Module):
             # cvs_dists = [s["cvs_mask"] for s in all_samples]
             # cvs_dists = torch.stack(cvs_dists, dim=0)
             # cvs_dists = cvs_dists.to(self.device)
-        # imgs = np.stack(imgs)
-        # imgs = torch.tensor(imgs, device=self.device)
-        imgs = self.normalize_input_values(imgs)
         return imgs, vessel_dists, cvs_dists
 
     def preprocess_train_labels(self, input_batches: list):

@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "test_cnn_trx_input_edt_lia"
+  NAME: "vs_cnn_4l_trx_1l_bigpad_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -13,17 +13,13 @@ MODEL:
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    MASK_NON_VESSEL: True #11488M # 21000
-    EFFICIENT_MASK: False #4069M   # 7773M
-    EFFICIENT_MASK_V2: True #8544M #16000 # 17000 # 8200
-    FIX_PE_SCALE: True
-  PARQ_MODEL:
-    NUM_QUERIES: 8
-    PARQ_LOSS:
-      DO_CLF_FOCAL: False
+    MASK_NON_VESSEL: True
+    EFFICIENT_MASK_V2: True
+    FIX_PE_SCALE: True 
+    N_DEC_LAYERS: 1
 SOLVER:
-  SCANS_PER_BATCH: 1
-  SAMPLES_PER_SCAN:  8
+  SCANS_PER_BATCH: 16
+  SAMPLES_PER_SCAN: 4
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
@@ -40,10 +36,12 @@ SOLVER:
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
+  EVALUATION_CHECKPOINTS: ["0007999", "0011999", "0015999", "0019999", "final"]
+
 DATALOADER:
-  NUM_WORKERS: 1
+  NUM_WORKERS: 16
 DATA:
-  PATCH_SIZE: [128,128,128]
+  PATCH_SIZE: [128, 128, 128]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
@@ -51,8 +49,6 @@ DATA:
     ROTATION: [90.0, 90.0, 90.0]
     SPACING: [0.9, 1.8]
     PADDED_REORIENT: False
-    TRANSFORM_RAD: False
-    
   DIR:
     TRAIN:
       SCAN_DIR: "internal_train/crop_0.4"

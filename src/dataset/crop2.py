@@ -157,6 +157,7 @@ class DetectionCropper:
             "image": {
                 "data": sample["image"].astype("float32"),
                 "interp": sitk.sitkLinear,
+                "default_pixel_value": -1,
             }
         }
 
@@ -276,10 +277,11 @@ class DetectionCropper:
                 array_itk_crop = reorient(
                     arrays_itk[key],
                     matrix,
-                    crop_size,
                     spacing=list(space),
                     interp1=array_info["interp"],
-                    padded_reorient=self.padded_reorient,
+                    default_pixel_value=array_info.get(
+                        "default_pixel_value", 0
+                    ),
                 )
                 array_crop = sitk.GetArrayFromImage(array_itk_crop)
                 array_crops[key].append(np.expand_dims(array_crop, axis=0))
@@ -313,7 +315,7 @@ class DetectionCropper:
             # Add all cropped arrays to the sample
             for key in array_crops.keys():
                 patch_sample[key] = array_crops[key][i]
-
+                print(key, array_crops[key][i].shape)
             # Add special vessel volume metric if mask is present
             if "vessel_edt" in array_crops:
                 patch_sample["volume"] = array_crops["vessel_edt"][i].sum()
@@ -385,16 +387,25 @@ class DetectionCropper:
             )
         else:
             space = re_spacing
+
+        # Scale mark points so resampler output is exactly crop_size voxels.
+        # Each direction vector (Z-O, Y-O, X-O) gets scaled so that
+        # norm / spacing = crop_size, i.e. norm = (crop_size - 1) * spacing.
+        if not self.padded_reorient:
+            O = matrix[0]
+            # matrix = [O, X, Y, Z]; indices 1,2,3 map to space dims 2,1,0
+            for mark_idx, space_idx in [(1, 2), (2, 1), (3, 0)]:
+                direction = matrix[mark_idx] - O
+                matrix[mark_idx] = O + direction * space[space_idx]
+
         matrix = matrix[:, ::-1]  # Convert to ITK axis order
 
         # Create ITK image with transformation for coordinate mapping
         image_itk_crop = reorient(
             shadow_itk,
             matrix,
-            crop_size,
             spacing=list(space),
             interp1=sitk.sitkNearestNeighbor,
-            padded_reorient=self.padded_reorient,
         )
 
         # Transform lesion annotations to patch coordinates
@@ -525,27 +536,24 @@ def rand_rot_coord(coord, angle_range_d, angle_range_h, angle_range_w, rot_cente
 def reorient(
     itk_img,
     mark_matrix,
-    crop_size,
     spacing=[1.0, 1.0, 1.0],
     interp1=sitk.sitkLinear,
-    padded_reorient=False,
+    default_pixel_value=0,
 ):
     """
     Reorient and resample a SimpleITK image based on physical mark points.
 
     This function performs arbitrary 3D reorientation and resampling by defining
     a new coordinate system using four physical mark points (origin and three
-    axis endpoints).
+    axis endpoints). Output size is derived from mark point extents and spacing.
 
     Args:
         itk_img: SimpleITK image to reorient
         mark_matrix: 4x3 array of physical mark points in ITK coordinate order:
                      [origin, x_end, y_end, z_end]
-        crop_size: Output size in voxels [D, H, W]
         spacing: Output voxel spacing in ITK order [x, y, z] (default: [1.0, 1.0, 1.0])
         interp1: SimpleITK interpolator (default: sitk.sitkLinear)
-        padded_reorient: If True, use ceil for size calculation; if False, use exact
-                         crop_size (default: False)
+        default_pixel_value: Value for out-of-bounds voxels (default: 0)
 
     Returns:
         SimpleITK.Image: Reoriented and resampled image
@@ -573,22 +581,19 @@ def reorient(
         np.stack([x_base, y_base, z_base]).transpose().reshape(-1).tolist()
     )
 
-    # Set output size
+    # Compute output size from mark point extents
     x, y, z = (
         np.linalg.norm(x_mark - origin) / spacing[0],
         np.linalg.norm(y_mark - origin) / spacing[1],
         np.linalg.norm(z_mark - origin) / spacing[2],
     )
+    size_reorient = (
+        int(np.ceil(x + 0.5)),
+        int(np.ceil(y + 0.5)),
+        int(np.ceil(z + 0.5)),
+    )
 
-    if padded_reorient:
-        size_reorient = (
-            int(np.ceil(x + 0.5)),
-            int(np.ceil(y + 0.5)),
-            int(np.ceil(z + 0.5)),
-        )
-    else:
-        size_reorient = (int(crop_size[0]), int(crop_size[1]), int(crop_size[2]))
-
+    filter_resample.SetDefaultPixelValue(default_pixel_value)
     filter_resample.SetOutputOrigin(origin_reorient)
     filter_resample.SetOutputDirection(direction_reorient)
     filter_resample.SetSize(size_reorient)

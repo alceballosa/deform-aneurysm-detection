@@ -41,7 +41,7 @@ class Pad(AbstractTransform):
         pad = tuple([(0, 0)] + pad)
 
         image_t = (
-            np.pad(image, pad, "constant", constant_values=0)
+            np.pad(image, pad, "constant", constant_values=-1)
             if (max(margin) > 0)
             else image
         )

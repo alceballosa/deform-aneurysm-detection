@@ -145,7 +145,7 @@ class CTADatasetMapper:
         return SplitComb(
             crop_size=cfg.DATA.PATCH_SIZE,
             overlap=cfg.DATA.OVERLAP,
-            pad_value=cfg.DATA.WINDOW[0],  # padding min value of window
+            pad_value=-1,  # normalized minimum
         )
 
     def build_transforms(self):
@@ -250,7 +250,9 @@ class CTADatasetMapper:
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
 
-        if self.cfg.DATA.NORM_TYPE == "zscore":
+        if self.cfg.DATA.NORM_TYPE == "base":
+            image = self.normalize(image)
+        elif self.cfg.DATA.NORM_TYPE == "zscore":
             mean_value = image.mean()
             std_value = image.std()
             image = (image - mean_value) / std_value
@@ -295,20 +297,19 @@ class CTADatasetMapper:
 
     def normalize(self, data):
         """
-        Normalize image data using window-based min-max normalization.
+        Normalize image data using window-based normalization to [-1, 1].
 
-        Clips values to the configured window range and normalizes to [0, 1].
+        Clips values to the configured window range and normalizes to [-1, 1].
 
         Args:
             data: Input image array
 
         Returns:
-            np.ndarray: Normalized image in range [0, 1]
+            np.ndarray: Normalized image in range [-1, 1]
         """
         min_value, max_value = self.cfg.DATA.WINDOW
-        data[data > max_value] = max_value
-        data[data < min_value] = min_value
-        data = (data - min_value) / (max_value - min_value)
+        data = np.clip(data, min_value, max_value)
+        data = (data - (min_value + max_value) / 2) / ((max_value - min_value) / 2)
         return data
 
 
