@@ -7,8 +7,8 @@
 #SBATCH --mem=512
 #SBATCH --gres=gpu:a100:2
 #SBATCH  -cpus-per-gpu=8
-#SBATCH --output=./logs/exec.%j.%x.out
-#SBATCH --error=./logs/exec.%j.%x.out
+#SBATCH --output=./logs/exec.%j.train.%x.out
+#SBATCH --error=./logs/exec.%j.train.%x.out
 #SBATCH --nice=0
 #SBATCH --dependency=singleton
 

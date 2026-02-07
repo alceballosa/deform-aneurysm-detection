@@ -49,7 +49,7 @@ def rungdcmconv(input_folder, output_folder, df_localizers):
                 if len(coord.keys()) == 2:
                     x, y = int(coord["x"]), int(coord["y"])
                     zeros[y-5:y+5, x-5:x+5] = 1000 + val_loc
-                elif len(coord.keys()) = 3:
+                elif len(coord.keys()) == 3:
                     x, y, z = int(coord["x"]), int(coord["y"]), int(coord["f"])
                     zeros[z, y-5:y+5, x-5:x+5] = 1000 + val_loc
             
@@ -67,7 +67,7 @@ path_src = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/gdcmconv")
 folders = sorted(list(path_src.glob("*")))
 
 
-path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms")
+path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms_with_loc")
 os.makedirs(path_tgt, exist_ok=True)
 
 print(len(folders))

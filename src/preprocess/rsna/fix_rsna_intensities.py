@@ -21,7 +21,7 @@ for fil in tqdm.tqdm(filenames_fix):
     filename = fil.split("_")[0]
     dicom_path = path_og_data / filename
     dicom_files = list(dicom_path.glob("*.dcm"))
-    # read first dicom file
+    # read one dicom file
     ds = pydicom.dcmread(str(dicom_files[20]))
     try:
         rescale_intercept = ds.RescaleIntercept

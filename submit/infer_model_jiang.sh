@@ -7,8 +7,8 @@
 #SBATCH --mem=512
 #SBATCH --gres=gpu:a6000:2
 #SBATCH --cpus-per-gpu=8
-#SBATCH --output=./logs/exec.%j.%x.out
-#SBATCH --error=./logs/exec.%j.%x.out
+#SBATCH --output=./logs/exec.%j.infer.%x.out
+#SBATCH --error=./logs/exec.%j.infer.%x.out
 #SBATCH --nice=0
 
 # Auto-detect number of GPUs from SLURM allocation
