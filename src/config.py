@@ -69,6 +69,7 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.N_ENC_LAYERS = 2
     cfg.MODEL.DEFORMABLE.N_DEC_LAYERS = 2
     cfg.MODEL.DEFORMABLE.USE_DEFORM_ATTN = True
+    cfg.MODEL.DEFORMABLE.USE_VESSEL_MASKED_ENCODER = False  # Use full self-attention encoder with vessel masking
     cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL = False
     cfg.MODEL.DEFORMABLE.EFFICIENT_MASK = False
     cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 = False

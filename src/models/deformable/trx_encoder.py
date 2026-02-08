@@ -17,7 +17,7 @@ class TransformerEncoderLayer(nn.Module):
         super().__init__()
 
         # self attention
-        self.self_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout)
+        self.self_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout, batch_first=True)
         self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(d_model)
 
@@ -42,7 +42,7 @@ class TransformerEncoderLayer(nn.Module):
     def forward(self, global_feats, global_pos_embed, key_padding_mask):
         # self attention
         q = k = v = self.with_pos_embed(global_feats, global_pos_embed)
-        global_feats2, _, _ = self.self_attn(
+        global_feats2, _ = self.self_attn(
             query=q,
             key=k,
             value=v,

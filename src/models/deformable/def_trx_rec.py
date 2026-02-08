@@ -36,6 +36,10 @@ from src.models.deformable.def_trx_encoder import (
     DeformableTransformerEncoder,
     DeformableTransformerEncoderLayer,
 )
+from src.models.deformable.trx_encoder import (
+    TransformerEncoderLayer as VesselMaskedTransformerEncoderLayer,
+    DeformableTransformerEncoder as VesselMaskedTransformerEncoder,
+)
 from src.models.deformable.generic_mlp import GenericMLP
 from src.utils.general import get_clones
 from torch import nn
@@ -64,6 +68,7 @@ def build_deformable_transformer(cfg):
         use_fixed_attn=cfg.MODEL.DEFORMABLE.FIXED_ATTENTION,
         use_deform_attn=cfg.MODEL.DEFORMABLE.USE_DEFORM_ATTN,
         decoder_only=cfg.MODEL.DEFORMABLE.DECODER_ONLY,
+        use_vessel_masked_encoder=cfg.MODEL.DEFORMABLE.USE_VESSEL_MASKED_ENCODER,
         with_recurrence=cfg.MODEL.DEFORMABLE.WITH_RECURRENCE,
         with_stepwise_loss=cfg.MODEL.DEFORMABLE.WITH_STEPWISE_LOSS,
         shared_heads=cfg.MODEL.DEFORMABLE.SHARED_CENTER_HEAD,
@@ -144,6 +149,7 @@ class Transformer(nn.Module):
         use_global_pe=False,
         offset_init="strict",
         decoder_only=False,
+        use_vessel_masked_encoder=False,
         with_recurrence=False,
         with_stepwise_loss=False,
         return_intermediate_dec=False,
@@ -164,21 +170,35 @@ class Transformer(nn.Module):
 
         self.n_levels = n_levels
         self.decoder_only = decoder_only
+        self.use_vessel_masked_encoder = use_vessel_masked_encoder
         self.level_embed = nn.Parameter(torch.Tensor(n_levels, dec_dim))
         self.use_global_pe = use_global_pe
         self.reference_points = nn.Linear(dec_dim, 3)
         self.use_efficient_mask = use_efficient_mask
         if not decoder_only:
-            encoder_layer = DeformableTransformerEncoderLayer(
-                enc_dim,
-                enc_ffn_dim,
-                dropout_rate,
-                activation,
-                n_levels,
-                enc_heads,
-                n_enc_points,
-            )
-            self.encoder = DeformableTransformerEncoder(encoder_layer, n_enc_layers)
+            if use_vessel_masked_encoder:
+                # Use full self-attention encoder for vessel-masked architecture
+                encoder_layer = VesselMaskedTransformerEncoderLayer(
+                    enc_dim,
+                    enc_ffn_dim,
+                    dropout_rate,
+                    activation,
+                    n_levels,
+                    enc_heads,
+                )
+                self.encoder = VesselMaskedTransformerEncoder(encoder_layer, n_enc_layers)
+            else:
+                # Use deformable attention encoder
+                encoder_layer = DeformableTransformerEncoderLayer(
+                    enc_dim,
+                    enc_ffn_dim,
+                    dropout_rate,
+                    activation,
+                    n_levels,
+                    enc_heads,
+                    n_enc_points,
+                )
+                self.encoder = DeformableTransformerEncoder(encoder_layer, n_enc_layers)
 
         decoder_layer = DeformableTransformerDecoderLayer(
             dec_dim,
@@ -306,12 +326,21 @@ class Transformer(nn.Module):
         if self.decoder_only:
             global_feats = extracted_feats_flatten
         else:
-            global_feats = self.encoder(
-                extracted_feats_flatten,
-                spatial_shapes,
-                level_start_index,
-                lvl_pos_embed_flatten,
-            )
+            if self.use_vessel_masked_encoder:
+                # Vessel-masked encoder uses full self-attention (doesn't need spatial_shapes)
+                global_feats = self.encoder(
+                    extracted_feats_flatten,
+                    lvl_pos_embed_flatten,
+                    key_padding_mask,
+                )
+            else:
+                # Deformable encoder needs spatial_shapes for reference points
+                global_feats = self.encoder(
+                    extracted_feats_flatten,
+                    spatial_shapes,
+                    level_start_index,
+                    lvl_pos_embed_flatten,
+                )
         #
         bs, _, c = global_feats.shape
         ref_pos_embed, ref = torch.split(ref_pos_embed_plus_feat, c, dim=1)
