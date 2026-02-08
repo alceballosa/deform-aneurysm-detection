@@ -51,7 +51,7 @@ DATA:
     PADDED_REORIENT: False
   DIR:
     TRAIN:
-      SCAN_DIR: "internal_train/crop_0.4"
+      SCAN_DIR: "internal_train/crop_0.4_compressed"
       VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       CVS_DIR: "internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia_with_fps.csv"

@@ -315,7 +315,6 @@ class DetectionCropper:
             # Add all cropped arrays to the sample
             for key in array_crops.keys():
                 patch_sample[key] = array_crops[key][i]
-                print(key, array_crops[key][i].shape)
             # Add special vessel volume metric if mask is present
             if "vessel_edt" in array_crops:
                 patch_sample["volume"] = array_crops["vessel_edt"][i].sum()

@@ -40,7 +40,7 @@ echo "Copying data in background...";
 
 if [ ! -d /dev/shm/internal_train/crop_0.4_compress ]; then
     echo "Copying data to /dev/shm/internal_train";
-    cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_compress  /dev/shm/internal_train/crop_0.4_compress
+    cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_compressed  /dev/shm/internal_train/crop_0.4_compressed
     cp -r  /projects/vig/Datasets/aneurysm/cta_datasets/internal_train/crop_0.4_vessel_edt_comp /dev/shm/internal_train/crop_0.4_vessel_edt_comp
 else
     echo "Data already copied to /dev/shm/internal_train";
