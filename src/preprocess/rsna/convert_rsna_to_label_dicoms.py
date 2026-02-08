@@ -48,14 +48,16 @@ def rungdcmconv(input_folder, output_folder, df_localizers):
                 val_loc = LOCATION_MAP[loc_text]
                 if len(coord.keys()) == 2:
                     x, y = int(coord["x"]), int(coord["y"])
-                    zeros[y-5:y+5, x-5:x+5] = 1000 + val_loc
+                    zeros[y-5:y+5, x-5:x+5] = val_loc
                 elif len(coord.keys()) == 3:
                     x, y, z = int(coord["x"]), int(coord["y"]), int(coord["f"])
-                    zeros[z, y-5:y+5, x-5:x+5] = 1000 + val_loc
+                    zeros[z, y-5:y+5, x-5:x+5] =  val_loc
             
         dicom.set_pixel_data(
             zeros, photometric_interpretation="MONOCHROME2", bits_stored=16
         )
+        dicom.RescaleSlope = 1
+        dicom.RescaleIntercept = 0
         #print(dicom.pixel_array)
 
         dicom.save_as(str(path_new))
@@ -67,7 +69,7 @@ path_src = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/gdcmconv")
 folders = sorted(list(path_src.glob("*")))
 
 
-path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms_with_loc")
+path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms_with_locations")
 os.makedirs(path_tgt, exist_ok=True)
 
 print(len(folders))
