@@ -19,9 +19,9 @@ def run_dcm2niix(path_executable, input_folder, output_folder):
     )
 
 path_executable = "/projects/vig/alberto/medical/dcm2niix"
-path_src = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms_with_loc")
+path_src = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/label_dcms_with_locations")
 folders = list(path_src.glob("*"))
-path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/nifti_label_with_loc")
+path_tgt = Path("/scratch/ceballosarroyo.a/aneurysm/mm_datasets/rsna/nifti_label_with_locations")
 os.makedirs(path_tgt, exist_ok=True)
 
 

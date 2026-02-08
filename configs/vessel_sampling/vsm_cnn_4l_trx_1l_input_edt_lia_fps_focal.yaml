@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "vsm_cnn_4l_trx_1l_input_edt_lia_fps"
+  NAME: "vsm_cnn_4l_trx_1l_input_edt_lia_fps_focal"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -17,6 +17,9 @@ MODEL:
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True 
     N_DEC_LAYERS: 1
+  PARQ_MODEL:
+    PARQ_LOSS: 
+      DO_CLF_FOCAL: True 
 SOLVER:
   SCANS_PER_BATCH: 8
   SAMPLES_PER_SCAN: 16
