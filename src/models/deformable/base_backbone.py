@@ -249,9 +249,11 @@ class Base_Backbone(nn.Module):
                 mask = multiscale_masks[lvl][b].bool()
                 feats_batch.append(multiscale_feats[lvl][b][mask, :])
             feats_flatten.append(torch.cat(feats_batch, dim=0))
+            #print(feats_flatten[-1].shape)
         # pad the flattened features to the max length in the batch
         max_length = 0
         for mk in feats_flatten:
+            
             if mk.shape[0] > max_length:
                 max_length = mk.shape[0]
 
