@@ -44,7 +44,7 @@ def strip_ansi(text: str) -> str:
     return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 def match_job_to_model(job_id: str, job_name: str):
-    """Look up the log file for this job and find the NAME: "model_name" line."""
+    """Look up the log file for this job and find the NAME: "model_name" or Model: model_name line."""
     log_pattern = f"exec.{job_id}."
     log_file = None
     for f in LOGS_DIR.iterdir():
@@ -59,19 +59,42 @@ def match_job_to_model(job_id: str, job_name: str):
     is_infer = "infer" in log_file.name
     job_type = "train" if is_train else "infer" if is_infer else None
 
+    model_name = None
     try:
         with open(log_file) as fh:
             for i, line in enumerate(fh):
                 if i > 200:
                     break
                 clean = strip_ansi(line.strip())
+                # Check for NAME: "model_name" pattern (older format)
                 match = re.match(r'^\s*NAME:\s*"([^"]+)"', clean)
                 if match:
-                    return match.group(1), job_type
+                    model_name = match.group(1)
+                    break
+                # Check for Model: model_name pattern (newer format)
+                match = re.match(r'^Model:\s+(.+)$', clean)
+                if match:
+                    model_name = match.group(1).strip()
+                    break
     except Exception:
         pass
 
-    return None, None
+    # If we found a model name but couldn't determine job type from filename,
+    # infer it from the log content or default to "train"
+    if model_name and job_type is None:
+        # Look for inference-specific indicators in the file
+        try:
+            with open(log_file) as fh:
+                content = fh.read(5000)  # Read first 5000 chars
+                if "eval_only=True" in content or "--eval-only" in content:
+                    job_type = "infer"
+                else:
+                    # Default to train if no inference indicators found
+                    job_type = "train"
+        except Exception:
+            job_type = "train"  # Default to train on error
+
+    return model_name, job_type
 
 def get_inference_checkpoints(model_name: str):
     """For each dataset, count inference checkpoint dirs for this model."""
