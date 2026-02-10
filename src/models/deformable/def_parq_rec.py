@@ -61,10 +61,12 @@ class PARQ_Deformable_R(nn.Module):
         use_pretrained_unet_encoder=False,
         path_unet_weights="",
         frozen_pretrained_encoder=False,
+        use_checkpoint=False,
     ):
         super(PARQ_Deformable_R, self).__init__()
         self.cfg = cfg
         self.backbone_type = backbone_type
+        self.use_checkpoint = use_checkpoint
 
         self.device = device
         self._split_comb = None
@@ -137,6 +139,7 @@ class PARQ_Deformable_R(nn.Module):
             "use_pretrained_unet_encoder": conv_cfg.USE_PRETRAINED_UNET_ENCODER,
             "path_unet_weights": conv_cfg.PRETRAINED_UNET_ENCODER_PATH,
             "frozen_pretrained_encoder": conv_cfg.FROZEN_PRETRAINED_ENCODER,
+            "use_checkpoint": cfg.MODEL.DEFORMABLE.USE_CHECKPOINT,
             "loss_weights": {
                 "cls_w": parq_loss_cfg.CLS_W,
                 "shape_w": parq_loss_cfg.SHAPE_W,
@@ -342,9 +345,22 @@ class PARQ_Deformable_R(nn.Module):
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
 
-        multiscale_feats, multiscale_pos_embs, key_padding_mask = self.backbone(
-            x, vessel_dists, vessel_segs, self.transformer.level_embed
-        )
+        # Checkpoint the entire backbone forward pass to save memory
+        if self.use_checkpoint and self.training:
+            multiscale_feats, multiscale_pos_embs, key_padding_mask = (
+                torch.utils.checkpoint.checkpoint(
+                    self.backbone,
+                    x,
+                    vessel_dists,
+                    vessel_segs,
+                    self.transformer.level_embed,
+                    use_reentrant=False,
+                )
+            )
+        else:
+            multiscale_feats, multiscale_pos_embs, key_padding_mask = self.backbone(
+                x, vessel_dists, vessel_segs, self.transformer.level_embed
+            )
 
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(
