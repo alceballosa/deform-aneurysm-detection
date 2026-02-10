@@ -1,11 +1,12 @@
 _BASE_: ../deform/deform_base_crop_vessel.yaml
-SEED: 2000
+SEED: 2000 # run with 2 gpu
 
 MODEL:
-  NAME: "vsm_cnn_4l_enc_1l_dec_1l_input_edt_lia_fps"
+  NAME: "vse_base_cnn_4l_enc_3l_dec_1l_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
+  D_MODEL: 384
   DEFORMABLE:
     DECODER_ONLY: False  # Enable encoder with full self-attention
     USE_VESSEL_MASKED_ENCODER: True  # Use vessel-masked encoder instead of deformable
@@ -14,14 +15,18 @@ MODEL:
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    N_ENC_LAYERS: 4  # 1-layer encoder with full self-attention
+    N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 1  # 1-layer decoder
     MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
     USE_CHECKPOINT: True
+    N_HEADS: 6
+    
+    FFN_DIM: 512
+
 SOLVER:
-  SCANS_PER_BATCH: 1
+  SCANS_PER_BATCH: 4
   SAMPLES_PER_SCAN: 4
   CLIP_GRADIENTS:
     ENABLED: True

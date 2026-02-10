@@ -76,6 +76,7 @@ def build_deformable_transformer(cfg):
         class_head=class_head,
         size_head=size_head,
         use_efficient_mask=cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL,
+        use_checkpoint=cfg.MODEL.DEFORMABLE.USE_CHECKPOINT,
     )
 
 
@@ -157,6 +158,7 @@ class Transformer(nn.Module):
         use_fixed_attn=False,
         use_deform_attn=True,
         use_efficient_mask=False,
+        use_checkpoint=False,
     ):
         super().__init__()
         assert (
@@ -186,7 +188,9 @@ class Transformer(nn.Module):
                     n_levels,
                     enc_heads,
                 )
-                self.encoder = VesselMaskedTransformerEncoder(encoder_layer, n_enc_layers)
+                self.encoder = VesselMaskedTransformerEncoder(
+                    encoder_layer, n_enc_layers, use_checkpoint=use_checkpoint
+                )
             else:
                 # Use deformable attention encoder
                 encoder_layer = DeformableTransformerEncoderLayer(

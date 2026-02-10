@@ -56,10 +56,11 @@ class TransformerEncoderLayer(nn.Module):
 
 
 class DeformableTransformerEncoder(nn.Module):
-    def __init__(self, encoder_layer, num_layers):
+    def __init__(self, encoder_layer, num_layers, use_checkpoint=False):
         super().__init__()
         self.layers = get_clones(encoder_layer, num_layers)
         self.num_layers = num_layers
+        self.use_checkpoint = use_checkpoint
 
     def forward(
         self,
@@ -67,8 +68,20 @@ class DeformableTransformerEncoder(nn.Module):
         global_pos_embed,
         key_padding_mask=None,
     ):
+
         output = global_feats
         for _, layer in enumerate(self.layers):
-            output = layer(output, global_pos_embed, key_padding_mask)
+            if self.use_checkpoint and self.training:
+                # Use gradient checkpointing to save memory during training
+                # Trades compute (recomputation) for memory (storing activations)
+                output = torch.utils.checkpoint.checkpoint(
+                    layer,
+                    output,
+                    global_pos_embed,
+                    key_padding_mask,
+                    use_reentrant=False,
+                )
+            else:
+                output = layer(output, global_pos_embed, key_padding_mask)
 
         return output

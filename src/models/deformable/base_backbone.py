@@ -88,7 +88,7 @@ class Base_Backbone(nn.Module):
                 ).to(device)
 
             multiscale_pos_embs.append(pos_emb)
-
+        #print(multiscale_feats[0].shape, multiscale_pos_embs[0].shape)
         return multiscale_pos_embs
 
     def forward(self, x, vessel_dists=None, vessel_segs=None, level_emb=None) -> Tuple:

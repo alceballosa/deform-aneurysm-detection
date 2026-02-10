@@ -1,11 +1,12 @@
 _BASE_: ../deform/deform_base_crop_vessel.yaml
-SEED: 2000
+SEED: 2000 # run with 2 g pu
 
 MODEL:
-  NAME: "vsm_cnn_4l_enc_1l_dec_1l_input_edt_lia_fps"
+  NAME: "vse_base_cnn_3l_enc_3l_dec_1l_med_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
+  D_MODEL: 384
   DEFORMABLE:
     DECODER_ONLY: False  # Enable encoder with full self-attention
     USE_VESSEL_MASKED_ENCODER: True  # Use vessel-masked encoder instead of deformable
@@ -13,15 +14,20 @@ MODEL:
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
-    N_LEVELS: 4
-    N_ENC_LAYERS: 4  # 1-layer encoder with full self-attention
+    N_LEVELS: 3
+    LEVEL_SELECTION: "bottom"
+    N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 1  # 1-layer decoder
     MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
     USE_CHECKPOINT: True
+    N_HEADS: 6
+    
+    FFN_DIM: 512
+
 SOLVER:
-  SCANS_PER_BATCH: 1
+  SCANS_PER_BATCH: 8
   SAMPLES_PER_SCAN: 4
   CLIP_GRADIENTS:
     ENABLED: True
@@ -37,14 +43,14 @@ SOLVER:
   FLAT_ITER: 48000
   CHECKPOINT_PERIOD: 2000
 TEST:
-  PATCHES_PER_ITER: 16 #  24 = ~12GB
+  PATCHES_PER_ITER: 8 #  24 = ~12GB
   NMS_TOPK: 40
   EVALUATION_CHECKPOINTS: ["0031999", "0035999", "0039999", "0043999", "final"]
 
 DATALOADER:
   NUM_WORKERS: 16
 DATA:
-  PATCH_SIZE: [64, 64, 64]
+  PATCH_SIZE: [128, 128, 128]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
