@@ -11,9 +11,6 @@ class PeriodicCudaCacheClearer(HookBase):
         self._period = period
 
     def after_step(self):
-        return super().after_step()
-
-    def after_step(self):
         if (self.trainer.iter + 1) % self._period == 0:
             torch.cuda.empty_cache()
 
@@ -21,8 +18,9 @@ class PeriodicCudaCacheClearer(HookBase):
 class GPUUtilizationTracker(HookBase):
     """Periodically samples GPU utilization via nvidia-smi and reports the average."""
 
-    def __init__(self, period=20):
+    def __init__(self, period=20, window=50):
         self._period = period
+        self._window = window
         self._samples = []
 
     def _query_gpu_utilization(self):
@@ -53,6 +51,8 @@ class GPUUtilizationTracker(HookBase):
             util = self._query_gpu_utilization()
             if util is not None:
                 self._samples.append(util)
+                if len(self._samples) > self._window:
+                    self._samples = self._samples[-self._window:]
                 storage = get_event_storage()
                 avg_util = sum(self._samples) / len(self._samples)
                 storage.put_scalar("[metric]gpu_util", avg_util, smoothing_hint=False)
