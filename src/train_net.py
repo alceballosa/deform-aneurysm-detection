@@ -98,7 +98,9 @@ def get_inference_iters(cfg):
 class Trainer(DefaultTrainer):
     def __init__(self, cfg):
         super(Trainer, self).__init__(cfg)
-        hooks = [GPUUtilizationTracker(period=20)]
+        hooks = []
+        if cfg.CUSTOM.MONITOR_GPU_USAGE:
+            hooks.append(GPUUtilizationTracker(period=20))
         if cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD:
             hooks.append(PeriodicCudaCacheClearer(cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD))
         # Insert before PeriodicWriter (last default hook) so gpu_util

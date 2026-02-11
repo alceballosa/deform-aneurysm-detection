@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.multiprocessing as mp
-from sklearn.metrics._ranking import binary_classifcation_curve
+from sklearn.metrics._ranking import confusion_matrix_at_thresholds
 from tabulate import tabulate
 from torch.multiprocessing import Process
 from tqdm import tqdm
@@ -761,8 +761,9 @@ def compute_froc(preds, gts, n_pos, n_imgs, *, outputs=None):
             - FPpI: Array of false positives per image
             - thresholds: Array of score thresholds corresponding to each point
     """
+    #return tns, fps, fns, tps, y_score[threshold_idxs]
 
-    fps, tps, thrs = binary_classifcation_curve(gts, preds)
+    _, fps, _, tps, thrs = confusion_matrix_at_thresholds(gts, preds)
 
     if outputs:
         assert outputs[-4:] == ".pth"
