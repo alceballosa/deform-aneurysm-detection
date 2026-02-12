@@ -504,15 +504,6 @@ class PARQ_Deformable_R(nn.Module):
                     loss_dict[key] = value / valid_bs_loc_shape
                 elif key in ["cat_loss"] and valid_bs_cls != 0:
                     loss_dict[key] = value / valid_bs_cls
-
-        loss_total = 0.0
-        for key, value in loss_dict.items():
-            loss_total += value.item()
-
-        # Log total_loss for monitoring without including it in the dict,
-        # since detectron2's SimpleTrainer sums all dict values for backprop.
-        # storage = get_event_storage()
-        # storage.put_scalar("total_loss", loss_total)
         return loss_dict
 
     def parse_pred(self, pred_dict):
