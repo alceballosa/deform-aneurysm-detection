@@ -14,6 +14,8 @@
 
 # Auto-detect number of GPUs from SLURM allocation
 export NUM_GPUS=${SLURM_GPUS_ON_NODE:-1}
+# Auto-detect number of CPUs for dataloader workers
+export NUM_WORKERS=${SLURM_CPUS_ON_NODE:-8}
 # Model name from -J flag, fallback to $1 for local runs
 export MODEL_NAME=${SLURM_JOB_NAME:-$1}
 
@@ -53,7 +55,8 @@ export ID_PORT=$(($RANDOM+20010))
 python src/train_net.py\
     --num-gpus $NUM_GPUS\
     --config-file "./configs/$FAMILY/$MODEL_NAME.yaml"\
-        --dist-url "tcp://127.0.0.1:$ID_PORT"\
+    --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --resume\
+    DATALOADER.NUM_WORKERS $NUM_WORKERS
 
 

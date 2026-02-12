@@ -16,6 +16,8 @@
 
 # Auto-detect number of GPUs from SLURM allocation
 export NUM_GPUS=${SLURM_GPUS_ON_NODE:-1}
+# Auto-detect number of CPUs for dataloader workers
+export NUM_WORKERS=${SLURM_CPUS_ON_NODE:-8}
 # Model name from -J flag, fallback to $1 for local runs
 export MODEL_NAME=${SLURM_JOB_NAME:-$1}
 
