@@ -511,8 +511,8 @@ class PARQ_Deformable_R(nn.Module):
 
         # Log total_loss for monitoring without including it in the dict,
         # since detectron2's SimpleTrainer sums all dict values for backprop.
-        storage = get_event_storage()
-        storage.put_scalar("total_loss", loss_total)
+        # storage = get_event_storage()
+        # storage.put_scalar("total_loss", loss_total)
         return loss_dict
 
     def parse_pred(self, pred_dict):
