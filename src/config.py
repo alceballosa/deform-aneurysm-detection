@@ -199,7 +199,7 @@ def add_config(cfg):
     cfg.CUSTOM.DEFAULT_INIT = False
     cfg.CUSTOM.CACHE = False
     cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD = 1000
-    cfg.CUSTOM.MONITOR_GPU_USAGE = True
+    cfg.CUSTOM.MONITOR_GPU_USAGE = False
 
     cfg.SOLVER.SCANS_PER_BATCH = 8
     cfg.SOLVER.SAMPLES_PER_SCAN = 8
