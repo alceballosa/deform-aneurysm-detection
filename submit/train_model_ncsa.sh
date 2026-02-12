@@ -40,7 +40,7 @@ export ID_PORT=$(($RANDOM+20010))
 python src/train_net.py\
     --num-gpus $NUM_GPUS\
     --config-file "./configs/$FAMILY/$MODEL_NAME.yaml"\
-        --dist-url "tcp://127.0.0.1:20000"\
+        --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --resume\
 
 
