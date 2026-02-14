@@ -313,7 +313,7 @@ class CTADatasetMapper:
         return data
 
 
-def maybe_read_from_ram(file_name):
+def maybe_read_from_ram(file_name, _slow_threshold=30.0):
     """
     Attempt to read a medical image from RAM cache, falling back to disk.
 
@@ -330,6 +330,9 @@ def maybe_read_from_ram(file_name):
     Raises:
         RuntimeError: If the file cannot be read from either location
     """
+    import time
+
+    t0 = time.monotonic()
     new_folder = "/dev/shm/"
     sample_name = "/".join(file_name.split("/")[-3:])
     new_file_name = os.path.join(new_folder, sample_name)
@@ -337,13 +340,22 @@ def maybe_read_from_ram(file_name):
         size_og = os.path.getsize(file_name)
         size_new = os.path.getsize(new_file_name)
         if size_og == size_new:
-            return sitk.ReadImage(new_file_name)
+            img = sitk.ReadImage(new_file_name)
         else:
             print(
                 f"Size mismatch: {file_name} ({size_og}) != "
                 f"{new_file_name} ({size_new})"
             )
-            return sitk.ReadImage(file_name)
+            img = sitk.ReadImage(file_name)
     except (FileNotFoundError, OSError):
         # File not in RAM cache, read from original location
-        return sitk.ReadImage(file_name)
+        img = sitk.ReadImage(file_name)
+
+    elapsed = time.monotonic() - t0
+    if elapsed > _slow_threshold:
+        print(
+            f"[SLOW READ] {elapsed:.1f}s reading {file_name} "
+            f"(worker pid={os.getpid()})",
+            flush=True,
+        )
+    return img
