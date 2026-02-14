@@ -1,21 +1,21 @@
 _BASE_: ../deform/deform_base_crop_vessel.yaml
-SEED: 2000 # run with 2 gpu
+SEED: 2000 # run with 1 gpu
 
 MODEL:
-  NAME: "vse_base_cnn_4l_enc_3l_dec_1l_input_edt_lia"
+  NAME: "vse_base_cnn_4l_dec_1l_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   D_MODEL: 384
   DEFORMABLE:
-    DECODER_ONLY: False  # Enable encoder with full self-attention
-    USE_VESSEL_MASKED_ENCODER: True  # Use vessel-masked encoder instead of deformable
+    DECODER_ONLY: True  # Enable encoder with full self-attention
+    USE_VESSEL_MASKED_ENCODER: False  # Use vessel-masked encoder instead of deformable
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
+    N_ENC_LAYERS: 0  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 1  # 1-layer decoder
     MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
@@ -36,8 +36,8 @@ SOLVER:
   AMP:
     ENABLED: True
   SCHED_CYCLE: 48000
-  BASE_LR: 0.0001
-  MIN_LR: 0.00001
+  BASE_LR: 0.0002
+  MIN_LR: 0.00002
   MAX_ITER: 48000
   FLAT_ITER: 48000
   CHECKPOINT_PERIOD: 2000
@@ -47,7 +47,7 @@ TEST:
   EVALUATION_CHECKPOINTS: ["0031999", "0035999", "0039999", "0043999", "final"]
 
 DATALOADER:
-  NUM_WORKERS: 16
+  NUM_WORKERS: 8
 DATA:
   PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
@@ -62,7 +62,7 @@ DATA:
       SCAN_DIR: "internal_train/crop_0.4_compressed"
       VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       CVS_DIR: "internal_train/vein_mask_edt_comp"
-      ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia.csv"
+      ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia_with_fps.csv"
 
 
     VAL:
