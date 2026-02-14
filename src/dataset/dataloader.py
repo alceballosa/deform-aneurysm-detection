@@ -18,6 +18,11 @@ from tabulate import tabulate
 from termcolor import colored
 
 
+def _worker_init_fn(worker_id):
+    """Ensure spawned dataloader workers inherit the file_system sharing strategy."""
+    torch.multiprocessing.set_sharing_strategy("file_system")
+
+
 def get_dataset_dicts(dataset_names):
     """
     Load and join classification dataset dicts
@@ -116,12 +121,15 @@ def build_train_loader(
         sampler = TrainingSampler(len(dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
 
+    mp_context = "spawn" if num_workers > 0 else None
     return build_batch_data_loader(
         dataset,
         sampler,
         total_batch_size,
         aspect_ratio_grouping=aspect_ratio_grouping,
         num_workers=num_workers,
+        multiprocessing_context=mp_context,
+        worker_init_fn=_worker_init_fn,
     )
 
 
@@ -174,11 +182,14 @@ def build_test_loader(dataset, *, mapper, num_workers=0):
     # Always use 1 image per worker during inference since this is the
     # standard when reporting inference time in papers.
     batch_sampler = torch.utils.data.sampler.BatchSampler(sampler, 1, drop_last=False)
+    mp_context = "spawn" if num_workers > 0 else None
     data_loader = torch.utils.data.DataLoader(
         dataset,
         num_workers=num_workers,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
         pin_memory=True,
+        multiprocessing_context=mp_context,
+        worker_init_fn=_worker_init_fn,
     )
     return data_loader
