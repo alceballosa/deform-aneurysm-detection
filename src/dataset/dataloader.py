@@ -12,40 +12,10 @@ from detectron2.data import (
     build_batch_data_loader,
 )
 from detectron2.data.build import trivial_batch_collator
-from detectron2.data.samplers import InferenceSampler
-from torch.utils.data.distributed import DistributedSampler
+from detectron2.data.samplers import InferenceSampler, TrainingSampler
 from detectron2.utils.logger import log_first_n
 from tabulate import tabulate
 from termcolor import colored
-
-
-def _worker_init_fn(worker_id):
-    """Ensure spawned dataloader workers inherit the file_system sharing strategy."""
-    torch.multiprocessing.set_sharing_strategy("file_system")
-
-
-class InfiniteDistributedSampler(DistributedSampler):
-    """DistributedSampler that yields indices indefinitely.
-
-    Wraps PyTorch's DistributedSampler to cycle infinitely (like detectron2's
-    TrainingSampler) while keeping proper rank-based partitioning and calling
-    set_epoch automatically for correct shuffling each cycle.
-    """
-
-    def __init__(self, dataset, shuffle=True, drop_last=False):
-        super().__init__(dataset, shuffle=shuffle, drop_last=drop_last)
-        self._epoch_counter = 0
-
-    def __iter__(self):
-        while True:
-            self.set_epoch(self._epoch_counter)
-            yield from super().__iter__()
-            self._epoch_counter += 1
-
-    def __len__(self):
-        # Return a large number so detectron2 doesn't complain.
-        # Actual iteration count is controlled by cfg.SOLVER.MAX_ITER.
-        return 2**31
 
 
 def get_dataset_dicts(dataset_names):
@@ -83,10 +53,11 @@ def _train_loader_from_config(cfg, mapper, *, dataset=None, sampler=None):
         logger = logging.getLogger(__name__)
         logger.info("Using training sampler {}".format(sampler_name))
         if sampler_name == "TrainingSampler":
-            shuffle = not cfg.CUSTOM.DEBUG
-            sampler = InfiniteDistributedSampler(
-                dataset, shuffle=shuffle, drop_last=False,
-            )
+            # ! change shuffle later
+            shuffle = True
+            if cfg.CUSTOM.DEBUG:
+                shuffle = False
+            sampler = TrainingSampler(len(dataset), shuffle=shuffle)
         else:
             raise ValueError("Unknown training sampler: {}".format(sampler_name))
 
@@ -142,18 +113,15 @@ def build_train_loader(
     if mapper is not None:
         dataset = MapDataset(dataset, mapper)
     if sampler is None:
-        sampler = InfiniteDistributedSampler(dataset, shuffle=True, drop_last=False)
+        sampler = TrainingSampler(len(dataset))
     assert isinstance(sampler, torch.utils.data.sampler.Sampler)
 
-    mp_context = "spawn" if num_workers > 0 else None
     return build_batch_data_loader(
         dataset,
         sampler,
         total_batch_size,
         aspect_ratio_grouping=aspect_ratio_grouping,
         num_workers=num_workers,
-        multiprocessing_context=mp_context,
-        worker_init_fn=_worker_init_fn,
     )
 
 
@@ -206,14 +174,11 @@ def build_test_loader(dataset, *, mapper, num_workers=0):
     # Always use 1 image per worker during inference since this is the
     # standard when reporting inference time in papers.
     batch_sampler = torch.utils.data.sampler.BatchSampler(sampler, 1, drop_last=False)
-    mp_context = "spawn" if num_workers > 0 else None
     data_loader = torch.utils.data.DataLoader(
         dataset,
         num_workers=num_workers,
         batch_sampler=batch_sampler,
         collate_fn=trivial_batch_collator,
         pin_memory=True,
-        multiprocessing_context=mp_context,
-        worker_init_fn=_worker_init_fn,
     )
     return data_loader

@@ -195,32 +195,16 @@ class CTADatasetMapper:
                 - For training: "samples" list of augmented patches
                 - For validation: "image", "image_spacing", and optional masks
         """
-        import time
-
-        pid = os.getpid()
-        scan_id = dataset_dict.get("scan_id", "?")
-        t0 = time.monotonic()
-        _log_step = lambda tag: print(
-            f"[MAPPER pid={pid}] {tag} scan={scan_id} "
-            f"dt={time.monotonic() - t0:.1f}s",
-            flush=True,
-        )
-
-        _log_step("START")
         dataset_dict = copy.deepcopy(dataset_dict)
-        _log_step("deepcopy done")
         data = self.load_data(dataset_dict)
-        _log_step("load_data done")
 
         if self.mode == "train":
             samples = self.crop_fn(data)
-            _log_step(f"crop done ({len(samples)} samples)")
             random_samples = []
             for sample in samples:
                 if self.augmentations:
                     sample = self.augmentations(sample)
                 random_samples.append(sample)
-            _log_step("augmentations done")
 
             dataset_dict["samples"] = random_samples
         else:
@@ -232,7 +216,6 @@ class CTADatasetMapper:
 
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"], device="cpu")
-        _log_step("END")
         return dataset_dict
 
     def load_data(self, dataset_dict):
@@ -261,22 +244,9 @@ class CTADatasetMapper:
                 - "vessel_edt": Vessel mask (if configured)
                 - "cvs_mask": CVS mask (if configured)
         """
-        import time
-
-        pid = os.getpid()
-        scan_id = dataset_dict.get("scan_id", "?")
-        t0 = time.monotonic()
-        _log = lambda tag: print(
-            f"[LOAD pid={pid}] {tag} scan={scan_id} "
-            f"dt={time.monotonic() - t0:.1f}s",
-            flush=True,
-        )
-
         outputs = {}
 
-        _log("reading image")
         image = maybe_read_from_ram(dataset_dict["file_name"])
-        _log("image read done")
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
 
@@ -291,7 +261,6 @@ class CTADatasetMapper:
             mean_value = image.mean()
             std_value = image.std()
             image = (image - mean_value) / std_value
-        _log("normalization done")
 
         outputs["image"] = image
         outputs["image_spacing"] = image_spacing
@@ -313,23 +282,17 @@ class CTADatasetMapper:
             outputs["all_cls"] = all_cls
 
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
-            _log("done (no vessel)")
             return outputs
 
-        _log("reading vessel EDT")
         vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
         vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
         outputs["vessel_edt"] = vessel
-        _log("vessel EDT done")
 
         if self.cfg.MODEL.USE_CVS_INFO != "no":
-            _log("reading CVS mask")
             cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])
             cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
             outputs["cvs_mask"] = cvs
-            _log("CVS mask done")
 
-        _log("done")
         return outputs
 
     def normalize(self, data):
@@ -350,7 +313,7 @@ class CTADatasetMapper:
         return data
 
 
-def maybe_read_from_ram(file_name, _slow_threshold=30.0):
+def maybe_read_from_ram(file_name):
     """
     Attempt to read a medical image from RAM cache, falling back to disk.
 
@@ -367,9 +330,6 @@ def maybe_read_from_ram(file_name, _slow_threshold=30.0):
     Raises:
         RuntimeError: If the file cannot be read from either location
     """
-    import time
-
-    t0 = time.monotonic()
     new_folder = "/dev/shm/"
     sample_name = "/".join(file_name.split("/")[-3:])
     new_file_name = os.path.join(new_folder, sample_name)
@@ -377,22 +337,13 @@ def maybe_read_from_ram(file_name, _slow_threshold=30.0):
         size_og = os.path.getsize(file_name)
         size_new = os.path.getsize(new_file_name)
         if size_og == size_new:
-            img = sitk.ReadImage(new_file_name)
+            return sitk.ReadImage(new_file_name)
         else:
             print(
                 f"Size mismatch: {file_name} ({size_og}) != "
                 f"{new_file_name} ({size_new})"
             )
-            img = sitk.ReadImage(file_name)
+            return sitk.ReadImage(file_name)
     except (FileNotFoundError, OSError):
         # File not in RAM cache, read from original location
-        img = sitk.ReadImage(file_name)
-
-    elapsed = time.monotonic() - t0
-    if elapsed > _slow_threshold:
-        print(
-            f"[SLOW READ] {elapsed:.1f}s reading {file_name} "
-            f"(worker pid={os.getpid()})",
-            flush=True,
-        )
-    return img
+        return sitk.ReadImage(file_name)

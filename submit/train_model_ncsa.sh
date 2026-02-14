@@ -4,9 +4,9 @@
 #SBATCH --partition=ghx4
 #SBATCH --account=bexf-dtai-gh
 #SBATCH --time=48:00:00
-#SBATCH --mem-per-gpu=120g
+#SBATCH --mem=120g
 #SBATCH --gres=gpu:h100:1
-#SBATCH --cpus-per-gpu=16
+#SBATCH --cpus-per-gpu=8
 #SBATCH --output=./logs/exec.%j.train_h100.%x.out
 #SBATCH --error=./logs/exec.%j.train_h100.%x.out
 #SBATCH --nice=0
@@ -44,6 +44,5 @@ python src/train_net.py\
     --config-file "./configs/$FAMILY/$MODEL_NAME.yaml"\
         --dist-url "tcp://127.0.0.1:$ID_PORT"\
     --resume\
-    DATALOADER.NUM_WORKERS $NUM_WORKERS
 
 
