@@ -198,7 +198,7 @@ def add_config(cfg):
     cfg.CUSTOM.USE_SINGLE_BATCH = False
     cfg.CUSTOM.DEFAULT_INIT = False
     cfg.CUSTOM.CACHE = False
-    cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD = 1000
+    cfg.CUSTOM.CLEAR_CUDA_CACHE_PERIOD = 2000
     cfg.CUSTOM.MONITOR_GPU_USAGE = False
 
     cfg.SOLVER.SCANS_PER_BATCH = 8

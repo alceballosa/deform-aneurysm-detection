@@ -69,10 +69,6 @@ did_training = False
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-# Ensure distributed errors cause process termination instead of silent hangs
-os.environ.setdefault("TORCH_NCCL_ASYNC_ERROR_HANDLING", "1")
-os.environ.setdefault("NCCL_ASYNC_ERROR_HANDLING", "1")
-
 
 def seed_everything(seed):
     random.seed(seed)

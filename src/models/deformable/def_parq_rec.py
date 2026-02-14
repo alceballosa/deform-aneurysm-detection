@@ -189,7 +189,6 @@ class PARQ_Deformable_R(nn.Module):
                 input_batch = pickle.load(f)
             # input_batch = self.read_pickled_batch()
         if self.training:
-            torch.cuda.empty_cache()
             return self._forward_train(input_batch)
         try:
             return self._forward_eval(input_batch)
@@ -255,7 +254,6 @@ class PARQ_Deformable_R(nn.Module):
             del batch_data
             del vessel_data
             del cvs_data
-            torch.cuda.empty_cache()
 
             outputs.append(dets)
             list_viz_outputs.append(viz_outputs)
@@ -381,11 +379,15 @@ class PARQ_Deformable_R(nn.Module):
             loss
         """
 
+        # Use graph-connected zeros so DDP sees gradients for all parameters
+        # even when no targets are matched (avoids AllReduce deadlock).
+        _dummy = output_dict[0]
+        _zero = (_dummy["center"].sum() + _dummy["size"].sum() + _dummy["class_logits"].sum()) * 0.0
         loss_dict = {
-            "center_loss": torch.tensor(0.0).to(self.device),
-            "size_loss": torch.tensor(0.0).to(self.device),
-            "cat_loss": torch.tensor(0.0).to(self.device),
-            "iou_loss": torch.tensor(0.0).to(self.device),
+            "center_loss": _zero.clone(),
+            "size_loss": _zero.clone(),
+            "cat_loss": _zero.clone(),
+            "iou_loss": _zero.clone(),
         }
 
         valid_bs_loc_shape = 0

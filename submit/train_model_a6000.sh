@@ -49,4 +49,3 @@ python src/train_net.py\
     DATALOADER.NUM_WORKERS $NUM_WORKERS
 
 
-python src/train_net.py    --num-gpus 1  --config-file "./configs/vessel_sampling/vsm_cnn_4l_trx_2l_input_edt_lia_fps.yaml" --dist-url "tcp://127.0.0.1:20000" --resume
