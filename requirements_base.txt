@@ -27,5 +27,6 @@ nnunetv2
 antspyx
 itk 
 pydicom
+dicom2nifti
 # python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 # pip install git+https://github.com/facebookresearch/detectron2.git@main --no-build-isolation
