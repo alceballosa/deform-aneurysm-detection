@@ -27,4 +27,4 @@ notebooks/stats/*.csv
 notebooks/stats/*.png
 notebooks/stats/results_paper/*
 *.code-workspace
-todo.txt
+notes.txt
