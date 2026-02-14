@@ -6,7 +6,7 @@
 #SBATCH --time=150:00:00
 #SBATCH --mem=512
 #SBATCH --gres=gpu:a5000:8
-#SBATCH  -cpus-per-gpu=8
+#SBATCH --cpus-per-gpu=8
 #SBATCH --output=./logs/exec.%j.train.%x.out
 #SBATCH --error=./logs/exec.%j.train.%x.out
 #SBATCH --nice=0

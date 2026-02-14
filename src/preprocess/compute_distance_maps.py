@@ -18,7 +18,7 @@ import tqdm
 from joblib import Parallel, delayed
 
 
-def compute_distance_map(file, target_dir, compress):
+def compute_distance_map(file, target_dir, compress, type_e):
     scan_seriesuid = file.split("/")[-1]
     save_file_path = os.path.join(target_dir, scan_seriesuid)
     # check if exists
@@ -26,13 +26,18 @@ def compute_distance_map(file, target_dir, compress):
         return
     im_header = sitk.ReadImage(file)
     im = sitk.GetArrayFromImage(im_header)
-    im = im == 1 # only arteries
+    if type_e == "artery":
+        im = im == 1 # only arteries
+    elif type_e == "vein":
+        im = im == 2 # only veins
+    else:
+        raise ValueError(f"Unknown type_e: {type_e}")
     im = im.astype(int)
     if len(np.unique(im)) < 2:
         print("Potential error on ", file)
     im_dist = edt.sdf(im, black_border=False)#, parallel=1)
     if compress == 1:
-        threshold = 128
+        threshold = 32
         im_dist[im_dist < -threshold] = -threshold
     # print(im_dist.shape)
     im_dist_header = sitk.GetImageFromArray(im_dist)
@@ -52,6 +57,8 @@ if __name__ == "__main__":
         compress = int(compress)
     except:
         compress = 0
+    
+    type_e = sys.argv[5]
 
     os.makedirs(target_dir, exist_ok=True)
     vessel_files = sorted(list(glob(f"{vessel_dir}/*.nii.gz")))
@@ -59,7 +66,7 @@ if __name__ == "__main__":
         n_jobs=threads, backend="multiprocessing", prefer="processes", verbose=1
     )
     do = delayed(compute_distance_map)
-    tasks = (do(im_f, target_dir, compress) for im_f in vessel_files)
+    tasks = (do(im_f, target_dir, compress, type_e) for im_f in vessel_files)
     executor(tasks)
 
     print("All distance maps computed!")

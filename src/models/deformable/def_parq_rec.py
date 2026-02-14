@@ -189,6 +189,7 @@ class PARQ_Deformable_R(nn.Module):
                 input_batch = pickle.load(f)
             # input_batch = self.read_pickled_batch()
         if self.training:
+            torch.cuda.empty_cache()
             return self._forward_train(input_batch)
         try:
             return self._forward_eval(input_batch)
@@ -254,6 +255,7 @@ class PARQ_Deformable_R(nn.Module):
             del batch_data
             del vessel_data
             del cvs_data
+            torch.cuda.empty_cache()
 
             outputs.append(dets)
             list_viz_outputs.append(viz_outputs)

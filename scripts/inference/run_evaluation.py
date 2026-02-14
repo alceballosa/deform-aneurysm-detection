@@ -24,6 +24,8 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 RUN_INFERENCE_SCRIPT = SCRIPT_DIR / "run_inference.sh"
+
+RUN_INFERENCE_SCRIPT_COMPRESSED = SCRIPT_DIR / "run_inference_comp.sh"
 RESULTS_DIR = PROJECT_ROOT / "results"
 CONFIGS_DIR = PROJECT_ROOT / "configs"
 
@@ -38,7 +40,9 @@ def find_family(model: str) -> str:
         sys.exit(1)
     if len(matches) > 1:
         print(f"Warning: Model '{model}' found in multiple families: {matches}")
-        print("Error: Ambiguous model name. Please specify the family manually with --family.")
+        print(
+            "Error: Ambiguous model name. Please specify the family manually with --family."
+        )
         sys.exit(1)
     return matches[0]
 
@@ -75,8 +79,11 @@ def result_exists(dataset_name: str, model_name: str, checkpoint: str) -> bool:
     """Check if inference result already exists for this dataset/model/checkpoint."""
     checkpoint_id = get_checkpoint_id(checkpoint)
     result_path = (
-        RESULTS_DIR / dataset_name / model_name
-        / f"inference_{checkpoint_id}" / "predict.csv"
+        RESULTS_DIR
+        / dataset_name
+        / model_name
+        / f"inference_{checkpoint_id}"
+        / "predict.csv"
     )
     return result_path.exists()
 
@@ -110,8 +117,13 @@ def run_inference(
     dry_run: bool = False,
 ):
     """Call run_inference.sh with the given parameters."""
+    INF_SCRIPT = (
+        RUN_INFERENCE_SCRIPT_COMPRESSED
+        if family == "compress"
+        else RUN_INFERENCE_SCRIPT
+    )
     cmd = [
-        str(RUN_INFERENCE_SCRIPT),
+        str(INF_SCRIPT),
         dataset_name,
         family,
         model,
@@ -137,7 +149,9 @@ def main():
         description="Run model evaluation across datasets and checkpoints."
     )
     parser.add_argument(
-        "--family", default=None, help="Config subdirectory (e.g., lnt, trx, vst). Auto-detected if not provided."
+        "--family",
+        default=None,
+        help="Config subdirectory (e.g., lnt, trx, vst). Auto-detected if not provided.",
     )
     parser.add_argument("--model", required=True, help="Config file name without .yaml")
     parser.add_argument("--num-gpus", type=int, required=True, help="Number of GPUs")
