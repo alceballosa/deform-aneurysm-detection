@@ -195,16 +195,32 @@ class CTADatasetMapper:
                 - For training: "samples" list of augmented patches
                 - For validation: "image", "image_spacing", and optional masks
         """
+        import time
+
+        pid = os.getpid()
+        scan_id = dataset_dict.get("scan_id", "?")
+        t0 = time.monotonic()
+        _log_step = lambda tag: print(
+            f"[MAPPER pid={pid}] {tag} scan={scan_id} "
+            f"dt={time.monotonic() - t0:.1f}s",
+            flush=True,
+        )
+
+        _log_step("START")
         dataset_dict = copy.deepcopy(dataset_dict)
+        _log_step("deepcopy done")
         data = self.load_data(dataset_dict)
+        _log_step("load_data done")
 
         if self.mode == "train":
             samples = self.crop_fn(data)
+            _log_step(f"crop done ({len(samples)} samples)")
             random_samples = []
             for sample in samples:
                 if self.augmentations:
                     sample = self.augmentations(sample)
                 random_samples.append(sample)
+            _log_step("augmentations done")
 
             dataset_dict["samples"] = random_samples
         else:
@@ -216,6 +232,7 @@ class CTADatasetMapper:
 
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"], device="cpu")
+        _log_step("END")
         return dataset_dict
 
     def load_data(self, dataset_dict):
@@ -244,9 +261,22 @@ class CTADatasetMapper:
                 - "vessel_edt": Vessel mask (if configured)
                 - "cvs_mask": CVS mask (if configured)
         """
+        import time
+
+        pid = os.getpid()
+        scan_id = dataset_dict.get("scan_id", "?")
+        t0 = time.monotonic()
+        _log = lambda tag: print(
+            f"[LOAD pid={pid}] {tag} scan={scan_id} "
+            f"dt={time.monotonic() - t0:.1f}s",
+            flush=True,
+        )
+
         outputs = {}
 
+        _log("reading image")
         image = maybe_read_from_ram(dataset_dict["file_name"])
+        _log("image read done")
         image_spacing = image.GetSpacing()[::-1]  # z, y, x
         image = sitk.GetArrayFromImage(image).astype("float32")  # z, y, x
 
@@ -261,6 +291,7 @@ class CTADatasetMapper:
             mean_value = image.mean()
             std_value = image.std()
             image = (image - mean_value) / std_value
+        _log("normalization done")
 
         outputs["image"] = image
         outputs["image_spacing"] = image_spacing
@@ -282,17 +313,23 @@ class CTADatasetMapper:
             outputs["all_cls"] = all_cls
 
         if self.cfg.MODEL.USE_VESSEL_INFO == "no":
+            _log("done (no vessel)")
             return outputs
 
+        _log("reading vessel EDT")
         vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
         vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
         outputs["vessel_edt"] = vessel
+        _log("vessel EDT done")
 
         if self.cfg.MODEL.USE_CVS_INFO != "no":
+            _log("reading CVS mask")
             cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])
             cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
             outputs["cvs_mask"] = cvs
+            _log("CVS mask done")
 
+        _log("done")
         return outputs
 
     def normalize(self, data):
