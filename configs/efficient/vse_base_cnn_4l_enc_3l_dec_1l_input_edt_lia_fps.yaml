@@ -17,7 +17,6 @@ MODEL:
     N_LEVELS: 4
     N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 1  # 1-layer decoder
-    MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
     USE_CHECKPOINT: True

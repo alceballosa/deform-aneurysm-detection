@@ -16,8 +16,6 @@ MODEL:
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    MASK_NON_VESSEL: True #11488M # 21000
-    EFFICIENT_MASK: False #4069M   # 7773M
     N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 1  # 1-layer decoder
     EFFICIENT_MASK_V2: True #8544M #16000 # 17000 # 8200
