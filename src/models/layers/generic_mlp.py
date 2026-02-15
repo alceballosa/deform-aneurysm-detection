@@ -1,4 +1,3 @@
-
 # This file is derived from [3DETR](https://github.com/facebookresearch/3detr/blob/main/models/helpers.py).
 # Originating Author: Ishan Misra
 
@@ -122,7 +121,7 @@ class GenericMLP(torch.nn.Module):
     def do_weight_init(self, weight_init_name):
         func = WEIGHT_INIT_DICT[weight_init_name]
 
-        for (_, param) in self.named_parameters():
+        for _, param in self.named_parameters():
             if param.dim() > 1:  # skips batchnorm/layernorm
                 func(param)
 

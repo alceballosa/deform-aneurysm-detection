@@ -71,8 +71,6 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.USE_DEFORM_ATTN = True
     cfg.MODEL.DEFORMABLE.USE_VESSEL_MASKED_ENCODER = False  # Use full self-attention encoder with vessel masking
     cfg.MODEL.DEFORMABLE.USE_CHECKPOINT = False  # Enable gradient checkpointing for backbone, encoder, and decoder
-    cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL = False
-    cfg.MODEL.DEFORMABLE.EFFICIENT_MASK = False
     cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 = False
     cfg.MODEL.DEFORMABLE.STRICT_MASKING = False
     cfg.MODEL.DEFORMABLE.FFN_DIM = 512
@@ -91,6 +89,8 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.USE_VESSEL_INFO = False
     cfg.MODEL.DEFORMABLE.FIX_PE_SCALE = False 
     cfg.MODEL.DEFORMABLE.FIXED_ATTENTION = False
+    cfg.MODEL.DEFORMABLE.NORMALIZE_PE_01 = False  # Normalize PE coords to [0,1] for Conditional DETR consistency
+    cfg.MODEL.DEFORMABLE.USE_CONDITIONAL_DECODER = False  # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
 
 
     # the ratio of the original image size to the parq volume size

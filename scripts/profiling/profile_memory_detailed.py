@@ -92,7 +92,7 @@ def profile_with_hooks(cfg):
     batch = create_dummy_batch(cfg)
 
     # Build model
-    from src.models.deformable.def_parq_rec import PARQ_Deformable_R
+    from models.detection_trx import PARQ_Deformable_R
     model = PARQ_Deformable_R(cfg)
     model = model.cuda()
     model.train()
@@ -143,7 +143,7 @@ def profile_manual_breakdown(cfg):
     from profile_memory import create_dummy_batch
     batch = create_dummy_batch(cfg)
 
-    from src.models.deformable.def_parq_rec import PARQ_Deformable_R
+    from models.detection_trx import PARQ_Deformable_R
     model = PARQ_Deformable_R(cfg)
     model = model.cuda()
     model.train()

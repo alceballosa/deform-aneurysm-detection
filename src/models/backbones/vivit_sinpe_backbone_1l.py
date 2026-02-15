@@ -3,8 +3,13 @@
 import torch
 from einops import rearrange, reduce, repeat
 from einops.layers.torch import Rearrange
+from src.models.backbones.base_backbone import Base_Backbone
+from src.utils.position_embedding import (
+    create_global_pos_volume,
+    get_3d_sinusoidal_pos_emb,
+    get_3d_sinusoidal_pos_plus_vessel_emb,
+)
 from torch import nn
-from src.models.deformable.base_backbone import Base_Backbone
 
 # helpers
 
@@ -141,8 +146,10 @@ class FactorizedTransformer(nn.Module):
 
         return self.norm(x)
 
+
 def identity(x):
     return x
+
 
 class ViT(Base_Backbone):
     def __init__(
@@ -212,9 +219,17 @@ class ViT(Base_Backbone):
             nn.LayerNorm(dim),
         )
 
-        self.pos_embedding = nn.Parameter(
-            torch.randn(1, num_frame_patches, num_image_patches, dim)
-        )
+        # TODO: here
+        pos_volume = create_global_pos_volume(
+            num_frame_patches, num_frame_patches, num_frame_patches
+        ).to(self.device)
+
+        pos_embedding = get_3d_sinusoidal_pos_emb(
+            pos_volume,
+            num_pos_feats=dim // 3,
+            normalize=True,
+        ).unsqueeze(0)
+        self.pos_embedding = rearrange(pos_embedding, "b d (p_1 p_2 p_3) -> b p_1 (p_2 p_3) d", p_1=num_frame_patches, p_2=num_frame_patches, p_3=num_frame_patches)
         self.dropout = nn.Dropout(emb_dropout)
 
         self.spatial_cls_token = (
@@ -244,16 +259,17 @@ class ViT(Base_Backbone):
             )
 
         self.pool = pool
-        #self.to_latent = nn.Identity()
+        # self.to_latent = nn.Identity()
 
-        #self.mlp_head = nn.Linear(dim, num_classes)
+        # self.mlp_head = nn.Linear(dim, num_classes)
         self.variant = variant
 
     def encode_multiscale_feats(self, x):
         x = self.to_patch_embedding(x)
         b, f, n, _ = x.shape
 
-        x = x + self.pos_embedding[:, :f, :n]
+        
+        x = x + self.pos_embedding[:, :f, :n].to(x.device)
 
         if exists(self.spatial_cls_token):
             spatial_cls_tokens = repeat(
@@ -299,11 +315,11 @@ class ViT(Base_Backbone):
         elif self.variant == "factorized_self_attention":
             x = self.factorized_transformer(x)
             # remove temporal cls token
-            #print(x.shape)
+            # print(x.shape)
             x = x[:, :, 1:, :]
             spatial_dim = int(x.shape[-2] ** 0.5)
             x = rearrange(x, "b z (x y) c -> b z x y c", x=spatial_dim, y=spatial_dim)
-            # make channels the second dim 
+            # make channels the second dim
             x = rearrange(x, "b z x y c -> b c z x y")
             # x = x[:, 0, 0] if not self.global_average_pool else reduce(x, 'b f n d -> b d', 'mean')
 

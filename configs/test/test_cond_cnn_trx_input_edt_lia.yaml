@@ -2,25 +2,37 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "fst_biglc_cnn_trx_input_edt_lia_fps"
+  NAME: "test_cond_cnn_trx_input_edt_lia"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
+  D_MODEL: 384
   DEFORMABLE:
-    DECODER_ONLY: True
+    DECODER_ONLY: False
+    USE_VESSEL_MASKED_ENCODER: True
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
+    NORMALIZE_PE_01: True  # Normalize PE coords to [0,1] for Conditional DETR consistency
+    USE_CONDITIONAL_DECODER: True # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
+
+
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    MASK_NON_VESSEL: True
-    EFFICIENT_MASK: True
+    N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
+    N_DEC_LAYERS: 3  # 1-layer decoder
+    EFFICIENT_MASK_V2: True #8544M #16000 # 17000 # 8200
     FIX_PE_SCALE: True
+    USE_CHECKPOINT: True
+    FFN_DIM: 512
+    N_HEADS: 6
   PARQ_MODEL:
     NUM_QUERIES: 8
+    PARQ_LOSS:
+      DO_CLF_FOCAL: False
 SOLVER:
-  SCANS_PER_BATCH: 16
-  SAMPLES_PER_SCAN: 8
+  SCANS_PER_BATCH: 1
+  SAMPLES_PER_SCAN:  2
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
@@ -35,23 +47,24 @@ SOLVER:
   FLAT_ITER: 24000
   CHECKPOINT_PERIOD: 2000
 TEST:
-  PATCHES_PER_ITER: 1 #  24 = ~12GB
+  PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
 DATALOADER:
-  NUM_WORKERS: 16
+  NUM_WORKERS: 1
 DATA:
-  PATCH_SIZE: [128, 128, 128]
-  OVERLAP: [64, 64, 64]
+  PATCH_SIZE: [64,64,64]
+  OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
   CROPPING_AUG:
     ROTATION: [90.0, 90.0, 90.0]
     SPACING: [0.9, 1.8]
-    PADDED_REORIENT: True
+    PADDED_REORIENT: False
     TRANSFORM_RAD: False
+    
   DIR:
     TRAIN:
-      SCAN_DIR: "internal_train/crop_0.4"
+      SCAN_DIR: "internal_train/crop_0.4_compressed"
       VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
       CVS_DIR: "internal_train/vein_mask_edt_comp"
       ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia_with_fps.csv"

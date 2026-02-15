@@ -13,7 +13,6 @@ MODEL:
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
     N_LEVELS: 4
-    MASK_NON_VESSEL: True
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True 
     N_DEC_LAYERS: 3

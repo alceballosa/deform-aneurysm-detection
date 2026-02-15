@@ -122,6 +122,7 @@ def run_inference(
         if family == "compress"
         else RUN_INFERENCE_SCRIPT
     )
+    print("Using ...", INF_SCRIPT)
     cmd = [
         str(INF_SCRIPT),
         dataset_name,

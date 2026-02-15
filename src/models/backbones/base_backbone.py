@@ -19,7 +19,7 @@ from src.utils.position_embedding import (
 
 class Base_Backbone(nn.Module):
     """
-    UNET-based encoder for the PARQ model.
+    Multi-scale 'abstract' encoder for the DETR model.
     """
 
     def __init__(
@@ -81,11 +81,21 @@ class Base_Backbone(nn.Module):
                     normalize=True,
                 ).to(device)
             else:
-                pos_emb = get_3d_sinusoidal_pos_emb(
-                    pos_volume,
-                    num_pos_feats=self.output_hidden_dim // 3,
-                    normalize=True,
-                ).to(device)
+                if self.cfg.MODEL.DEFORMABLE.NORMALIZE_PE_01:
+                    # Normalize coords to [0, 1] for Conditional DETR consistency
+                    patch_size = self.src_patch_size[0]
+                    pos_volume_norm = pos_volume.float() / (patch_size - 1)
+                    pos_emb = get_3d_sinusoidal_pos_emb(
+                        pos_volume_norm,
+                        num_pos_feats=self.output_hidden_dim // 3,
+                        normalize=False,
+                    ).to(device)
+                else:
+                    pos_emb = get_3d_sinusoidal_pos_emb(
+                        pos_volume,
+                        num_pos_feats=self.output_hidden_dim // 3,
+                        normalize=True,
+                    ).to(device)
 
             multiscale_pos_embs.append(pos_emb)
         #print(multiscale_feats[0].shape, multiscale_pos_embs[0].shape)
@@ -105,8 +115,7 @@ class Base_Backbone(nn.Module):
         multiscale_feats, multiscale_masks = self.encode_multiscale_feats(
             x, vessel_segs
         )
-        #for feat in multiscale_feats:
-        #    print(feat.shape)
+
         n_levels = len(multiscale_feats)
         # need to track a mask forf the global pos embedding with:
         # level-based indices
@@ -121,8 +130,6 @@ class Base_Backbone(nn.Module):
             device=self.device,
             input_spatial_shape=x.shape,
         )
-
-        #print(multiscale_feats[-1].shape)
 
         if vessel_segs is not None and self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
             # V2: mask-first (like V1) but with LayerNorm instead of GroupNorm.
@@ -161,41 +168,6 @@ class Base_Backbone(nn.Module):
             multiscale_pos_embs = masked_pos_embs
             import datetime
             print(str(datetime.datetime.now()), multiscale_feats.shape)
-
-        elif vessel_segs is not None:
-
-            multiscale_feats, multiscale_masks, level_indices = self.flatten_features(
-                multiscale_feats,
-                multiscale_masks,
-            )
-
-            masked_pos_embs, masked_levels = self.mask_then_pad_levels_with_embs(
-                multiscale_feats[0].shape[0],
-                multiscale_pos_embs,
-                level_indices,
-                multiscale_masks,
-            )
-            masked_pos_embs = masked_pos_embs.to(self.device)
-
-            multiscale_feats, multiscale_masks = self.pad_flat_feats(
-                multiscale_feats, multiscale_masks
-            )
-
-            for i, feat in enumerate(multiscale_feats):
-                multiscale_feats[i] = self.input_proj_list[i](feat)
-
-            multiscale_feats = [
-                feat.squeeze(-1).squeeze(-1).transpose(1, 2)
-                for feat in multiscale_feats
-            ]
-            multiscale_feats, multiscale_masks = self.unpad_then_flatten_features(
-                multiscale_feats, multiscale_masks
-            )
-
-            for level in range(n_levels):
-                lev_emb = level_emb[level]
-                masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
-            multiscale_pos_embs = masked_pos_embs
 
         else:
             for i, feat in enumerate(multiscale_feats):

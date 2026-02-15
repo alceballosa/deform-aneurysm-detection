@@ -1,6 +1,3 @@
-# from .full_spconv_net import SparseCPM
-# from .full_me_net import MESparseCPM
-# from .semi_sp_me_net import MESemiSparseCPM
-from .deformable.def_parq_rec import PARQ_Deformable_R
-from .deformable.vivit_parq_rec import PARQ_ViViT
+from .detr import PARQ_Deformable_R
+from .vivit_detr import PARQ_ViViT
 

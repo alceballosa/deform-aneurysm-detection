@@ -13,7 +13,7 @@ import warnings
 
 import torch
 import torch.nn.functional as F
-from src.models.deformable.ops.functions import (
+from src.models.trx_deformable.ops.functions import (
     MSDeformAttnFunction,
     ms_deform_3d_attn_core_pytorch,
 )

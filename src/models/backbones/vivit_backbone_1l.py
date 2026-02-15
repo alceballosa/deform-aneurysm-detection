@@ -1,40 +1,25 @@
 # From https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/vivit.py
 
-from typing import List
-
 import torch
 from einops import rearrange, reduce, repeat
 from einops.layers.torch import Rearrange
-from src.models.deformable.base_backbone import Base_Backbone
 from torch import nn
-
-# import F from torch 
-
-from torch.nn import functional as F
+from src.models.backbones.base_backbone import Base_Backbone
 
 # helpers
-
-
-
 
 
 def build_backbone(cfg):
     """
     Builds the UNET Encoder for the PARQ model.
     """
-    
-    target_spatial_shape = 8
-    image_size = cfg.DATA.PATCH_SIZE[1]
-
-    trx_patch_size = image_size // target_spatial_shape
-
     v = ViT(
         cfg=cfg,
         image_size=cfg.DATA.PATCH_SIZE[1],  # image size
         frames=cfg.DATA.PATCH_SIZE[0],  # number of frames
-        image_patch_size=trx_patch_size,  # image patch size
-        frame_patch_size=trx_patch_size,  # frame patch size
-        num_classes=2,
+        image_patch_size=cfg.MODEL.TRANS_MODEL.PATCH_SIZE,  # image patch size
+        frame_patch_size=cfg.MODEL.TRANS_MODEL.PATCH_SIZE,  # frame patch size
+        num_classes=1,
         channels=cfg.DATA.N_CHANNELS,
         dim=cfg.MODEL.D_MODEL,
         spatial_depth=3,  # depth of the spatial transformer
@@ -53,48 +38,6 @@ def exists(val):
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
-
-
-
-class Conv3d(torch.nn.Conv3d):
-    """
-    A wrapper around :class:`torch.nn.Conv3d` to support empty inputs and more features.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Extra keyword arguments supported in addition to those in `torch.nn.Conv3d`:
-
-        Args:
-            norm (nn.Module, optional): a normalization layer
-            activation (callable(Tensor) -> Tensor): a callable activation function
-
-        It assumes that norm layer is used before activation.
-        """
-        norm = kwargs.pop("norm", None)
-        activation = kwargs.pop("activation", None)
-        super().__init__(*args, **kwargs)
-
-        self.norm = norm
-        self.activation = activation
-
-    def forward(self, x):
-        # torchscript does not support SyncBatchNorm yet
-        # https://github.com/pytorch/pytorch/issues/40507
-        # and we skip these codes in torchscript since:
-        # 1. currently we only support torchscript in evaluation mode
-        # 2. features needed by exporting module to torchscript are added in PyTorch 1.6 or
-        # later version, `Conv2d` in these PyTorch versions has already supported empty inputs.
-
-
-        x = F.conv3d(
-            x, self.weight, self.bias, self.stride, self.padding, self.dilation, self.groups
-        )
-        if self.norm is not None:
-            x = self.norm(x)
-        if self.activation is not None:
-            x = self.activation(x)
-        return x
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout=0.0):
@@ -198,20 +141,8 @@ class FactorizedTransformer(nn.Module):
 
         return self.norm(x)
 
-
 def identity(x):
     return x
-
-
-def get_norm(norm, out_channels):
-    if norm == "BN":
-        return nn.BatchNorm3d(out_channels)
-    elif norm == "LN":
-        return nn.LayerNorm(out_channels)
-    elif norm == "":
-        return identity
-    else:
-        raise NotImplementedError(f"norm={norm} is not supported yet.")
 
 class ViT(Base_Backbone):
     def __init__(
@@ -239,7 +170,7 @@ class ViT(Base_Backbone):
         self.cfg = cfg
 
         # TODO: make this part less hacky
-        self.input_proj_list = [identity, identity, identity, identity]
+        self.input_proj_list = [identity]
         self.output_hidden_dim = dim
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(image_patch_size)
@@ -293,7 +224,6 @@ class ViT(Base_Backbone):
         )
 
         if variant == "factorized_encoder":
-            print(variant)
             self.temporal_cls_token = (
                 nn.Parameter(torch.randn(1, 1, dim))
                 if not self.global_average_pool
@@ -314,67 +244,12 @@ class ViT(Base_Backbone):
             )
 
         self.pool = pool
-        # self.to_latent = nn.Identity()
+        #self.to_latent = nn.Identity()
 
-        # self.mlp_head = nn.Linear(dim, num_classes)
+        #self.mlp_head = nn.Linear(dim, num_classes)
         self.variant = variant
 
-        # Multistage
-
-        self.scale_factors = (4.0, 2.0, 1.0, 0.5)
-        self.stages = []
-        norm = "LN"
-        use_bias = norm == ""
-        spatial_scales = [8*4, 8*2, 8*1, 8//2]
-    
-        for idx, scale in enumerate(self.scale_factors):
-            # TODO: verify this
-            spatial_scale = spatial_scales[idx]
-            out_channels = self.output_hidden_dim
-            out_dim = dim
-
-            if scale == 4.0:
-                layers = [
-                    nn.ConvTranspose3d(dim, dim // 2, kernel_size=2, stride=2),
-                    get_norm(norm, [dim // 2, spatial_scales[1], spatial_scales[1], spatial_scales[1]]),
-                    nn.GELU(),
-                    nn.ConvTranspose3d(dim // 2, dim // 4, kernel_size=2, stride=2),
-                ]
-                out_dim = dim // 4
-            elif scale == 2.0:
-                layers = [nn.ConvTranspose3d(dim, dim // 2, kernel_size=2, stride=2)]
-                out_dim = dim // 2
-            elif scale == 1.0:
-                layers = []
-            elif scale == 0.5:
-                layers = [nn.MaxPool3d(kernel_size=2, stride=2)]
-                
-            else:
-                raise NotImplementedError(f"scale_factor={scale} is not supported yet.")
-            layers.extend(
-                [
-                    Conv3d(
-                        out_dim,
-                        out_channels,
-                        kernel_size=1,
-                        bias=use_bias,
-                        norm=get_norm(norm, [out_channels, spatial_scale, spatial_scale, spatial_scale]),
-                    ),
-                    Conv3d(
-                        out_channels,
-                        out_channels,
-                        kernel_size=3,
-                        padding=1,
-                        bias=use_bias,
-                        norm=get_norm(norm, [out_channels, spatial_scale, spatial_scale, spatial_scale]),
-                    ),
-                ]
-            )
-            layers = nn.Sequential(*layers)
-            self.stages.append(layers)
-        self.stages = nn.ModuleList(self.stages)
-
-    def forward_vit(self, x):
+    def encode_multiscale_feats(self, x):
         x = self.to_patch_embedding(x)
         b, f, n, _ = x.shape
 
@@ -416,8 +291,6 @@ class ViT(Base_Backbone):
             # attend across time
 
             x = self.temporal_transformer(x)
-            print(x.shape)
-            
 
             # excise out temporal cls token or average pool
 
@@ -426,21 +299,14 @@ class ViT(Base_Backbone):
         elif self.variant == "factorized_self_attention":
             x = self.factorized_transformer(x)
             # remove temporal cls token
+            #print(x.shape)
             x = x[:, :, 1:, :]
             spatial_dim = int(x.shape[-2] ** 0.5)
             x = rearrange(x, "b z (x y) c -> b z x y c", x=spatial_dim, y=spatial_dim)
-            # make channels the second dim
-            x = rearrange(x, "b z x y c -> b c z x y").contiguous()
+            # make channels the second dim 
+            x = rearrange(x, "b z x y c -> b c z x y")
             # x = x[:, 0, 0] if not self.global_average_pool else reduce(x, 'b f n d -> b d', 'mean')
 
         # x = self.to_latent(x)
-        return x  # self.mlp_head(x)
 
-    def encode_multiscale_feats(self, x) -> List:
-        x = self.forward_vit(x)
-        results = []
-        for i, stage in enumerate(self.stages):
-            x_stage = stage(x)
-            results.append(x_stage)
-
-        return results
+        return [x]  # self.mlp_head(x)

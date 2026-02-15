@@ -4,9 +4,7 @@ import os
 import pdb
 import pickle
 import time
-from functools import partial
 
-import edt
 import einops
 import numpy as np
 import torch
@@ -15,13 +13,14 @@ import torch.nn.functional as F
 from detectron2.config import configurable
 from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
+
 from src.dataset.split_comb import SplitComb
-from src.models.box_utils import nms_3D
-from src.models.deformable import vivit_sinpe_backbone_1l, vivit_backbone_1l, vivit_backbone_4l, vit3d_backbone_4l, vit3d_backbone_1l, hiera_backbone_4l
-from src.models.deformable.def_trx_rec import build_deformable_transformer
-from src.models.deformable.nms import nms
-from src.models.deformable.parq_matcher_rec import HungarianMatcherModified
-from src.models.deformable.parq_utils import get_3d_corners
+from src.models.backbones import cnn_backbone
+from src.models.box_utils import get_3d_corners, nms_3D
+from src.models.hungarian_matcher import HungarianMatcherModified
+from src.models.trx_deformable.def_trx import build_deformable_transformer
+from src.models.trx_deformable.nms import nms
+from src.models.trx_efficient.trx import build_efficient_transformer
 from src.utils.general import inverse_sigmoid
 from src.utils.losses import (
     bbox_iou_loss,
@@ -29,25 +28,18 @@ from src.utils.losses import (
     no_targets_cross_entropy_loss,
     no_targets_focal_loss,
 )
-from tqdm import tqdm
-
 
 total_samples = 0
 total_pos = 0
 
 
 build_backbone = {
-    "ViViT_1L": vivit_backbone_1l.build_backbone,
-    "ViViT_4L": vivit_backbone_4l.build_backbone,
-    "ViT3D_4L": vit3d_backbone_4l.build_backbone,
-    "ViT3D_1L": vit3d_backbone_1l.build_backbone,
-    "Hiera_4L": hiera_backbone_4l.build_backbone,
-    "ViViT_Sin_1L": vivit_sinpe_backbone_1l.build_backbone,
+    "CNN": cnn_backbone.build_backbone,
 }
 
 
 @META_ARCH_REGISTRY.register()
-class PARQ_ViViT(nn.Module):
+class PARQ_Deformable_R(nn.Module):
     @configurable
     def __init__(
         self,
@@ -66,10 +58,12 @@ class PARQ_ViViT(nn.Module):
         use_pretrained_unet_encoder=False,
         path_unet_weights="",
         frozen_pretrained_encoder=False,
+        use_checkpoint=False,
     ):
-        super(PARQ_ViViT, self).__init__()
+        super(PARQ_Deformable_R, self).__init__()
         self.cfg = cfg
         self.backbone_type = backbone_type
+        self.use_checkpoint = use_checkpoint
 
         self.device = device
         self._split_comb = None
@@ -77,11 +71,7 @@ class PARQ_ViViT(nn.Module):
         # losses
         self.num_semcls = 1
         self.loss_weights = loss_weights
-        self.class_weight = torch.ones(self.num_semcls + 1).to(
-            self.device
-        )  # * class_weight
         self.iou_loss = bbox_iou_loss
-        self.clf_loss = torch.nn.CrossEntropyLoss(self.class_weight, reduction="mean")
 
         # NOTE following the official DETR rep0, bg_cls_weight means relative classification weight of the no-object class.
         # TODO put class weight this in yaml
@@ -111,7 +101,10 @@ class PARQ_ViViT(nn.Module):
 
         # TODO: do this in a better way
         self.query_pos_embed_plus_query = nn.Embedding(num_queries, d_model * 2)
-        self.transformer = build_deformable_transformer(cfg)
+        if cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
+            self.transformer = build_efficient_transformer(cfg)
+        else:
+            self.transformer = build_deformable_transformer(cfg)
         matcher_cfg = cfg.MODEL.PARQ_MODEL.MATCHER
         self.matcher = HungarianMatcherModified(
             cost_class=matcher_cfg.COST_CLASS,
@@ -146,6 +139,7 @@ class PARQ_ViViT(nn.Module):
             "use_pretrained_unet_encoder": conv_cfg.USE_PRETRAINED_UNET_ENCODER,
             "path_unet_weights": conv_cfg.PRETRAINED_UNET_ENCODER_PATH,
             "frozen_pretrained_encoder": conv_cfg.FROZEN_PRETRAINED_ENCODER,
+            "use_checkpoint": cfg.MODEL.DEFORMABLE.USE_CHECKPOINT,
             "loss_weights": {
                 "cls_w": parq_loss_cfg.CLS_W,
                 "shape_w": parq_loss_cfg.SHAPE_W,
@@ -183,17 +177,6 @@ class PARQ_ViViT(nn.Module):
         return
 
     def forward(self, input_batch):
-        if self.cfg.CUSTOM.USE_SINGLE_BATCH:
-            path_pickle = (
-                "/home/ceballosarroyo.a/workspace/medical/cta-det2/src/input_batch.pkl"
-            )
-            # save file with input_batch to disk
-            # with open(path_pickle, 'wb') as f:
-            #    pickle.dump(input_batch, f)
-            # load into input_batch
-            with open(path_pickle, "rb") as f:
-                input_batch = pickle.load(f)
-            # input_batch = self.read_pickled_batch()
         if self.training:
             torch.cuda.empty_cache()
             return self._forward_train(input_batch)
@@ -205,9 +188,10 @@ class PARQ_ViViT(nn.Module):
             return self._forward_eval(input_batch)
 
     def _forward_train(self, input_batch):
-        if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
-            get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
+        # if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
+        #    get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
         x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
+
         targets = self.preprocess_train_labels(input_batch)
         box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
         loss_dict = self.compute_losses(box_prediction_list, targets)
@@ -224,8 +208,10 @@ class PARQ_ViViT(nn.Module):
         patches, nzhw, splits_boxes = self.split_com.split(input_batch[0]["image"])
         patches = np.concatenate(patches, axis=0)
         if self.use_vessel_info != "no":
-            patches_vessel, _, _ = self.split_com.split(input_batch[0]["vessel_edt"])
-            patches_vessel = np.concatenate(patches_vessel, axis=0)
+            patches_vessel_edt, _, _ = self.split_com.split(
+                input_batch[0]["vessel_edt"]
+            )
+            patches_vessel_edt = np.concatenate(patches_vessel_edt, axis=0)
         if self.use_cvs_info != "no":
             patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
             patches_cvs = np.concatenate(patches_cvs, axis=0)
@@ -242,7 +228,7 @@ class PARQ_ViViT(nn.Module):
             cvs_data = None
             if self.use_vessel_info != "no":
                 vessel_data = torch.tensor(
-                    patches_vessel[i * bs : end], device=self.device
+                    patches_vessel_edt[i * bs : end], device=self.device
                 )
             if self.use_cvs_info != "no":
                 cvs_data = torch.tensor(patches_cvs[i * bs : end], device=self.device)
@@ -272,6 +258,7 @@ class PARQ_ViViT(nn.Module):
         outputs = outputs[object_ids]
         if len(outputs) > 0:
             keep = nms_3D(outputs[:, 1:], overlap=0.05, top_k=self.cfg.TEST.NMS_TOPK)
+            # keep = nms_3D(outputs[:, 1:], overlap=0.5, top_k=120)
             outputs = outputs[keep]
 
         vizmode = self.cfg.MODEL.EVAL_VIZ_MODE
@@ -335,20 +322,41 @@ class PARQ_ViViT(nn.Module):
                 centers during each iteration
 
         """
-
+        vessel_segs = None
+        if self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 and vessel_dists is not None:
+            vessel_segs = (vessel_dists > 0).float()
         if self.use_vessel_info == "start":
-            x = torch.cat((x, vessel_dists / float(self.cfg.DATA.PATCH_SIZE[0])), dim=1)
+            x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
             vessel_dists = None  # no need to keep using this
             if self.use_cvs_info == "start":
                 x = torch.cat((x, cvs_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
+
         elif self.use_vessel_info == "no":
             vessel_dists = None  # shouldn't use vessel info here
-        multiscale_feats, multiscale_pos_embs = self.backbone(x, vessel_dists)
+
+        # Checkpoint the entire backbone forward pass to save memory
+        if self.use_checkpoint and self.training:
+            multiscale_feats, multiscale_pos_embs, key_padding_mask = (
+                torch.utils.checkpoint.checkpoint(
+                    self.backbone,
+                    x,
+                    vessel_dists,
+                    vessel_segs,
+                    self.transformer.level_embed,
+                    use_reentrant=False,
+                )
+            )
+        else:
+            multiscale_feats, multiscale_pos_embs, key_padding_mask = self.backbone(
+                x, vessel_dists, vessel_segs, self.transformer.level_embed
+            )
+
         box_prediction_list, init_reference_out, viz_outputs, attn_list = (
             self.transformer.forward(
                 multiscale_feats,
                 multiscale_pos_embs,
                 self.query_pos_embed_plus_query.weight,
+                key_padding_mask,
             )
         )
         return box_prediction_list, viz_outputs
@@ -361,19 +369,18 @@ class PARQ_ViViT(nn.Module):
         output:
             loss
         """
-        # assert targets.ndim == 3, f"{targets.shape}"
-        loss_total = (
-            output_dict[-1]["size"].sum()
-            * output_dict[-1]["center"].sum()
-            * output_dict[-1]["class_logits"].sum()
-            * 0
-        )
 
+        # Use graph-connected zeros so DDP sees gradients for all parameters
+        # even when no targets are matched (avoids AllReduce deadlock).
+        _dummy = output_dict[0]
+        _zero = (
+            _dummy["center"].sum() + _dummy["size"].sum() + _dummy["class_logits"].sum()
+        ) * 0.0
         loss_dict = {
-            "center_loss": torch.tensor(0.0).to(self.device),
-            "size_loss": torch.tensor(0.0).to(self.device),
-            "cat_loss": torch.tensor(0.0).to(self.device),
-            "iou_loss": torch.tensor(0.0).to(self.device),
+            "center_loss": _zero.clone(),
+            "size_loss": _zero.clone(),
+            "cat_loss": _zero.clone(),
+            "iou_loss": _zero.clone(),
         }
 
         valid_bs_loc_shape = 0
@@ -381,7 +388,7 @@ class PARQ_ViViT(nn.Module):
         # compute loss for every layer
         for out_dict in output_dict:
             # apply matching
-            matched_indices, punish_mask = self.matcher(out_dict, targets)
+            matched_indices, penalize_mask = self.matcher(out_dict, targets)
             # TODO: count samples instead of batches
             bs = len(matched_indices)
             # compute loss for every sample
@@ -389,6 +396,7 @@ class PARQ_ViViT(nn.Module):
                 # category loss for the case with no target objects
                 valid_bs_cls += 1
                 if len(matched_indices[i]) == 0:
+
                     if self.cfg.MODEL.PARQ_MODEL.PARQ_LOSS.DO_CLF_FOCAL:
                         cat_loss = (
                             no_targets_focal_loss(
@@ -413,7 +421,6 @@ class PARQ_ViViT(nn.Module):
                     center_target = targets[i]["center"][matched_indices[i][1]]
                     center_loss = (center_predict - center_target).abs().mean()
                     center_loss *= self.loss_weights["offset_w"]
-                    loss_total += center_loss
                     loss_dict["center_loss"] += center_loss
 
                     # size loss: l1, applied only when matched to something
@@ -421,7 +428,6 @@ class PARQ_ViViT(nn.Module):
                     size_target = targets[i]["size"][matched_indices[i][1]]
                     size_loss = (size_predict - size_target).abs().mean()
                     size_loss *= self.loss_weights["shape_w"]
-                    loss_total += size_loss
                     loss_dict["size_loss"] += size_loss
 
                     # category loss
@@ -445,30 +451,32 @@ class PARQ_ViViT(nn.Module):
                             dtype=torch.int64,
                             device=out_dict["class_logits"].device,
                         )
+
                         classes_target[matched_indices[i][0]] = matched_classes_target
-                        # TODO: review punish mask how it works and looks
-                        if punish_mask is not None:
+                        if penalize_mask is not None:
                             cross_entropy = torch.nn.CrossEntropyLoss(
                                 self.class_weight.to(matched_classes_target.device),
                                 reduction="none",
                             )
+
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
 
-                            cat_loss = (cat_loss * punish_mask[i]).sum() / punish_mask[
-                                i
-                            ].sum()
+                            cat_loss = (
+                                cat_loss * penalize_mask[i]
+                            ).sum() / penalize_mask[i].sum()
+
                         else:
                             cross_entropy = torch.nn.CrossEntropyLoss(
                                 self.class_weight.to(matched_classes_target.device)
                             )
+
                             cat_loss = cross_entropy(
                                 out_dict["class_logits"][i], classes_target
                             )
 
                     cat_loss *= self.loss_weights["cls_w"]
-                    loss_total += cat_loss
                     loss_dict["cat_loss"] += cat_loss
 
                     # iou loss
@@ -479,12 +487,10 @@ class PARQ_ViViT(nn.Module):
                     iou_loss = bbox_iou_loss(center_size_predict, center_size_target)
                     iou_loss *= self.loss_weights["iou_w"]
 
-                    loss_total += iou_loss
                     loss_dict["iou_loss"] += iou_loss
 
         # average losses
         if (valid_bs_loc_shape + valid_bs_cls) != 0:
-            loss_total = loss_total / (valid_bs_loc_shape + valid_bs_cls)
             for key, value in loss_dict.items():
                 if (
                     key in ["center_loss", "size_loss", "iou_loss"]
@@ -493,8 +499,6 @@ class PARQ_ViViT(nn.Module):
                     loss_dict[key] = value / valid_bs_loc_shape
                 elif key in ["cat_loss"] and valid_bs_cls != 0:
                     loss_dict[key] = value / valid_bs_cls
-
-        loss_dict["total_loss"] = loss_total
         return loss_dict
 
     def parse_pred(self, pred_dict):
@@ -505,6 +509,8 @@ class PARQ_ViViT(nn.Module):
         # only use the prediciton in the last iteration
         size_predict = pred_dict["size"]
         center_predict = pred_dict["center"]
+        # TODO: consider splitting class logits into objectness + semantic class
+        # probabilities (two-stage approach, see legacy BoxProcessor)
         logits = pred_dict["class_probs"]
         labels = torch.argmax(logits, dim=-1)
         bs = logits.shape[0]
@@ -515,9 +521,9 @@ class PARQ_ViViT(nn.Module):
         corners = get_3d_corners(center_predict_flat, size_predict_flat)
         corners = corners.reshape(bs, n_queries, 8, 3)
         # TODO: filter out of bounds
-        valid = torch.ones_like(center_predict[..., 0]).bool()
-        pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
-        pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
+        # valid = torch.ones_like(center_predict[..., 0]).bool()
+        # pred_mask = nms(corners, labels, logits, self.num_semcls, 0.1, "nms_3d_faster")
+        # pred_mask = torch.tensor(pred_mask).to(valid.device) & valid
         dets = torch.ones((bs, n_queries, 8)) * -1
         for j in range(bs):
             for i in range(n_queries):
@@ -531,7 +537,6 @@ class PARQ_ViViT(nn.Module):
 
     def preprocess_train_input(self, input_batch):
         all_samples = sum([x["samples"] for x in input_batch], [])
-
         imgs = [s["image"] for s in all_samples]
         imgs = torch.tensor(np.stack(imgs, axis=0))
         imgs = imgs.to(self.device)
@@ -550,9 +555,7 @@ class PARQ_ViViT(nn.Module):
             cvs_dists = [s["cvs_mask"] for s in all_samples]
             cvs_dists = torch.tensor(np.stack(cvs_dists, axis=0))
             cvs_dists = cvs_dists.to(self.device)
-            # cvs_dists = [s["cvs_mask"] for s in all_samples]
-            # cvs_dists = torch.stack(cvs_dists, dim=0)
-            # cvs_dists = cvs_dists.to(self.device)
+
         return imgs, vessel_dists, cvs_dists
 
     def preprocess_train_labels(self, input_batches: list):
@@ -605,185 +608,6 @@ class PARQ_ViViT(nn.Module):
             target_list.append(target_dict)
 
         return target_list
-
-    def normalize_input_values(self, x: torch.Tensor):
-
-        min_value, max_value = self.cfg.DATA.WINDOW
-        x.clamp_(min=min_value, max=max_value)
-        x -= (min_value + max_value) / 2
-        x /= (max_value - min_value) / 2
-
-
-        return x
-
-    @staticmethod
-    def target_preprocess(annotations, device, input_size, mask_ignore):
-        batch_size = annotations.shape[0]
-        annotations_new = -1 * torch.ones_like(annotations).to(device)
-        for j in range(batch_size):
-            bbox_annotation = annotations[j]
-            bbox_annotation_boxes = bbox_annotation[bbox_annotation[:, -1] > -1]
-            bbox_annotation_target = []
-            # z_ctr, y_ctr, x_ctr, d, h, w
-            crop_box = torch.tensor(
-                [0.0, 0.0, 0.0, input_size[0], input_size[1], input_size[2]]
-            ).to(device)
-            for s, _ in enumerate(bbox_annotation_boxes):
-                # coordinate z_ctr, y_ctr, x_ctr, d, h, w
-                each_label = bbox_annotation_boxes[s]
-                # coordinate convert zmin, ymin, xmin, d, h, w
-                z1 = torch.max(each_label[0] - each_label[3] / 2.0, crop_box[0])
-                y1 = torch.max(each_label[1] - each_label[4] / 2.0, crop_box[1])
-                x1 = torch.max(each_label[2] - each_label[5] / 2.0, crop_box[2])
-
-                z2 = torch.min(each_label[0] + each_label[3] / 2.0, crop_box[3])
-                y2 = torch.min(each_label[1] + each_label[4] / 2.0, crop_box[4])
-                x2 = torch.min(each_label[2] + each_label[5] / 2.0, crop_box[5])
-
-                nd = torch.clamp(z2 - z1, min=0.0)
-                nh = torch.clamp(y2 - y1, min=0.0)
-                nw = torch.clamp(x2 - x1, min=0.0)
-                if nd * nh * nw == 0:
-                    continue
-                percent = nw * nh * nd / (each_label[3] * each_label[4] * each_label[5])
-                if (percent > 0.1) and (nw * nh * nd >= 15):
-                    bbox = torch.from_numpy(
-                        np.array(
-                            [
-                                float(z1 + 0.5 * nd),
-                                float(y1 + 0.5 * nh),
-                                float(x1 + 0.5 * nw),
-                                float(nd),
-                                float(nh),
-                                float(nw),
-                                0,
-                            ]
-                        )
-                    ).to(device)
-                    bbox_annotation_target.append(bbox.view(1, 7))
-                else:
-                    mask_ignore[
-                        j,
-                        0,
-                        int(z1) : int(torch.ceil(z2)),
-                        int(y1) : int(torch.ceil(y2)),
-                        int(x1) : int(torch.ceil(x2)),
-                    ] = -1
-            if len(bbox_annotation_target) > 0:
-                bbox_annotation_target = torch.cat(bbox_annotation_target, 0)
-                annotations_new[j, : len(bbox_annotation_target)] = (
-                    bbox_annotation_target
-                )
-        # ctr_z, ctr_y, ctr_x, d, h, w, (0 or -1)
-        return annotations_new, mask_ignore
-
-    @staticmethod
-    def bbox_iou(box1, box2, DIoU=True, eps=1e-7):
-        def zyxdhw2zyxzyx(box, dim=-1):
-            ctr_zyx, dhw = torch.split(box, 3, dim)
-            z1y1x1 = ctr_zyx - dhw / 2
-            z2y2x2 = ctr_zyx + dhw / 2
-            return torch.cat((z1y1x1, z2y2x2), dim)  # zyxzyx bbox
-
-        box1 = zyxdhw2zyxzyx(box1)
-        box2 = zyxdhw2zyxzyx(box2)
-        # Get the coordinates of bounding boxes
-        b1_z1, b1_y1, b1_x1, b1_z2, b1_y2, b1_x2 = box1.chunk(6, -1)
-        b2_z1, b2_y1, b2_x1, b2_z2, b2_y2, b2_x2 = box2.chunk(6, -1)
-        w1, h1, d1 = b1_x2 - b1_x1, b1_y2 - b1_y1, b1_z2 - b1_z1
-        w2, h2, d2 = b2_x2 - b2_x1, b2_y2 - b2_y1, b2_z2 - b2_z1
-
-        # Intersection area
-        inter = (b1_x2.minimum(b2_x2) - b1_x1.maximum(b2_x1)).clamp(0) * (
-            b1_y2.minimum(b2_y2) - b1_y1.maximum(b2_y1)
-        ).clamp(0) * (b1_z2.minimum(b2_z2) - b1_z1.maximum(b2_z1)).clamp(0) + eps
-
-        # Union Area
-        union = w1 * h1 * d1 + w2 * h2 * d2 - inter
-
-        # IoU
-        iou = inter / union
-        if DIoU:
-            cw = b1_x2.maximum(b2_x2) - b1_x1.minimum(
-                b2_x1
-            )  # convex (smallest enclosing box) width
-            ch = b1_y2.maximum(b2_y2) - b1_y1.minimum(b2_y1)  # convex height
-            cd = b1_z2.maximum(b2_z2) - b1_z1.minimum(b2_z1)  # convex depth
-            c2 = cw**2 + ch**2 + cd**2 + eps  # convex diagonal squared
-            rho2 = (
-                (b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2
-                + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2
-                + +((b2_z1 + b2_z2 - b1_z1 - b1_z2) ** 2)
-            ) / 4  # center dist ** 2
-            return iou - rho2 / c2  # DIoU
-        return iou  # IoU
-
-    @staticmethod
-    def bbox_decode(anchor_points, pred_offsets, pred_shapes, stride_tensor, dim=-1):
-        c_zyx = (anchor_points + pred_offsets) * stride_tensor
-        return torch.cat((c_zyx, 2 * pred_shapes), dim)  # zyxdhw bbox
-
-    @staticmethod
-    def get_pos_target(
-        annotations, anchor_points, stride, spacing, topk=7, ignore_ratio=26
-    ):
-        batchsize, num, _ = annotations.size()
-        mask_gt = annotations[:, :, -1].clone().gt_(-1)
-        ctr_gt_boxes = annotations[:, :, :3] / stride  # z0, y0, x0
-        shape = annotations[:, :, 3:6] / 2  # half d h w
-        sp = torch.from_numpy(spacing).to(ctr_gt_boxes.device).view(1, 1, 1, 3)
-        # distance (b, n_max_object, anchors)
-        distance = -(
-            ((ctr_gt_boxes.unsqueeze(2) - anchor_points.unsqueeze(0)) * sp)
-            .pow(2)
-            .sum(-1)
-        )
-        _, topk_inds = torch.topk(
-            distance, (ignore_ratio + 1) * topk, dim=-1, largest=True, sorted=True
-        )
-        mask_topk = F.one_hot(topk_inds[:, :, :topk], distance.size()[-1]).sum(-2)
-        mask_ignore = -1 * F.one_hot(topk_inds[:, :, topk:], distance.size()[-1]).sum(
-            -2
-        )
-        mask_pos = mask_topk * mask_gt.unsqueeze(-1)
-        mask_ignore = mask_ignore * mask_gt.unsqueeze(-1)
-        gt_idx = mask_pos.argmax(-2)
-        batch_ind = torch.arange(
-            end=batchsize, dtype=torch.int64, device=ctr_gt_boxes.device
-        )[..., None]
-        gt_idx = gt_idx + batch_ind * num
-        target_ctr = ctr_gt_boxes.view(-1, 3)[gt_idx]
-        target_offset = target_ctr - anchor_points
-        target_shape = shape.view(-1, 3)[gt_idx]
-        target_bboxes = annotations[:, :, :-1].view(-1, 6)[gt_idx]
-        target_scores, _ = torch.max(mask_pos, 1)
-        mask_ignore, _ = torch.min(mask_ignore, 1)
-        del target_ctr, distance, mask_topk
-        return (
-            target_offset,
-            target_shape,
-            target_bboxes,
-            target_scores.unsqueeze(-1),
-            mask_ignore.unsqueeze(-1),
-        )
-
-
-def make_anchors(feat, input_size, grid_cell_offset=0):
-    """Generate anchors from a feature."""
-    assert feat is not None
-    dtype, device = feat.dtype, feat.device
-    _, _, d, h, w = feat.shape
-    strides = (
-        torch.tensor([input_size[0] / d, input_size[1] / h, input_size[2] / w])
-        .type(dtype)
-        .to(device)
-    )
-    sx = torch.arange(end=w, device=device, dtype=dtype) + grid_cell_offset  # shift x
-    sy = torch.arange(end=h, device=device, dtype=dtype) + grid_cell_offset  # shift y
-    sz = torch.arange(end=d, device=device, dtype=dtype) + grid_cell_offset  # shift z
-    anchor_points = torch.cartesian_prod(sz, sy, sx)
-    stride_tensor = strides.repeat(d * h * w, 1)
-    return anchor_points, stride_tensor
 
 
 def get_gradient_norm(model):

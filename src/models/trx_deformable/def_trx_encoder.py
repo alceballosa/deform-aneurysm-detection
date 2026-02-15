@@ -1,5 +1,5 @@
 import torch
-from src.models.deformable.ops.modules import MSDeformAttn
+from src.models.trx_deformable.ops.modules import MSDeformAttn
 from src.utils.general import get_activation_fn, get_clones
 from torch import nn
 
