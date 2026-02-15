@@ -11,7 +11,7 @@ from typing import List
 import torch
 from torch import nn
 
-from src.models.deformable.base_backbone import Base_Backbone
+from src.models.backbones.base_backbone import Base_Backbone
 from src.models.layers.conv_layers import ConvBlock, DownsamplingConvBlock, LayerBasic
 
 

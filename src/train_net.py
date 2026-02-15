@@ -17,6 +17,9 @@ try:
 except:
     pass
 
+import warnings
+warnings.filterwarnings("ignore", message=".*torch.cuda.amp.autocast.*", category=FutureWarning)
+
 import copy
 import datetime
 import itertools

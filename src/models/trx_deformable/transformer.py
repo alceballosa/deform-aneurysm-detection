@@ -28,19 +28,23 @@ Copy-paste from torch.nn.Transformer with modifications:
 from functools import partial
 
 import torch
-from src.models.deformable.def_trx_decoder_rec import (
+from src.models.trx_deformable.def_trx_decoder_rec import (
     DeformableTransformerDecoder,
     DeformableTransformerDecoderLayer,
 )
-from src.models.deformable.def_trx_encoder import (
+from src.models.trx_efficient.trx_decoder_rec import (
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
+from src.models.trx_deformable.def_trx_encoder import (
     DeformableTransformerEncoder,
     DeformableTransformerEncoderLayer,
 )
-from src.models.deformable.trx_encoder import (
+from src.models.trx_efficient.trx_encoder import (
     TransformerEncoderLayer as VesselMaskedTransformerEncoderLayer,
     DeformableTransformerEncoder as VesselMaskedTransformerEncoder,
 )
-from src.models.deformable.generic_mlp import GenericMLP
+from src.models.layers.generic_mlp import GenericMLP
 from src.utils.general import get_clones
 from torch import nn
 from torch.nn.init import constant_, normal_, uniform_, xavier_uniform_
@@ -204,28 +208,42 @@ class Transformer(nn.Module):
                 )
                 self.encoder = DeformableTransformerEncoder(encoder_layer, n_enc_layers)
 
-        decoder_layer = DeformableTransformerDecoderLayer(
-            dec_dim,
-            dec_ffn_dim,
-            dropout_rate,
-            activation,
-            n_levels,
-            dec_heads,
-            n_dec_points,
-            offset_init,
-            use_fixed_attn,
-            use_deform_attn,
-            use_efficient_mask,
-        )
-        self.decoder = DeformableTransformerDecoder(
-            decoder_layer,
-            n_dec_layers,
-            with_recurrence,
-            with_stepwise_loss,
-            return_intermediate=return_intermediate_dec,
-            shared_heads=shared_heads,
-            use_deform_attn=use_deform_attn,
-        )
+        if use_deform_attn:
+            decoder_layer = DeformableTransformerDecoderLayer(
+                dec_dim,
+                dec_ffn_dim,
+                dropout_rate,
+                activation,
+                n_levels,
+                dec_heads,
+                n_dec_points,
+                offset_init,
+                use_fixed_attn,
+            )
+            self.decoder = DeformableTransformerDecoder(
+                decoder_layer,
+                n_dec_layers,
+                with_recurrence,
+                with_stepwise_loss,
+                return_intermediate=return_intermediate_dec,
+                shared_heads=shared_heads,
+            )
+        else:
+            decoder_layer = TransformerDecoderLayer(
+                dec_dim,
+                dec_ffn_dim,
+                dropout_rate,
+                activation,
+                dec_heads,
+            )
+            self.decoder = TransformerDecoder(
+                decoder_layer,
+                n_dec_layers,
+                with_recurrence,
+                with_stepwise_loss,
+                return_intermediate=return_intermediate_dec,
+                shared_heads=shared_heads,
+            )
 
         self.decoder.center_head = center_head
         self.decoder.class_head = class_head
@@ -353,14 +371,23 @@ class Transformer(nn.Module):
         ref_loc = self.reference_points(ref_pos_embed).sigmoid()
         init_reference_out = ref_loc
         # decoder
-        box_predictions, viz_outputs = self.decoder(
-            ref,
-            ref_loc,
-            ref_pos_embed,
-            global_feats,
-            lvl_pos_embed_flatten if self.use_global_pe else None,
-            spatial_shapes,
-            level_start_index,
-            key_padding_mask 
-        )
+        if self.use_efficient_mask:
+            box_predictions, viz_outputs = self.decoder(
+                ref,
+                ref_loc,
+                ref_pos_embed,
+                global_feats,
+                lvl_pos_embed_flatten if self.use_global_pe else None,
+                key_padding_mask,
+            )
+        else:
+            box_predictions, viz_outputs = self.decoder(
+                ref,
+                ref_loc,
+                ref_pos_embed,
+                global_feats,
+                lvl_pos_embed_flatten if self.use_global_pe else None,
+                spatial_shapes,
+                level_start_index,
+            )
         return box_predictions, init_reference_out, viz_outputs, None

@@ -19,7 +19,7 @@ from src.utils.position_embedding import (
 
 class Base_Backbone(nn.Module):
     """
-    UNET-based encoder for the PARQ model.
+    Multi-scale 'abstract' encoder for the DETR model.
     """
 
     def __init__(
@@ -105,8 +105,7 @@ class Base_Backbone(nn.Module):
         multiscale_feats, multiscale_masks = self.encode_multiscale_feats(
             x, vessel_segs
         )
-        #for feat in multiscale_feats:
-        #    print(feat.shape)
+
         n_levels = len(multiscale_feats)
         # need to track a mask forf the global pos embedding with:
         # level-based indices
@@ -121,8 +120,6 @@ class Base_Backbone(nn.Module):
             device=self.device,
             input_spatial_shape=x.shape,
         )
-
-        # print(multiscale_pos_embs[-1].shape, multiscale_feats[-1].shape, multiscale_masks[-1].shape)
 
         if vessel_segs is not None and self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
             # V2: mask-first (like V1) but with LayerNorm instead of GroupNorm.
