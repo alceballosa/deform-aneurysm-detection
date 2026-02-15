@@ -188,11 +188,11 @@ class ConditionalTransformerDecoderLayer(nn.Module):
             ref_loc, num_pos_feats=num_pos_feats
         )  # [bs, n_q, d_model]
 
-        if layer_idx == 0:
-            p_q = p_s
-        else:
+        if self.spatial_gate_ffn is not None:
             lambda_q = self.spatial_gate_ffn(ref)  # [bs, n_q, d_model]
             p_q = p_s * lambda_q
+        else:
+            p_q = p_s
 
         bs, n_q, _ = ref.shape
         n_k = global_feats.shape[1]
@@ -243,8 +243,10 @@ class ConditionalTransformerDecoder(nn.Module):
         self.layers = get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
         # Nullify ca_qpos_proj for layers 1+ (only layer 0 uses additive learned PE)
+        # Nullify spatial_gate_ffn for layer 0 (gate=1 at first layer, not learned)
         for layer_id in range(num_layers - 1):
             self.layers[layer_id + 1].ca_qpos_proj = None
+        self.layers[0].spatial_gate_ffn = None
         self.return_intermediate = return_intermediate
         self.with_recurrence = with_recurrence
         self.with_stepwise_loss = with_stepwise_loss
