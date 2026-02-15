@@ -122,7 +122,7 @@ class Base_Backbone(nn.Module):
             input_spatial_shape=x.shape,
         )
 
-        # print(multiscale_pos_embs[-1].shape, multiscale_feats[-1].shape, multiscale_masks[-1].shape)
+        #print(multiscale_feats[-1].shape)
 
         if vessel_segs is not None and self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
             # V2: mask-first (like V1) but with LayerNorm instead of GroupNorm.
@@ -159,6 +159,8 @@ class Base_Backbone(nn.Module):
                 lev_emb = level_emb[level]
                 masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
             multiscale_pos_embs = masked_pos_embs
+            import datetime
+            print(str(datetime.datetime.now()), multiscale_feats.shape)
 
         elif vessel_segs is not None:
 
