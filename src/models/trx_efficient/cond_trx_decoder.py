@@ -129,6 +129,7 @@ class ConditionalTransformerDecoderLayer(nn.Module):
 
         # first-layer additive learned PE for cross-attn query (set to None for layers 1+)
         self.ca_qpos_proj = nn.Linear(d_model, d_model)
+        self.ca_kpos_proj = nn.Linear(d_model, d_model)
 
         # conditional cross attention (concatenated content + spatial, SDPA)
         self.cross_attn = ConditionalCrossAttention(d_model, n_heads, dropout=dropout)
@@ -207,6 +208,7 @@ class ConditionalTransformerDecoderLayer(nn.Module):
         # First layer: add projected learned PE to content query (like original Cond. DETR)
         if self.ca_qpos_proj is not None:
             content_q = content_q + self.ca_qpos_proj(ref_pos_embed)
+            content_k = content_k + self.ca_kpos_proj(global_pos_embed)
 
         # Per-head concatenation: [bs, n, d_model] -> [bs, n, nhead, d_head] -> cat dim=3 -> [bs, n, nhead, 2*d_head] -> [bs, n, 2*d_model]
         q = torch.cat([
@@ -246,6 +248,7 @@ class ConditionalTransformerDecoder(nn.Module):
         # Nullify spatial_gate_ffn for layer 0 (gate=1 at first layer, not learned)
         for layer_id in range(num_layers - 1):
             self.layers[layer_id + 1].ca_qpos_proj = None
+            self.layers[layer_id + 1].ca_kpos_proj = None
         self.layers[0].spatial_gate_ffn = None
         self.return_intermediate = return_intermediate
         self.with_recurrence = with_recurrence
