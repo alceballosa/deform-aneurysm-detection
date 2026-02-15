@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000 # run with 1 gpu
 
 MODEL:
-  NAME: "vse_base_cnn_4l_dec_1l_input_edt_lia_fps_lr"
+  NAME: "vse_base_cnn_3l_enc_3l_dec_3l_input_edt_lia_fps_lr"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -14,8 +14,9 @@ MODEL:
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False
-    N_LEVELS: 4
-    N_ENC_LAYERS: 0  # 1-layer encoder with full self-attention
+    N_LEVELS: 3
+    LEVEL_SELECTION: "bottom"
+    N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 3  # 1-layer decoder
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
