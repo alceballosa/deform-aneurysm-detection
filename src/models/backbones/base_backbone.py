@@ -166,6 +166,8 @@ class Base_Backbone(nn.Module):
                 lev_emb = level_emb[level]
                 masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
             multiscale_pos_embs = masked_pos_embs
+            import datetime
+            print(str(datetime.datetime.now()), multiscale_feats.shape)
 
         else:
             for i, feat in enumerate(multiscale_feats):
