@@ -4,9 +4,7 @@ import os
 import pdb
 import pickle
 import time
-from functools import partial
 
-import edt
 import einops
 import numpy as np
 import torch
@@ -15,14 +13,14 @@ import torch.nn.functional as F
 from detectron2.config import configurable
 from detectron2.modeling import META_ARCH_REGISTRY
 from detectron2.utils.events import get_event_storage
-from tqdm import tqdm
 
 from src.dataset.split_comb import SplitComb
 from src.models.backbones import cnn_backbone
 from src.models.box_utils import get_3d_corners, nms_3D
 from src.models.hungarian_matcher import HungarianMatcherModified
+from src.models.trx_deformable.def_trx import build_deformable_transformer
 from src.models.trx_deformable.nms import nms
-from src.models.trx_deformable.transformer import build_deformable_transformer
+from src.models.trx_efficient.trx import build_efficient_transformer
 from src.utils.general import inverse_sigmoid
 from src.utils.losses import (
     bbox_iou_loss,
@@ -103,7 +101,10 @@ class PARQ_Deformable_R(nn.Module):
 
         # TODO: do this in a better way
         self.query_pos_embed_plus_query = nn.Embedding(num_queries, d_model * 2)
-        self.transformer = build_deformable_transformer(cfg)
+        if cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
+            self.transformer = build_efficient_transformer(cfg)
+        else:
+            self.transformer = build_deformable_transformer(cfg)
         matcher_cfg = cfg.MODEL.PARQ_MODEL.MATCHER
         self.matcher = HungarianMatcherModified(
             cost_class=matcher_cfg.COST_CLASS,
@@ -176,17 +177,6 @@ class PARQ_Deformable_R(nn.Module):
         return
 
     def forward(self, input_batch):
-        if self.cfg.CUSTOM.USE_SINGLE_BATCH:
-            path_pickle = (
-                "/home/ceballosarroyo.a/workspace/medical/cta-det2/src/input_batch.pkl"
-            )
-            # save file with input_batch to disk
-            # with open(path_pickle, 'wb') as f:
-            #    pickle.dump(input_batch, f)
-            # load into input_batch
-            with open(path_pickle, "rb") as f:
-                input_batch = pickle.load(f)
-            # input_batch = self.read_pickled_batch()
         if self.training:
             torch.cuda.empty_cache()
             return self._forward_train(input_batch)
@@ -268,7 +258,7 @@ class PARQ_Deformable_R(nn.Module):
         outputs = outputs[object_ids]
         if len(outputs) > 0:
             keep = nms_3D(outputs[:, 1:], overlap=0.05, top_k=self.cfg.TEST.NMS_TOPK)
-            # keep = nms_3D(outputs[:, 1:], overlap=0.5, top_k=120)#self.cfg.TEST.NMS_TOPK)
+            # keep = nms_3D(outputs[:, 1:], overlap=0.5, top_k=120)
             outputs = outputs[keep]
 
         vizmode = self.cfg.MODEL.EVAL_VIZ_MODE
@@ -618,189 +608,6 @@ class PARQ_Deformable_R(nn.Module):
             target_list.append(target_dict)
 
         return target_list
-
-    def normalize_input_values(self, x: torch.Tensor):
-        if self.backbone_type in ["UNET", "UNET2D", "CNN", "CNN_1L", "CNN_2L"]:
-            if self.cfg.DATA.NORM_TYPE == "base":
-                min_value, max_value = self.cfg.DATA.WINDOW
-                x.clamp_(min=min_value, max=max_value)
-                x -= (min_value + max_value) / 2
-                x /= (max_value - min_value) / 2
-            # elif self.cfg.DATA.NORM_TYPE == "zscore":
-            #     mean_value = x.mean()
-            #     std_value = x.std()
-            #     x = (x - mean_value) / std_value
-
-            # elif self.cfg.DATA.NORM_TYPE == "zscore_clamped":
-            #     x.clamp_(
-            #         min=self.cfg.DATA.WINDOW[0], max=self.cfg.DATA.WINDOW[1]
-            #     )
-            #     mean_value = x.mean()
-            #     std_value = x.std()
-            #     x = (x - mean_value) / std_value
-
-        elif self.backbone_type in ["SAM3D", "SAM2D"]:
-            if self.backbone_type == "SAM2D":
-                # replicate across channels axis
-
-                x = einops.repeat(x, "b c d h w -> b (c rep) d h w", rep=3)
-
-            x = (x - self.pixel_mean) / self.pixel_std
-        else:
-            raise NotImplementedError(f"no encoder type {self.backbone_type}")
-
-        return x
-
-    @staticmethod
-    def target_preprocess(annotations, device, input_size, mask_ignore):
-        batch_size = annotations.shape[0]
-        annotations_new = -1 * torch.ones_like(annotations).to(device)
-        for j in range(batch_size):
-            bbox_annotation = annotations[j]
-            bbox_annotation_boxes = bbox_annotation[bbox_annotation[:, -1] > -1]
-            bbox_annotation_target = []
-            # z_ctr, y_ctr, x_ctr, d, h, w
-            crop_box = torch.tensor(
-                [0.0, 0.0, 0.0, input_size[0], input_size[1], input_size[2]]
-            ).to(device)
-            for s, _ in enumerate(bbox_annotation_boxes):
-                # coordinate z_ctr, y_ctr, x_ctr, d, h, w
-                each_label = bbox_annotation_boxes[s]
-                # coordinate convert zmin, ymin, xmin, d, h, w
-                z1 = torch.max(each_label[0] - each_label[3] / 2.0, crop_box[0])
-                y1 = torch.max(each_label[1] - each_label[4] / 2.0, crop_box[1])
-                x1 = torch.max(each_label[2] - each_label[5] / 2.0, crop_box[2])
-
-                z2 = torch.min(each_label[0] + each_label[3] / 2.0, crop_box[3])
-                y2 = torch.min(each_label[1] + each_label[4] / 2.0, crop_box[4])
-                x2 = torch.min(each_label[2] + each_label[5] / 2.0, crop_box[5])
-
-                nd = torch.clamp(z2 - z1, min=0.0)
-                nh = torch.clamp(y2 - y1, min=0.0)
-                nw = torch.clamp(x2 - x1, min=0.0)
-                if nd * nh * nw == 0:
-                    continue
-                percent = nw * nh * nd / (each_label[3] * each_label[4] * each_label[5])
-                if (percent > 0.1) and (nw * nh * nd >= 15):
-                    bbox = torch.from_numpy(
-                        np.array(
-                            [
-                                float(z1 + 0.5 * nd),
-                                float(y1 + 0.5 * nh),
-                                float(x1 + 0.5 * nw),
-                                float(nd),
-                                float(nh),
-                                float(nw),
-                                0,
-                            ]
-                        )
-                    ).to(device)
-                    bbox_annotation_target.append(bbox.view(1, 7))
-                else:
-                    mask_ignore[
-                        j,
-                        0,
-                        int(z1) : int(torch.ceil(z2)),
-                        int(y1) : int(torch.ceil(y2)),
-                        int(x1) : int(torch.ceil(x2)),
-                    ] = -1
-            if len(bbox_annotation_target) > 0:
-                bbox_annotation_target = torch.cat(bbox_annotation_target, 0)
-                annotations_new[j, : len(bbox_annotation_target)] = (
-                    bbox_annotation_target
-                )
-        # ctr_z, ctr_y, ctr_x, d, h, w, (0 or -1)
-        return annotations_new, mask_ignore
-
-    @staticmethod
-    def bbox_iou(box1, box2, DIoU=True, eps=1e-7):
-        def zyxdhw2zyxzyx(box, dim=-1):
-            ctr_zyx, dhw = torch.split(box, 3, dim)
-            z1y1x1 = ctr_zyx - dhw / 2
-            z2y2x2 = ctr_zyx + dhw / 2
-            return torch.cat((z1y1x1, z2y2x2), dim)  # zyxzyx bbox
-
-        box1 = zyxdhw2zyxzyx(box1)
-        box2 = zyxdhw2zyxzyx(box2)
-        # Get the coordinates of bounding boxes
-        b1_z1, b1_y1, b1_x1, b1_z2, b1_y2, b1_x2 = box1.chunk(6, -1)
-        b2_z1, b2_y1, b2_x1, b2_z2, b2_y2, b2_x2 = box2.chunk(6, -1)
-        w1, h1, d1 = b1_x2 - b1_x1, b1_y2 - b1_y1, b1_z2 - b1_z1
-        w2, h2, d2 = b2_x2 - b2_x1, b2_y2 - b2_y1, b2_z2 - b2_z1
-
-        # Intersection area
-        inter = (b1_x2.minimum(b2_x2) - b1_x1.maximum(b2_x1)).clamp(0) * (
-            b1_y2.minimum(b2_y2) - b1_y1.maximum(b2_y1)
-        ).clamp(0) * (b1_z2.minimum(b2_z2) - b1_z1.maximum(b2_z1)).clamp(0) + eps
-
-        # Union Area
-        union = w1 * h1 * d1 + w2 * h2 * d2 - inter
-
-        # IoU
-        iou = inter / union
-        if DIoU:
-            cw = b1_x2.maximum(b2_x2) - b1_x1.minimum(
-                b2_x1
-            )  # convex (smallest enclosing box) width
-            ch = b1_y2.maximum(b2_y2) - b1_y1.minimum(b2_y1)  # convex height
-            cd = b1_z2.maximum(b2_z2) - b1_z1.minimum(b2_z1)  # convex depth
-            c2 = cw**2 + ch**2 + cd**2 + eps  # convex diagonal squared
-            rho2 = (
-                (b2_x1 + b2_x2 - b1_x1 - b1_x2) ** 2
-                + (b2_y1 + b2_y2 - b1_y1 - b1_y2) ** 2
-                + +((b2_z1 + b2_z2 - b1_z1 - b1_z2) ** 2)
-            ) / 4  # center dist ** 2
-            return iou - rho2 / c2  # DIoU
-        return iou  # IoU
-
-    @staticmethod
-    def bbox_decode(anchor_points, pred_offsets, pred_shapes, stride_tensor, dim=-1):
-        c_zyx = (anchor_points + pred_offsets) * stride_tensor
-        return torch.cat((c_zyx, 2 * pred_shapes), dim)  # zyxdhw bbox
-
-    @staticmethod
-    def get_pos_target(
-        annotations, anchor_points, stride, spacing, topk=7, ignore_ratio=26
-    ):
-        batchsize, num, _ = annotations.size()
-        mask_gt = annotations[:, :, -1].clone().gt_(-1)
-        ctr_gt_boxes = annotations[:, :, :3] / stride  # z0, y0, x0
-        shape = annotations[:, :, 3:6] / 2  # half d h w
-        sp = torch.from_numpy(spacing).to(ctr_gt_boxes.device).view(1, 1, 1, 3)
-        # distance (b, n_max_object, anchors)
-        distance = -(
-            ((ctr_gt_boxes.unsqueeze(2) - anchor_points.unsqueeze(0)) * sp)
-            .pow(2)
-            .sum(-1)
-        )
-        _, topk_inds = torch.topk(
-            distance, (ignore_ratio + 1) * topk, dim=-1, largest=True, sorted=True
-        )
-        mask_topk = F.one_hot(topk_inds[:, :, :topk], distance.size()[-1]).sum(-2)
-        mask_ignore = -1 * F.one_hot(topk_inds[:, :, topk:], distance.size()[-1]).sum(
-            -2
-        )
-        mask_pos = mask_topk * mask_gt.unsqueeze(-1)
-        mask_ignore = mask_ignore * mask_gt.unsqueeze(-1)
-        gt_idx = mask_pos.argmax(-2)
-        batch_ind = torch.arange(
-            end=batchsize, dtype=torch.int64, device=ctr_gt_boxes.device
-        )[..., None]
-        gt_idx = gt_idx + batch_ind * num
-        target_ctr = ctr_gt_boxes.view(-1, 3)[gt_idx]
-        target_offset = target_ctr - anchor_points
-        target_shape = shape.view(-1, 3)[gt_idx]
-        target_bboxes = annotations[:, :, :-1].view(-1, 6)[gt_idx]
-        target_scores, _ = torch.max(mask_pos, 1)
-        mask_ignore, _ = torch.min(mask_ignore, 1)
-        del target_ctr, distance, mask_topk
-        return (
-            target_offset,
-            target_shape,
-            target_bboxes,
-            target_scores.unsqueeze(-1),
-            mask_ignore.unsqueeze(-1),
-        )
 
 
 def get_gradient_norm(model):

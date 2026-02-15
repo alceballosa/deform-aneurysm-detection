@@ -18,7 +18,8 @@ from detectron2.utils.events import get_event_storage
 from src.dataset.split_comb import SplitComb
 from src.models.box_utils import nms_3D, get_3d_corners
 from src.models.backbones import vivit_sinpe_backbone_1l, vivit_backbone_1l, vivit_backbone_4l
-from src.models.trx_deformable.transformer import build_deformable_transformer
+from src.models.trx_deformable.def_trx import build_deformable_transformer
+from src.models.trx_efficient.trx import build_efficient_transformer
 from src.models.trx_deformable.nms import nms
 from src.models.hungarian_matcher import HungarianMatcherModified
 from src.utils.general import inverse_sigmoid
@@ -107,7 +108,10 @@ class PARQ_ViViT(nn.Module):
 
         # TODO: do this in a better way
         self.query_pos_embed_plus_query = nn.Embedding(num_queries, d_model * 2)
-        self.transformer = build_deformable_transformer(cfg)
+        if cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
+            self.transformer = build_efficient_transformer(cfg)
+        else:
+            self.transformer = build_deformable_transformer(cfg)
         matcher_cfg = cfg.MODEL.PARQ_MODEL.MATCHER
         self.matcher = HungarianMatcherModified(
             cost_class=matcher_cfg.COST_CLASS,
