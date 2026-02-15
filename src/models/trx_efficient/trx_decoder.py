@@ -128,14 +128,14 @@ class TransformerDecoder(nn.Module):
 
     def forward(
         self,
-        ref,
+        query,
         ref_loc,
-        ref_pos_embed,
+        query_pos_embed,
         global_feats,
         global_pos_embed,
         key_padding_mask=None,
     ):
-        output = ref
+        output = query
 
         intermediate = []
         prev_ref_loc = ref_loc
@@ -145,7 +145,7 @@ class TransformerDecoder(nn.Module):
         for lid, layer in enumerate(self.layers):
             output = layer(
                 output,
-                ref_pos_embed,
+                query_pos_embed,
                 global_feats,
                 global_pos_embed,
                 key_padding_mask,
@@ -153,15 +153,9 @@ class TransformerDecoder(nn.Module):
 
             viz_outputs_list.append({})
 
-            if self.with_recurrence or lid == self.num_layers - 1:
+            if lid == self.num_layers - 1 or self.with_stepwise_loss:  # lastlayer
                 prev_ref_loc = ref_loc
                 ref_loc = self.refine_center(lid, ref_loc, output)
-
-            if self.return_intermediate:
-                intermediate.append(output)
-                intermediate_ref_locs.append(ref_loc)
-
-            if lid == self.num_layers - 1 or self.with_stepwise_loss:  # lastlayer
                 class_logits = self.select_class_head(lid)(
                     output.permute(0, 2, 1)
                 ).permute(0, 2, 1)
@@ -181,6 +175,11 @@ class TransformerDecoder(nn.Module):
                 }
                 box_prediction_list.append(box_dict)
 
+            if self.return_intermediate:
+                intermediate.append(output)
+                intermediate_ref_locs.append(ref_loc)
+
         if self.return_intermediate:
             ref_loc = torch.stack(intermediate_ref_locs)
+
         return box_prediction_list, viz_outputs_list

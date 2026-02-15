@@ -89,6 +89,8 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.USE_VESSEL_INFO = False
     cfg.MODEL.DEFORMABLE.FIX_PE_SCALE = False 
     cfg.MODEL.DEFORMABLE.FIXED_ATTENTION = False
+    cfg.MODEL.DEFORMABLE.NORMALIZE_PE_01 = False  # Normalize PE coords to [0,1] for Conditional DETR consistency
+    cfg.MODEL.DEFORMABLE.USE_CONDITIONAL_DECODER = False  # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
 
 
     # the ratio of the original image size to the parq volume size

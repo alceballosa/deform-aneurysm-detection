@@ -26,9 +26,13 @@ instead of deformable attention.
 from functools import partial
 
 import torch
-from src.models.trx_efficient.trx_decoder_rec import (
+from src.models.trx_efficient.trx_decoder import (
     TransformerDecoder,
     TransformerDecoderLayer,
+)
+from src.models.trx_efficient.cond_trx_decoder import (
+    ConditionalTransformerDecoder,
+    ConditionalTransformerDecoderLayer,
 )
 from src.models.trx_efficient.trx_encoder import (
     TransformerEncoderLayer,
@@ -64,6 +68,7 @@ def build_efficient_transformer(cfg):
         class_head=class_head,
         size_head=size_head,
         use_checkpoint=cfg.MODEL.DEFORMABLE.USE_CHECKPOINT,
+        use_conditional_decoder=cfg.MODEL.DEFORMABLE.USE_CONDITIONAL_DECODER,
     )
 
 
@@ -123,6 +128,7 @@ class EfficientTransformer(nn.Module):
         return_intermediate_dec=False,
         shared_heads=True,
         use_checkpoint=False,
+        use_conditional_decoder=False,
     ):
         super().__init__()
         assert (
@@ -135,6 +141,7 @@ class EfficientTransformer(nn.Module):
 
         self.n_levels = n_levels
         self.decoder_only = decoder_only
+        self.use_conditional_decoder = use_conditional_decoder
         self.level_embed = nn.Parameter(torch.Tensor(n_levels, dec_dim))
         self.use_global_pe = use_global_pe
         self.reference_points = nn.Linear(dec_dim, 3)
@@ -145,28 +152,44 @@ class EfficientTransformer(nn.Module):
                 enc_ffn_dim,
                 dropout_rate,
                 activation,
-                n_levels,
                 enc_heads,
             )
             self.encoder = DeformableTransformerEncoder(
                 encoder_layer, n_enc_layers, use_checkpoint=use_checkpoint
             )
 
-        decoder_layer = TransformerDecoderLayer(
-            dec_dim,
-            dec_ffn_dim,
-            dropout_rate,
-            activation,
-            dec_heads,
-        )
-        self.decoder = TransformerDecoder(
-            decoder_layer,
-            n_dec_layers,
-            with_recurrence,
-            with_stepwise_loss,
-            return_intermediate=return_intermediate_dec,
-            shared_heads=shared_heads,
-        )
+        if use_conditional_decoder:
+            decoder_layer = ConditionalTransformerDecoderLayer(
+                dec_dim,
+                dec_ffn_dim,
+                dropout_rate,
+                activation,
+                dec_heads,
+            )
+            self.decoder = ConditionalTransformerDecoder(
+                decoder_layer,
+                n_dec_layers,
+                with_recurrence,
+                with_stepwise_loss,
+                return_intermediate=return_intermediate_dec,
+                shared_heads=shared_heads,
+            )
+        else:
+            decoder_layer = TransformerDecoderLayer(
+                dec_dim,
+                dec_ffn_dim,
+                dropout_rate,
+                activation,
+                dec_heads,
+            )
+            self.decoder = TransformerDecoder(
+                decoder_layer,
+                n_dec_layers,
+                with_recurrence,
+                with_stepwise_loss,
+                return_intermediate=return_intermediate_dec,
+                shared_heads=shared_heads,
+            )
 
         self.decoder.center_head = center_head
         self.decoder.class_head = class_head
@@ -203,15 +226,13 @@ class EfficientTransformer(nn.Module):
         key_padding_mask: optional
             Padding mask for keys.
         """
-        extracted_feats_flatten = multiscale_feats
-        lvl_pos_embed_flatten = multiscale_pos_embs
 
         if self.decoder_only:
-            global_feats = extracted_feats_flatten
+            global_feats = multiscale_feats
         else:
             global_feats = self.encoder(
-                extracted_feats_flatten,
-                lvl_pos_embed_flatten,
+                multiscale_feats,
+                multiscale_pos_embs,
                 key_padding_mask,
             )
 
@@ -227,7 +248,7 @@ class EfficientTransformer(nn.Module):
             ref_loc,
             ref_pos_embed,
             global_feats,
-            lvl_pos_embed_flatten if self.use_global_pe else None,
+            multiscale_pos_embs if self.use_global_pe else None,
             key_padding_mask,
         )
         return box_predictions, init_reference_out, viz_outputs, None

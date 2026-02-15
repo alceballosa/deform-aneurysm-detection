@@ -81,11 +81,21 @@ class Base_Backbone(nn.Module):
                     normalize=True,
                 ).to(device)
             else:
-                pos_emb = get_3d_sinusoidal_pos_emb(
-                    pos_volume,
-                    num_pos_feats=self.output_hidden_dim // 3,
-                    normalize=True,
-                ).to(device)
+                if self.cfg.MODEL.DEFORMABLE.NORMALIZE_PE_01:
+                    # Normalize coords to [0, 1] for Conditional DETR consistency
+                    patch_size = self.src_patch_size[0]
+                    pos_volume_norm = pos_volume.float() / (patch_size - 1)
+                    pos_emb = get_3d_sinusoidal_pos_emb(
+                        pos_volume_norm,
+                        num_pos_feats=self.output_hidden_dim // 3,
+                        normalize=False,
+                    ).to(device)
+                else:
+                    pos_emb = get_3d_sinusoidal_pos_emb(
+                        pos_volume,
+                        num_pos_feats=self.output_hidden_dim // 3,
+                        normalize=True,
+                    ).to(device)
 
             multiscale_pos_embs.append(pos_emb)
         #print(multiscale_feats[0].shape, multiscale_pos_embs[0].shape)

@@ -2,7 +2,7 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000
 
 MODEL:
-  NAME: "test_cnn_trx_input_edt_lia"
+  NAME: "test_cond_cnn_trx_input_edt_lia"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
@@ -12,6 +12,9 @@ MODEL:
     USE_VESSEL_MASKED_ENCODER: True
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
+    NORMALIZE_PE_01: True  # Normalize PE coords to [0,1] for Conditional DETR consistency
+    USE_CONDITIONAL_DECODER: True # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
+
 
     USE_GLOBAL_PE: True
     USE_DEFORM_ATTN: False

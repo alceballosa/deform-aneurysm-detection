@@ -11,7 +11,6 @@ class TransformerEncoderLayer(nn.Module):
         d_ffn=1024,
         dropout=0.1,
         activation="relu",
-        n_levels=4,
         n_heads=8,
     ):
         super().__init__()
