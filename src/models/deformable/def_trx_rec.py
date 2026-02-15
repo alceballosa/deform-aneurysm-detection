@@ -75,7 +75,7 @@ def build_deformable_transformer(cfg):
         center_head=center_head,
         class_head=class_head,
         size_head=size_head,
-        use_efficient_mask=cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL,
+        use_efficient_mask=cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2,
         use_checkpoint=cfg.MODEL.DEFORMABLE.USE_CHECKPOINT,
     )
 

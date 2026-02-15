@@ -334,7 +334,7 @@ class PARQ_Deformable_R(nn.Module):
 
         """
         vessel_segs = None
-        if self.cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL and vessel_dists is not None:
+        if self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 and vessel_dists is not None:
             vessel_segs = (vessel_dists > 0).float()
         if self.use_vessel_info == "start":
             x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)

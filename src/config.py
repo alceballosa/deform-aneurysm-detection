@@ -71,8 +71,6 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.USE_DEFORM_ATTN = True
     cfg.MODEL.DEFORMABLE.USE_VESSEL_MASKED_ENCODER = False  # Use full self-attention encoder with vessel masking
     cfg.MODEL.DEFORMABLE.USE_CHECKPOINT = False  # Enable gradient checkpointing for backbone, encoder, and decoder
-    cfg.MODEL.DEFORMABLE.MASK_NON_VESSEL = False
-    cfg.MODEL.DEFORMABLE.EFFICIENT_MASK = False
     cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 = False
     cfg.MODEL.DEFORMABLE.STRICT_MASKING = False
     cfg.MODEL.DEFORMABLE.FFN_DIM = 512

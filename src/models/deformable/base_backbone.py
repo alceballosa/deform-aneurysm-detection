@@ -160,41 +160,6 @@ class Base_Backbone(nn.Module):
                 masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
             multiscale_pos_embs = masked_pos_embs
 
-        elif vessel_segs is not None:
-
-            multiscale_feats, multiscale_masks, level_indices = self.flatten_features(
-                multiscale_feats,
-                multiscale_masks,
-            )
-
-            masked_pos_embs, masked_levels = self.mask_then_pad_levels_with_embs(
-                multiscale_feats[0].shape[0],
-                multiscale_pos_embs,
-                level_indices,
-                multiscale_masks,
-            )
-            masked_pos_embs = masked_pos_embs.to(self.device)
-
-            multiscale_feats, multiscale_masks = self.pad_flat_feats(
-                multiscale_feats, multiscale_masks
-            )
-
-            for i, feat in enumerate(multiscale_feats):
-                multiscale_feats[i] = self.input_proj_list[i](feat)
-
-            multiscale_feats = [
-                feat.squeeze(-1).squeeze(-1).transpose(1, 2)
-                for feat in multiscale_feats
-            ]
-            multiscale_feats, multiscale_masks = self.unpad_then_flatten_features(
-                multiscale_feats, multiscale_masks
-            )
-
-            for level in range(n_levels):
-                lev_emb = level_emb[level]
-                masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
-            multiscale_pos_embs = masked_pos_embs
-
         else:
             for i, feat in enumerate(multiscale_feats):
                 multiscale_feats[i] = self.input_proj_list[i](feat)
