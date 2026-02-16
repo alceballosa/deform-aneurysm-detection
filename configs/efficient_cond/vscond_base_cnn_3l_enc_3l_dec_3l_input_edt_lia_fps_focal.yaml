@@ -1,38 +1,41 @@
 _BASE_: ../deform/deform_base_crop_vessel.yaml
-SEED: 2000
+SEED: 2000 # run with 1 gpu
 
 MODEL:
-  NAME: "test_cond_cnn_trx_input_edt_lia"
+  NAME: "vscond_base_cnn_3l_enc_3l_dec_3l_input_edt_lia_fps_focal"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   D_MODEL: 384
   DEFORMABLE:
-    DECODER_ONLY: False
-    USE_VESSEL_MASKED_ENCODER: True
+    DECODER_ONLY: True  # Enable encoder with full self-attention
+    USE_VESSEL_MASKED_ENCODER: False  # Use vessel-masked encoder instead of deformable
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+    USE_DEFORM_ATTN: False
     NORMALIZE_PE_01: True  # Normalize PE coords to [0,1] for Conditional DETR consistency
     USE_CONDITIONAL_DECODER: True # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
 
 
-    USE_GLOBAL_PE: True
-    USE_DEFORM_ATTN: False
-    N_LEVELS: 4
+    N_LEVELS: 3
+    LEVEL_SELECTION: "bottom"
     N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
     N_DEC_LAYERS: 3  # 1-layer decoder
-    EFFICIENT_MASK_V2: True #8544M #16000 # 17000 # 8200
+    EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
     USE_CHECKPOINT: True
-    FFN_DIM: 512
     N_HEADS: 6
+    
+    FFN_DIM: 512
   PARQ_MODEL:
-    NUM_QUERIES: 8
-    PARQ_LOSS:
-      DO_CLF_FOCAL: False
+    PARQ_LOSS: 
+      DO_CLF_FOCAL: True 
+
+      
 SOLVER:
-  SCANS_PER_BATCH: 1
-  SAMPLES_PER_SCAN:  2
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 16
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
@@ -44,15 +47,17 @@ SOLVER:
   BASE_LR: 0.0001
   MIN_LR: 0.00001
   MAX_ITER: 24000
-  FLAT_ITER: 24000
+  FLAT_ITER: 24000 # shorter training time for cond DETR models, they should converge faster!
   CHECKPOINT_PERIOD: 2000
 TEST:
   PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
+  EVALUATION_CHECKPOINTS: ["0011999", "0015999", "0019999", "0021999", "final"]
+
 DATALOADER:
-  NUM_WORKERS: 1
+  NUM_WORKERS: 8
 DATA:
-  PATCH_SIZE: [256,384,384]
+  PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info
@@ -60,8 +65,6 @@ DATA:
     ROTATION: [90.0, 90.0, 90.0]
     SPACING: [0.9, 1.8]
     PADDED_REORIENT: False
-    TRANSFORM_RAD: False
-    
   DIR:
     TRAIN:
       SCAN_DIR: "internal_train/crop_0.4_compressed"
