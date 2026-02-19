@@ -18,6 +18,11 @@ Alberto M. Ceballos-Arroyo, Hieu T. Nguyen, Fangrui Zhu, Shrikanth M. Yadav, Jis
 An open access version of the paper and the supplementary materials (as well as the MICCAI '24 reviews, meta-reviews, and our rebuttal) is available here: https://papers.miccai.org/miccai-2024/831-Paper2366.html
 
 
+If you use our segmentation tool, please cite this preprint:
+```
+Alberto Mario Ceballos-Arroyo, Shrikanth M. Yadav, Chu-Hsuan Lin, Jisoo Kim, Geoffrey S. Young, Lei Qin, Huaizu Jiang. 2026. Robust automatic brain vessel segmentation in 3D CTA scans using dynamic 4D-CTA data. URL: https://arxiv.org/abs/2602.00391
+```
+
 ## Accessing the segmentation Docker image
 
 
