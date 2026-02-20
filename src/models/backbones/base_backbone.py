@@ -166,8 +166,8 @@ class Base_Backbone(nn.Module):
                 lev_emb = level_emb[level]
                 masked_pos_embs[masked_levels == level] += lev_emb.unsqueeze(0)
             multiscale_pos_embs = masked_pos_embs
-            import datetime
-            print(str(datetime.datetime.now()), multiscale_feats.shape)
+            #import datetime
+            #print(str(datetime.datetime.now()), multiscale_feats.shape)
 
         else:
             for i, feat in enumerate(multiscale_feats):
@@ -223,7 +223,7 @@ class Base_Backbone(nn.Module):
                 mask = multiscale_masks[lvl][b].bool()
                 feats_batch.append(multiscale_feats[lvl][b][mask, :])
             feats_flatten.append(torch.cat(feats_batch, dim=0))
-            #print(feats_flatten[-1].shape)
+
         # pad the flattened features to the max length in the batch
         max_length = 0
         for mk in feats_flatten:
@@ -282,7 +282,6 @@ class Base_Backbone(nn.Module):
         spatial_shapes = []
         masks_flatten = []
         level_indices = []
-
         for (
             lvl,
             feat,
@@ -296,18 +295,10 @@ class Base_Backbone(nn.Module):
             # flatten feat from B C D H W into B DHW C
             feats_flatten.append(feat.flatten(2).permute(0, 2, 1))
 
+
             if multiscale_masks is not None:
                 mask = multiscale_masks[lvl]
                 masks_flatten.append(mask.flatten(1))
 
         return feats_flatten, masks_flatten, level_indices
 
-        # if self.decoder_only:
-        #     global_feats = feats_flatten
-        # else:
-        #     global_feats = self.encoder(
-        #         feats_flatten,
-        #         spatial_shapes,
-        #         level_start_index,
-        #         pos_embed_flatten,
-        #     )            )

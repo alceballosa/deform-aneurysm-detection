@@ -2,14 +2,14 @@ _BASE_: ../deform/deform_base_crop_vessel.yaml
 SEED: 2000 # run with 1 gpu
 
 MODEL:
-  NAME: "vse_base_cnn_3l_enc_3l_dec_1l_lg_input_edt_lia_fps"
+  NAME: "vse_base_cnn_3l_enc_3l_dec_3l_input_edt_lia_fps"
   META_ARCHITECTURE: "PARQ_Deformable_R"
   USE_VESSEL_INFO: "start" # "start", "pos_emb", "no"
   USE_CVS_INFO: "no"
   D_MODEL: 384
   DEFORMABLE:
-    DECODER_ONLY: False  # Enable encoder with full self-attention
-    USE_VESSEL_MASKED_ENCODER: True  # Use vessel-masked encoder instead of deformable
+    DECODER_ONLY: True  # Enable encoder with full self-attention
+    USE_VESSEL_MASKED_ENCODER: False  # Use vessel-masked encoder instead of deformable
     WITH_RECURRENCE: False
     SHARED_CENTER_HEAD: True
     USE_GLOBAL_PE: True
@@ -17,7 +17,7 @@ MODEL:
     N_LEVELS: 3
     LEVEL_SELECTION: "bottom"
     N_ENC_LAYERS: 3  # 1-layer encoder with full self-attention
-    N_DEC_LAYERS: 1  # 1-layer decoder
+    N_DEC_LAYERS: 3  # 1-layer decoder
     EFFICIENT_MASK_V2: True
     FIX_PE_SCALE: True
     USE_CHECKPOINT: True
@@ -25,14 +25,9 @@ MODEL:
     
     FFN_DIM: 512
 
-  PARQ_MODEL:
-    NUM_QUERIES: 16
-    PARQ_LOSS:
-      DO_CLF_FOCAL: False
-
 SOLVER:
-  SCANS_PER_BATCH: 4
-  SAMPLES_PER_SCAN: 2 # total 8
+  SCANS_PER_BATCH: 8
+  SAMPLES_PER_SCAN: 16
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE: "full_model"
@@ -47,14 +42,14 @@ SOLVER:
   FLAT_ITER: 48000
   CHECKPOINT_PERIOD: 2000
 TEST:
-  PATCHES_PER_ITER: 2 #  24 = ~12GB
+  PATCHES_PER_ITER: 16 #  24 = ~12GB
   NMS_TOPK: 40
   EVALUATION_CHECKPOINTS: ["0031999", "0035999", "0039999", "0043999", "final"]
 
 DATALOADER:
   NUM_WORKERS: 8
 DATA:
-  PATCH_SIZE: [256, 256, 256]
+  PATCH_SIZE: [64, 64, 64]
   OVERLAP: [32, 32, 32]
 
   N_CHANNELS: 2 # TODO: automate this parameter so it doesn't require changing when using channels for vessel info

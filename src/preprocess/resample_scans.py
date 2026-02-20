@@ -67,9 +67,11 @@ def fix_case(im_sitk, mask_sitk, name):
 def process(path_im, path_mask):
     image = sitk.ReadImage(path_im)
     tgt_path_im = Path(str(path_im.parent) + "_0.4") / path_im.name
-    if path_mask:
+    if path_mask != "":
         mask = sitk.ReadImage(path_mask)
         tgt_path_mask = Path(str(path_mask.parent) + "_0.4") / path_mask.name
+    else:
+        mask = None
     space = np.array(image.GetSpacing())
     if space.shape == (4,):
         print("\n4D image, skipping:", path_im)
@@ -90,7 +92,7 @@ def process(path_im, path_mask):
         if shape[2] == 0:
             print("\nEmpty image after resample, skipping:", path_im)
             return
-        if path_mask:
+        if path_mask != "":
             mask_resampled = resample(
                 itkimage=mask, newSpacing=target_spacing, label=True
             )
@@ -114,15 +116,15 @@ if __name__ == "__main__":
         tgt_mask_dir = mask_dir.parent / (mask_dir.name + "_0.4")
         tgt_mask_dir.mkdir(exist_ok=True, parents=True)
     except IndexError:
-        mask_dir = None
+        mask_dir = ""
 
     im_files = sorted(list(im_dir.glob("*")))
 
-    if mask_dir is None:
-        mask_files = [None] * len(im_files)
+    if mask_dir == "":
+        mask_files = [""] * len(im_files)
     else:
         mask_files = sorted(list(mask_dir.glob("*")))
-    num_workers = 4 if len(im_files) > 4 else len(im_files)
+    num_workers = 2 # 4 if len(im_files) > 4 else len(im_files)
     executor = Parallel(
         n_jobs=num_workers, backend="multiprocessing", prefer="processes", verbose=2
     )
