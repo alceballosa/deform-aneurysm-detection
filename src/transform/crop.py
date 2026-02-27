@@ -65,6 +65,11 @@ class RandomCrop(object):
             cvs_mask_t = crop_ND_volume_with_bounding_box(cvs_mask, crop_min, crop_max)
             sample["cvs_mask"] = cvs_mask_t
 
+        if "vessel_seg" in sample:
+            vessel_seg = sample["vessel_seg"]
+            vessel_seg_t = crop_ND_volume_with_bounding_box(vessel_seg, crop_min, crop_max)
+            sample["vessel_seg"] = vessel_seg_t
+
         if "label" in sample:
             label = sample["label"]
             label_t = crop_ND_volume_with_bounding_box(label, crop_min, crop_max)

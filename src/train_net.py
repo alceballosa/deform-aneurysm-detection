@@ -377,29 +377,27 @@ def main(cfg, args):
 
     if cfg.MODEL.TRANS_MODEL.USE_PRETRAINED_ENCODER == True and not is_resume:
         path_weights = cfg.MODEL.TRANS_MODEL.PRETRAINED_ENCODER_PATH
-        encoder_weights = torch.load(path_weights)["model"]
-        # rename all weights by prepending "module.backbone." to the key
-        # also print all weight names
-        encoder_weights = {
-            f"module.backbone.{k.replace('model.module.','')}": v
-            for k, v in encoder_weights.items()
-        }
+        ckpt = torch.load(path_weights, map_location="cpu", weights_only=False)
+        encoder_weights = ckpt["model"]
 
-        # load all comaptible weights into trainer.model
+        # MAE pretrained_encoder.pt keys: backbone.*, transformer.encoder.*, transformer.level_embed
+        # DDP model keys: module.backbone.*, module.transformer.encoder.*, module.transformer.level_embed
+        encoder_weights = {f"module.{k}": v for k, v in encoder_weights.items()}
+
         model_dict = trainer.model.state_dict()
+        compatible = {
+            k: v for k, v in encoder_weights.items()
+            if k in model_dict and v.shape == model_dict[k].shape
+        }
+        incompatible = set(encoder_weights.keys()) - set(compatible.keys())
 
-        encoder_dict = {k: v for k, v in encoder_weights.items() if k in model_dict}
-        # print all compatible weights and non-comaptible ones
-        print("Loading encoder weights...\n\n\n")
-        print("Compatible weights: ", encoder_dict.keys())
-        print("\n")
-        print(
-            "Non-compatible weights: ",
-            set(encoder_weights.keys()) - set(model_dict.keys()),
-        )
-        model_dict.update(encoder_dict)
+        print(f"Loading pretrained encoder weights from {path_weights}")
+        print(f"Compatible: {len(compatible)} / {len(encoder_weights)} parameters")
+        if incompatible:
+            print(f"Skipped (shape/name mismatch): {incompatible}")
+
+        model_dict.update(compatible)
         trainer.model.load_state_dict(model_dict)
-        # TODO: fix resume for this case
 
     did_training = True
 

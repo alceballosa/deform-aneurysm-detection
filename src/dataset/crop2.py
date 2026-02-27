@@ -172,6 +172,11 @@ class DetectionCropper:
                 "data": sample["cvs_mask"],
                 "interp": sitk.sitkNearestNeighbor,
             }
+        if "vessel_seg" in sample:
+            arrays_to_process["vessel_seg"] = {
+                "data": sample["vessel_seg"],
+                "interp": sitk.sitkNearestNeighbor,
+            }
 
         # Convert all arrays to SimpleITK format
         arrays_itk = {}

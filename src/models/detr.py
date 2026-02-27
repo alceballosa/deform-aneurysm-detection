@@ -190,10 +190,12 @@ class PARQ_Deformable_R(nn.Module):
     def _forward_train(self, input_batch):
         # if self.cfg.CUSTOM.TRACKING_GRADIENT_NORM:
         #    get_event_storage().put_scalar("grad_norm", get_gradient_norm(self))
-        x, vessel_dists, cvs_dists = self.preprocess_train_input(input_batch)
+        x, vessel_dists, cvs_dists, vessel_seg = self.preprocess_train_input(input_batch)
 
         targets = self.preprocess_train_labels(input_batch)
-        box_prediction_list, _ = self._forward_network(x, vessel_dists, cvs_dists)
+        box_prediction_list, _ = self._forward_network(
+            x, vessel_dists, cvs_dists, vessel_seg=vessel_seg
+        )
         loss_dict = self.compute_losses(box_prediction_list, targets)
         return loss_dict
 
@@ -215,6 +217,12 @@ class PARQ_Deformable_R(nn.Module):
         if self.use_cvs_info != "no":
             patches_cvs, _, _ = self.split_com.split(input_batch[0]["cvs_mask"])
             patches_cvs = np.concatenate(patches_cvs, axis=0)
+        patches_vessel_seg = None
+        if "vessel_seg" in input_batch[0]:
+            patches_vessel_seg_raw, _, _ = self.split_com.split(
+                input_batch[0]["vessel_seg"]
+            )
+            patches_vessel_seg = np.concatenate(patches_vessel_seg_raw, axis=0)
         outputs = []
         list_viz_outputs = []
 
@@ -232,8 +240,13 @@ class PARQ_Deformable_R(nn.Module):
                 )
             if self.use_cvs_info != "no":
                 cvs_data = torch.tensor(patches_cvs[i * bs : end], device=self.device)
+            vessel_seg_data = None
+            if patches_vessel_seg is not None:
+                vessel_seg_data = torch.tensor(
+                    patches_vessel_seg[i * bs : end], device=self.device
+                )
             prediction_dicts, viz_outputs = self._forward_network(
-                batch_data, vessel_data, cvs_data
+                batch_data, vessel_data, cvs_data, vessel_seg=vessel_seg_data
             )
 
             for prediction_dict in prediction_dicts:
@@ -244,6 +257,7 @@ class PARQ_Deformable_R(nn.Module):
             del batch_data
             del vessel_data
             del cvs_data
+            del vessel_seg_data
             torch.cuda.empty_cache()
 
             outputs.append(dets)
@@ -284,7 +298,7 @@ class PARQ_Deformable_R(nn.Module):
 
         return outputs
 
-    def _forward_network(self, x, vessel_dists=None, cvs_dists=None):
+    def _forward_network(self, x, vessel_dists=None, cvs_dists=None, vessel_seg=None):
         """
         This function receives a tensor x with various volumes to be
         classified and outputs a list of predictions produced by the PARQ
@@ -323,8 +337,17 @@ class PARQ_Deformable_R(nn.Module):
 
         """
         vessel_segs = None
-        if self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2 and vessel_dists is not None:
-            vessel_segs = (vessel_dists > 0).float()
+        if self.cfg.MODEL.DEFORMABLE.EFFICIENT_MASK_V2:
+            if vessel_seg is not None:
+                # Use loaded vessel segmentation (0=bg, 1=artery, 2=vein)
+                masking_type = self.cfg.MODEL.DEFORMABLE.VESSEL_MASKING_TYPE
+                if masking_type == "artery":
+                    vessel_segs = (vessel_seg == 1).float()
+                else:  # "all"
+                    vessel_segs = (vessel_seg > 0).float()
+            elif vessel_dists is not None:
+                # Fallback: derive from EDT (legacy path)
+                vessel_segs = (vessel_dists > 0).float()
         if self.use_vessel_info == "start":
             x = torch.cat((x, vessel_dists / self.cfg.DATA.PATCH_SIZE[0]), dim=1)
             vessel_dists = None  # no need to keep using this
@@ -548,15 +571,18 @@ class PARQ_Deformable_R(nn.Module):
             vessel_dists = torch.tensor(np.stack(vessel_dists, axis=0))
             vessel_dists = vessel_dists.to(self.device)
 
-            # vessel_dists = [s["vessel_edt"] for s in all_samples]
-            # vessel_dists = torch.stack(vessel_dists, dim=0)
-            # vessel_dists = vessel_dists.to(self.device)
         if self.use_cvs_info in ["start"]:
             cvs_dists = [s["cvs_mask"] for s in all_samples]
             cvs_dists = torch.tensor(np.stack(cvs_dists, axis=0))
             cvs_dists = cvs_dists.to(self.device)
 
-        return imgs, vessel_dists, cvs_dists
+        vessel_seg = None
+        if "vessel_seg" in all_samples[0]:
+            vessel_seg = [s["vessel_seg"] for s in all_samples]
+            vessel_seg = torch.tensor(np.stack(vessel_seg, axis=0))
+            vessel_seg = vessel_seg.to(self.device)
+
+        return imgs, vessel_dists, cvs_dists, vessel_seg
 
     def preprocess_train_labels(self, input_batches: list):
         """

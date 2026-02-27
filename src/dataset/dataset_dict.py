@@ -73,7 +73,12 @@ class CTADatasetFunction:
                 ))
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 record["cvs_file_name"] = resolve_path(os.path.join(data_dir_cfg.CVS_DIR, scan_id))
-            
+
+            if data_dir_cfg.VESSEL_SEG_DIR != "":
+                record["vessel_seg_file_name"] = resolve_path(
+                    os.path.join(data_dir_cfg.VESSEL_SEG_DIR, scan_id)
+                )
+
             dataset_dicts.append(record)
         if self.cfg.CUSTOM.DEBUG:
             return dataset_dicts[: self.cfg.CUSTOM.DEBUG_DATASET_SIZE]

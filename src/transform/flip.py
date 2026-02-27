@@ -52,6 +52,9 @@ class RandomFlip(AbstractTransform):
             if "cvs_mask" in sample:
                 sample["cvs_mask"] = np.flip(sample["cvs_mask"], flip_axis).copy()
 
+            if "vessel_seg" in sample:
+                sample["vessel_seg"] = np.flip(sample["vessel_seg"], flip_axis).copy()
+
             if "ctr" in sample:
                 coord = sample["ctr"].copy()
                 for axis in flip_axis:

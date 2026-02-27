@@ -71,6 +71,14 @@ class Pad(AbstractTransform):
                 else cvs_mask
             )
 
+        if "vessel_seg" in sample:
+            vessel_seg = sample["vessel_seg"]
+            sample["vessel_seg"] = (
+                np.pad(vessel_seg, pad, "constant", constant_values=0)
+                if (max(margin) > 0)
+                else vessel_seg
+            )
+
         if "ctr" in sample:
             sample["ctr"] = sample["ctr"].copy() + margin_lower
 

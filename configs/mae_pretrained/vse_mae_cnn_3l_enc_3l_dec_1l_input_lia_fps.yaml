@@ -1,0 +1,89 @@
+_BASE_: ../deform/deform_base_crop_vessel.yaml
+SEED: 2000 # run with 1 gpu
+
+MODEL:
+  NAME: "vse_mae_cnn_3l_enc_3l_dec_1l_input_lia_fps"
+  META_ARCHITECTURE: "PARQ_Deformable_R"
+  USE_VESSEL_INFO: "no"  # scan-only input (N_CHANNELS=1), no vessel EDT
+  USE_CVS_INFO: "no"
+  D_MODEL: 768  # matches MAE pretrained encoder (mae_lowres_l)
+
+  TRANS_MODEL:
+    USE_PRETRAINED_ENCODER: True
+    PRETRAINED_ENCODER_PATH: ""  # set to path of pretrained_encoder.pt
+
+  CONV_MODEL:
+    N_BLOCKS: [2, 3, 3, 3]
+    N_FILTERS: [64, 96, 128, 160]
+    STEM_FILTERS: 32
+    FIRST_STRIDE: (2, 2, 2)
+
+  DEFORMABLE:
+    DECODER_ONLY: False  # Enable encoder with full self-attention
+    USE_VESSEL_MASKED_ENCODER: True  # Use vessel-masked encoder
+    WITH_RECURRENCE: False
+    SHARED_CENTER_HEAD: True
+    USE_GLOBAL_PE: True
+    USE_DEFORM_ATTN: False
+    N_LEVELS: 3  # matches MAE (3 bottom levels)
+    LEVEL_SELECTION: "bottom"
+    N_ENC_LAYERS: 3  # matches MAE (3 encoder layers)
+    N_DEC_LAYERS: 1
+    EFFICIENT_MASK_V2: True
+    FIX_PE_SCALE: True
+    USE_CHECKPOINT: True
+    N_HEADS: 6  # matches MAE
+
+    FFN_DIM: 1024  # matches MAE (was 512 for base models)
+
+  PARQ_MODEL:
+    NUM_QUERIES: 16
+    PARQ_LOSS:
+      DO_CLF_FOCAL: False
+
+SOLVER:
+  SCANS_PER_BATCH: 2  # reduced from 4 due to larger model (768 vs 384)
+  SAMPLES_PER_SCAN: 2 # total 4
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE: "full_model"
+    CLIP_VALUE: 5.0
+  OPTIMIZER: "ADAMW"
+  AMP:
+    ENABLED: True
+  SCHED_CYCLE: 48000
+  BASE_LR: 0.0001
+  MIN_LR: 0.00001
+  MAX_ITER: 48000
+  FLAT_ITER: 48000
+  CHECKPOINT_PERIOD: 2000
+TEST:
+  PATCHES_PER_ITER: 1  # reduced due to larger model
+  NMS_TOPK: 40
+  EVALUATION_CHECKPOINTS: ["0031999", "0035999", "0039999", "0043999", "final"]
+
+DATALOADER:
+  NUM_WORKERS: 8
+DATA:
+  PATCH_SIZE: [256, 256, 256]
+  OVERLAP: [32, 32, 32]
+
+  N_CHANNELS: 1  # scan only, no vessel EDT (matches MAE pretraining)
+  CROPPING_AUG:
+    ROTATION: [90.0, 90.0, 90.0]
+    SPACING: [0.9, 1.8]
+    PADDED_REORIENT: False
+  DIR:
+    TRAIN:
+      SCAN_DIR: "internal_train/crop_0.4_compressed"
+      VESSEL_DIR: "internal_train/crop_0.4_vessel_edt_comp"
+      VESSEL_SEG_DIR: "internal_train/crop_0.4_vessel"
+      CVS_DIR: "internal_train/vein_mask_edt_comp"
+      ANNOTATION_FILE: "./labels/gt/fp_reviewed/annots/lia_with_fps.csv"
+
+    VAL:
+      SCAN_DIR: "internal_test/crop_0.4"
+      ANNOTATION_FILE: "./labels/gt/internal_test_crop_0.4.csv"
+      VESSEL_DIR: "internal_test/crop_0.4_vessel_edt_comp"
+      VESSEL_SEG_DIR: "internal_test/crop_0.4_vessel"
+      CVS_DIR: "internal_test/cvs_mask_edt_comp"

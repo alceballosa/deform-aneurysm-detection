@@ -129,6 +129,12 @@ class RandomRotate(AbstractTransform):
                 )
                 sample["cvs_mask"] = cvs_mask_t
 
+            if "vessel_seg" in sample:
+                vessel_seg_t = self._apply_transformation(
+                    sample["vessel_seg"], transform_param_list, 0
+                )
+                sample["vessel_seg"] = vessel_seg_t
+
         return sample
 
 
@@ -177,6 +183,12 @@ class RandomTranspose(AbstractTransform):
                 for transpose in transpose_list:
                     cvs_mask_t = np.transpose(cvs_mask_t, transpose)
                 sample["cvs_mask"] = cvs_mask_t
+
+            if "vessel_seg" in sample:
+                vessel_seg_t = sample["vessel_seg"]
+                for transpose in transpose_list:
+                    vessel_seg_t = np.transpose(vessel_seg_t, transpose)
+                sample["vessel_seg"] = vessel_seg_t
 
             if "ctr" in sample:
                 ctr_t = sample["ctr"].copy()

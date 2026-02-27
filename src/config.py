@@ -91,6 +91,7 @@ def add_config(cfg):
     cfg.MODEL.DEFORMABLE.FIXED_ATTENTION = False
     cfg.MODEL.DEFORMABLE.NORMALIZE_PE_01 = False  # Normalize PE coords to [0,1] for Conditional DETR consistency
     cfg.MODEL.DEFORMABLE.USE_CONDITIONAL_DECODER = False  # Use Conditional DETR decoder (spatial/content cross-attn decomposition)
+    cfg.MODEL.DEFORMABLE.VESSEL_MASKING_TYPE = "all"  # "all" (artery+vein) or "artery" (artery only)
 
 
     # the ratio of the original image size to the parq volume size
@@ -166,12 +167,14 @@ def add_config(cfg):
     cfg.DATA.DIR.TRAIN.LABEL_DIR = "" 
     cfg.DATA.DIR.TRAIN.ANNOTATION_FILE = ""
     cfg.DATA.DIR.TRAIN.VESSEL_DIR = ""
+    cfg.DATA.DIR.TRAIN.VESSEL_SEG_DIR = ""
     cfg.DATA.DIR.TRAIN.CVS_DIR = ""
     cfg.DATA.DIR.VAL = CN()
     cfg.DATA.DIR.VAL.SCAN_DIR = ""
     cfg.DATA.DIR.VAL.ANNOTATION_FILE = ""
     cfg.DATA.DIR.VAL.LABEL_DIR = "" 
     cfg.DATA.DIR.VAL.VESSEL_DIR = ""
+    cfg.DATA.DIR.VAL.VESSEL_SEG_DIR = ""
     cfg.DATA.DIR.VAL.CVS_DIR = ""
 
     cfg.DATA.CROPPING_AUG = CN()

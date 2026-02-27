@@ -216,6 +216,11 @@ class CTADatasetMapper:
 
             if self.cfg.MODEL.USE_CVS_INFO != "no":
                 dataset_dict["cvs_mask"] = torch.tensor(data["cvs_mask"], device="cpu")
+
+            if "vessel_seg" in data:
+                dataset_dict["vessel_seg"] = torch.tensor(
+                    data["vessel_seg"], device="cpu"
+                )
         return dataset_dict
 
     def load_data(self, dataset_dict):
@@ -281,17 +286,24 @@ class CTADatasetMapper:
             outputs["all_rad"] = all_rad
             outputs["all_cls"] = all_cls
 
-        if self.cfg.MODEL.USE_VESSEL_INFO == "no":
-            return outputs
+        if self.cfg.MODEL.USE_VESSEL_INFO != "no":
+            vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
+            vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
+            outputs["vessel_edt"] = vessel
 
-        vessel_header = maybe_read_from_ram(dataset_dict["vessel_file_name"])
-        vessel = sitk.GetArrayFromImage(vessel_header).astype("float32")
-        outputs["vessel_edt"] = vessel
+            if self.cfg.MODEL.USE_CVS_INFO != "no":
+                cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])
+                cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
+                outputs["cvs_mask"] = cvs
 
-        if self.cfg.MODEL.USE_CVS_INFO != "no":
-            cvs_header = maybe_read_from_ram(dataset_dict["cvs_file_name"])
-            cvs = sitk.GetArrayFromImage(cvs_header).astype("float32")
-            outputs["cvs_mask"] = cvs
+        if "vessel_seg_file_name" in dataset_dict:
+            vessel_seg_header = maybe_read_from_ram(
+                dataset_dict["vessel_seg_file_name"]
+            )
+            vessel_seg = sitk.GetArrayFromImage(vessel_seg_header).astype(
+                "float32"
+            )
+            outputs["vessel_seg"] = vessel_seg
 
         return outputs
 
